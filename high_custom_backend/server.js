@@ -1,0 +1,89 @@
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+
+const connectDB = require("./config/db");
+const root = require("./routes/index");
+const path = require("path");
+
+dotenv.config();
+
+const app = express();
+
+// ==========================================
+// MIDDLEWARE
+// ==========================================
+
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ==========================================
+// TEST ROUTE
+// ==========================================
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "High Custom Jewellers API is running",
+    server: "Node.js + Express",
+  });
+});
+
+// ==========================================
+// API ROUTES
+// ==========================================
+
+app.use("/api", root);
+
+// ==========================================
+// ERROR HANDLER
+// ==========================================
+
+app.use((err, req, res, next) => {
+  console.error("SERVER ERROR:", err);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+  });
+});
+
+// ==========================================
+// START SERVER
+// ==========================================
+
+const PORT = process.env.PORT || 3000;
+
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log("");
+      console.log("======================================");
+      console.log("HIGH CUSTOM JEWELLERS SERVER");
+      console.log("======================================");
+      console.log(`Local:   http://localhost:${PORT}`);
+      console.log(`Network: http://192.168.1.15:${PORT}`);
+      console.log(`API:     http://192.168.1.15:${PORT}/api`);
+      console.log("======================================");
+      console.log("Server is ready...");
+      console.log("");
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
