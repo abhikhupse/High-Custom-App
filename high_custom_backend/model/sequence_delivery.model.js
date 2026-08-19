@@ -144,6 +144,11 @@ const sequenceDeliverySchema = new mongoose.Schema(
       default: null,
     },
 
+    openedCount: {
+      type: Number,
+      default: 0,
+    },
+
     // ============================================================
     // CLICK TRACKING
     // ============================================================
