@@ -340,13 +340,21 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
     // ========================================================
 
     console.log("==============================================");
+
     console.log("SEQUENCE DELIVERY SUCCESS");
+
     console.log("Lead:", leadEmail);
+
     console.log("Sequence:", sequence._id);
+
     console.log("Step:", sequence.step);
+
     console.log("Variant:", sequence.variant);
+
     console.log("Delivery:", delivery._id);
+
     console.log("Message ID:", result.messageId);
+
     console.log("==============================================");
 
     // ========================================================
@@ -412,14 +420,23 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
     // ========================================================
 
     console.error("==============================================");
+
     console.error("SEQUENCE DELIVERY FAILED");
+
     console.error("Lead:", leadEmail);
+
     console.error("Sequence:", sequence._id);
+
     console.error("Step:", sequence.step);
+
     console.error("Variant:", sequence.variant);
+
     console.error("Delivery:", delivery._id);
+
     console.error("Failure Type:", failureType);
+
     console.error("Failure Reason:", failureReason);
+
     console.error("==============================================");
 
     // ========================================================
