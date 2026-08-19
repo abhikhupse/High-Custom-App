@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const root = require("./routes/index");
 const path = require("path");
+const { startSequenceJob } = require("./jobs/sequence.job");
 
 dotenv.config();
 
@@ -44,6 +45,8 @@ app.get("/", (req, res) => {
 // ==========================================
 
 app.use("/api", root);
+
+startSequenceJob();
 
 // ==========================================
 // ERROR HANDLER

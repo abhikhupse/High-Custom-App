@@ -1,0 +1,468 @@
+const { google } = require("googleapis");
+
+const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
+
+const createGoogleOAuthClient = require("../config/google_oauth");
+
+const { buildSequenceEmail } = require("../templates/sequenceEmail.template");
+
+// ============================================================
+// BASE64 URL ENCODE
+// ============================================================
+
+function encodeBase64Url(input) {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+// ============================================================
+// EMAIL VALIDATION
+// ============================================================
+
+function isValidEmail(email) {
+  if (!email || typeof email !== "string") {
+    return false;
+  }
+
+  const normalizedEmail = email.trim();
+
+  // Basic email validation
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+  return emailRegex.test(normalizedEmail);
+}
+
+// ============================================================
+// CREATE MIME MESSAGE
+// ============================================================
+
+function createMimeMessage({ from, to, subject, html }) {
+  const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/html; charset=UTF-8",
+    "",
+    html,
+  ].join("\r\n");
+
+  return encodeBase64Url(message);
+}
+
+// ============================================================
+// DETECT EMAIL FAILURE TYPE
+// ============================================================
+
+function getFailureType(error) {
+  const response = error?.response?.data;
+
+  const message =
+    response?.error?.message || response?.message || error?.message || "";
+
+  const lowerMessage = String(message).toLowerCase();
+
+  // ==========================================================
+  // INVALID RECIPIENT
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("invalid recipient") ||
+    lowerMessage.includes("invalid email") ||
+    lowerMessage.includes("recipient address") ||
+    lowerMessage.includes("bad address") ||
+    lowerMessage.includes("invalid argument") ||
+    lowerMessage.includes("malformed") ||
+    lowerMessage.includes("email address")
+  ) {
+    return "invalid_recipient";
+  }
+
+  // ==========================================================
+  // INVALID DOMAIN
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("domain") &&
+    (lowerMessage.includes("not found") ||
+      lowerMessage.includes("invalid") ||
+      lowerMessage.includes("does not exist"))
+  ) {
+    return "invalid_domain";
+  }
+
+  // ==========================================================
+  // MAILBOX FULL
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("mailbox full") ||
+    lowerMessage.includes("quota exceeded") ||
+    lowerMessage.includes("over quota") ||
+    lowerMessage.includes("storage quota")
+  ) {
+    return "mailbox_full";
+  }
+
+  // ==========================================================
+  // BLOCKED / REJECTED
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("blocked") ||
+    lowerMessage.includes("rejected") ||
+    lowerMessage.includes("not accepted") ||
+    lowerMessage.includes("denied")
+  ) {
+    return "blocked";
+  }
+
+  // ==========================================================
+  // TEMPORARY FAILURE
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("temporarily") ||
+    lowerMessage.includes("try again later") ||
+    lowerMessage.includes("temporary failure") ||
+    lowerMessage.includes("rate limit") ||
+    lowerMessage.includes("too many requests")
+  ) {
+    return "temporary_failure";
+  }
+
+  // ==========================================================
+  // AUTHENTICATION
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("unauthorized") ||
+    lowerMessage.includes("invalid authentication") ||
+    lowerMessage.includes("invalid credentials") ||
+    lowerMessage.includes("authentication")
+  ) {
+    return "authentication_error";
+  }
+
+  // ==========================================================
+  // PERMISSION
+  // ==========================================================
+
+  if (
+    lowerMessage.includes("permission") ||
+    lowerMessage.includes("forbidden") ||
+    lowerMessage.includes("insufficient")
+  ) {
+    return "permission_error";
+  }
+
+  // ==========================================================
+  // DEFAULT
+  // ==========================================================
+
+  return "unknown";
+}
+
+// ============================================================
+// CREATE STRUCTURED ERROR
+// ============================================================
+
+function createEmailError({ message, failureType, failureReason }) {
+  const error = new Error(message || failureReason || "Email sending failed");
+
+  error.failureType = failureType || "unknown";
+
+  error.failureReason = failureReason || message || "Email sending failed";
+
+  return error;
+}
+
+// ============================================================
+// SEND SEQUENCE EMAIL
+// ============================================================
+
+async function sendSequenceEmail({
+  userId,
+  sequence,
+  lead,
+  trackingUrl,
+  baseUrl,
+}) {
+  console.log("==============================================");
+  console.log("GMAIL SEND STARTED");
+  console.log("USER:", userId);
+  console.log("LEAD:", lead?.email);
+  console.log("==============================================");
+
+  // ==========================================================
+  // CHECK LEAD EMAIL
+  // ==========================================================
+
+  const leadEmail = typeof lead?.email === "string" ? lead.email.trim() : "";
+
+  if (!leadEmail) {
+    const error = createEmailError({
+      message: "Lead email address is missing.",
+      failureType: "invalid_recipient",
+      failureReason: "Lead email address is missing.",
+    });
+
+    console.error("INVALID RECIPIENT:", error.failureReason);
+
+    throw error;
+  }
+
+  // ==========================================================
+  // VALIDATE EMAIL FORMAT
+  // ==========================================================
+
+  if (!isValidEmail(leadEmail)) {
+    const error = createEmailError({
+      message: `Invalid email address: ${leadEmail}`,
+      failureType: "invalid_recipient",
+      failureReason: `Invalid email address: ${leadEmail}`,
+    });
+
+    console.error("==============================================");
+    console.error("INVALID EMAIL ADDRESS");
+    console.error("TO:", leadEmail);
+    console.error("TYPE:", error.failureType);
+    console.error("REASON:", error.failureReason);
+    console.error("==============================================");
+
+    throw error;
+  }
+
+  // ==========================================================
+  // GET GMAIL INTEGRATION
+  // ==========================================================
+
+  const integration = await GMAIL_INTEGRATION.findOne({
+    userId,
+  });
+
+  if (!integration) {
+    const error = createEmailError({
+      message: "Gmail is not connected for this user.",
+      failureType: "gmail_not_connected",
+      failureReason: "Gmail is not connected for this user.",
+    });
+
+    throw error;
+  }
+
+  console.log("Gmail account:", integration.email);
+
+  // ==========================================================
+  // REFRESH TOKEN REQUIRED
+  // ==========================================================
+
+  if (!integration.refreshToken) {
+    const error = createEmailError({
+      message: "Gmail refresh token is missing. Please reconnect Gmail.",
+      failureType: "authentication_error",
+      failureReason: "Gmail refresh token is missing. Please reconnect Gmail.",
+    });
+
+    throw error;
+  }
+
+  // ==========================================================
+  // CREATE OAUTH CLIENT
+  // ==========================================================
+
+  const oauth2Client = createGoogleOAuthClient();
+
+  oauth2Client.setCredentials({
+    refresh_token: integration.refreshToken,
+  });
+
+  // ==========================================================
+  // GET ACCESS TOKEN
+  // ==========================================================
+
+  let accessToken;
+
+  try {
+    const tokenResponse = await oauth2Client.getAccessToken();
+
+    accessToken = tokenResponse?.token;
+  } catch (error) {
+    console.error("GMAIL TOKEN ERROR:", error.response?.data || error.message);
+
+    const failureReason =
+      error.response?.data?.error?.message ||
+      error.message ||
+      "Unable to refresh Gmail access token.";
+
+    throw createEmailError({
+      message: failureReason,
+      failureType: "authentication_error",
+      failureReason,
+    });
+  }
+
+  if (!accessToken) {
+    throw createEmailError({
+      message: "Unable to get Gmail access token. Please reconnect Gmail.",
+      failureType: "authentication_error",
+      failureReason:
+        "Unable to get Gmail access token. Please reconnect Gmail.",
+    });
+  }
+
+  // ==========================================================
+  // SET ACCESS TOKEN
+  // ==========================================================
+
+  oauth2Client.setCredentials({
+    refresh_token: integration.refreshToken,
+    access_token: accessToken,
+  });
+
+  // ==========================================================
+  // BUILD HTML
+  // ==========================================================
+
+  const html = buildSequenceEmail({
+    sequence,
+    lead: {
+      ...lead,
+      email: leadEmail,
+    },
+    trackingUrl,
+    baseUrl,
+  });
+
+  // ==========================================================
+  // CREATE MIME
+  // ==========================================================
+
+  const raw = createMimeMessage({
+    from: integration.email,
+    to: leadEmail,
+    subject: sequence.subject,
+    html,
+  });
+
+  // ==========================================================
+  // CREATE GMAIL CLIENT
+  // ==========================================================
+
+  const gmail = google.gmail({
+    version: "v1",
+    auth: oauth2Client,
+  });
+
+  // ==========================================================
+  // SEND EMAIL
+  // ==========================================================
+
+  let response;
+
+  try {
+    response = await gmail.users.messages.send({
+      userId: "me",
+
+      requestBody: {
+        raw,
+      },
+    });
+  } catch (error) {
+    const gmailError = error?.response?.data || {};
+
+    const failureReason =
+      gmailError?.error?.message ||
+      gmailError?.message ||
+      error?.message ||
+      "Gmail failed to send email.";
+
+    const failureType = getFailureType(error);
+
+    console.error("==============================================");
+    console.error("GMAIL SEND FAILED");
+    console.error("TO:", leadEmail);
+    console.error("TYPE:", failureType);
+    console.error("REASON:", failureReason);
+    console.error("==============================================");
+
+    throw createEmailError({
+      message: failureReason,
+      failureType,
+      failureReason,
+    });
+  }
+
+  // ==========================================================
+  // VERIFY GMAIL RESPONSE
+  // ==========================================================
+
+  if (!response?.data?.id) {
+    const error = createEmailError({
+      message:
+        "Gmail did not return a message ID. Email was not confirmed as sent.",
+      failureType: "unknown",
+      failureReason:
+        "Gmail did not return a message ID. Email was not confirmed as sent.",
+    });
+
+    throw error;
+  }
+
+  // ==========================================================
+  // SAVE NEW ACCESS TOKEN
+  // ==========================================================
+
+  if (oauth2Client.credentials.access_token) {
+    integration.accessToken = oauth2Client.credentials.access_token;
+  }
+
+  // ==========================================================
+  // SAVE TOKEN EXPIRY
+  // ==========================================================
+
+  if (oauth2Client.credentials.expiry_date) {
+    integration.expiryDate = oauth2Client.credentials.expiry_date;
+  }
+
+  await integration.save();
+
+  // ==========================================================
+  // SUCCESS
+  // ==========================================================
+
+  console.log("==============================================");
+  console.log("EMAIL ACCEPTED BY GMAIL");
+  console.log("TO:", leadEmail);
+  console.log("Message ID:", response.data.id);
+  console.log("Thread ID:", response.data.threadId);
+  console.log("==============================================");
+
+  return {
+    success: true,
+
+    messageId: response.data.id,
+
+    threadId: response.data.threadId,
+
+    from: integration.email,
+
+    to: leadEmail,
+
+    status: "sent",
+  };
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+
+module.exports = {
+  sendSequenceEmail,
+  isValidEmail,
+  getFailureType,
+};

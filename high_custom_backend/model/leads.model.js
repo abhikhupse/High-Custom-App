@@ -8,7 +8,7 @@ const leadsSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    id: {},
+    // id: {},
 
     firstName: {
       type: String,

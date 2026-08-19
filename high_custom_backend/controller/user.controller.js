@@ -530,7 +530,7 @@ exports.login = async (req, res) => {
         employerCode: user.employerCode,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" },
+      // { expiresIn: "24h" },
     );
 
     // Update the user's login status

@@ -1,8 +1,13 @@
 const SEQUENCE_COLLECTION = require("../model/sequence.model");
+const LEADS_COLLECTION = require("../model/leads.model");
+const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const crypto = require("crypto");
-const { query } = require("../routes/sequence.routes");
 
+const { processSequencesForUser } = require("../jobs/sequence.job");
+
+// ============================================================
 // CREATE SEQUENCE
+// ============================================================
 
 exports.createSequence = async (req, res) => {
   try {
@@ -10,7 +15,6 @@ exports.createSequence = async (req, res) => {
     // GET AUTHENTICATED USER
     // ==========================================================
 
-    // Get userId from authenticated user instead of req.body.
     const userId = req.user?.id;
 
     if (!userId) {
@@ -46,16 +50,6 @@ exports.createSequence = async (req, res) => {
     // GET MULTER FILES
     // ==========================================================
 
-    /*
-      Multer upload.fields() creates req.files like:
-
-      req.files = {
-        brandLogo: [file],
-        heroImage: [file],
-        attachment: [file]
-      }
-    */
-
     const brandLogoFile = req.files?.brandLogo?.[0] || null;
 
     const heroImageFile = req.files?.heroImage?.[0] || null;
@@ -73,7 +67,6 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // Convert step to number
     const stepNumber = Number(step);
 
     if (!Number.isInteger(stepNumber) || stepNumber < 1) {
@@ -210,7 +203,6 @@ exports.createSequence = async (req, res) => {
 
     const trackingData = {
       enabled: tracking?.enabled ?? true,
-
       trackingId: tracking?.trackingId || crypto.randomUUID(),
     };
 
@@ -221,10 +213,6 @@ exports.createSequence = async (req, res) => {
     const sequence = await SEQUENCE_COLLECTION.create({
       userId,
 
-      // ========================================================
-      // BASIC INFORMATION
-      // ========================================================
-
       step: stepNumber,
 
       gapDays: gapDaysNumber,
@@ -233,59 +221,28 @@ exports.createSequence = async (req, res) => {
 
       type,
 
-      // ========================================================
-      // SUBJECT
-      // ========================================================
-
       subject: formattedSubject,
-
-      // ========================================================
-      // BRAND IDENTITY
-      // ========================================================
 
       brand: {
         logoUrl: logoUrl || brand?.logoUrl || null,
-
         logoPosition: brand?.logoPosition || "Center",
       },
 
-      // ========================================================
-      // HERO IMAGE
-      // ========================================================
-
       heroImage: {
         url: heroUrl || heroImage?.url || null,
-
         link: heroImage?.link || null,
       },
 
-      // ========================================================
-      // EMAIL CONTENT
-      // ========================================================
-
       content,
-
-      // ========================================================
-      // EDITOR
-      // ========================================================
 
       editor: {
         font: editor?.font || "Arial",
-
         fontSize: editor?.fontSize || "16px",
-
         textColor: editor?.textColor || "Black",
-
         bold: editor?.bold ?? false,
-
         italic: editor?.italic ?? false,
-
         underline: editor?.underline ?? false,
       },
-
-      // ========================================================
-      // ATTACHMENT
-      // ========================================================
 
       attachment: {
         name: attachmentFile
@@ -301,74 +258,34 @@ exports.createSequence = async (req, res) => {
         size: attachmentFile ? attachmentFile.size : attachment?.size || 0,
       },
 
-      // ========================================================
-      // ACTION LINKS
-      // ========================================================
-
       actionLinks: {
         whatsapp: actionLinks?.whatsapp || null,
       },
 
-      // ========================================================
-      // TRACKING
-      // ========================================================
-
       tracking: trackingData,
-
-      // ========================================================
-      // STATUS
-      // ========================================================
 
       status: status || "draft",
 
-      // ========================================================
-      // SCHEDULING
-      // ========================================================
-
       scheduledAt: scheduledAt || null,
-
-      // ========================================================
-      // STATISTICS
-      // ========================================================
 
       statistics: {
         sent: statistics?.sent || 0,
-
         delivered: statistics?.delivered || 0,
-
         opened: statistics?.opened || 0,
-
         clicked: statistics?.clicked || 0,
-
         failed: statistics?.failed || 0,
-
         interested: statistics?.interested || 0,
-
         notInterested: statistics?.notInterested || 0,
       },
     });
 
-    // ==========================================================
-    // SUCCESS RESPONSE
-    // ==========================================================
-
     return res.status(201).json({
       success: true,
-
       message: "Sequence Created Successfully",
-
       data: sequence,
     });
   } catch (error) {
-    // ==========================================================
-    // ERROR LOG
-    // ==========================================================
-
     console.error("Error while creating Sequence:", error);
-
-    // ==========================================================
-    // MULTER FILE SIZE ERROR
-    // ==========================================================
 
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
@@ -377,10 +294,6 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // MULTER FILE COUNT ERROR
-    // ==========================================================
-
     if (error.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
         success: false,
@@ -388,25 +301,12 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // MULTER FIELD ERROR
-    // ==========================================================
-
     if (error.code === "LIMIT_UNEXPECTED_FILE") {
       return res.status(400).json({
         success: false,
         message: "Unexpected file field",
       });
     }
-
-    // ==========================================================
-    // MULTER FILE TYPE / CUSTOM ERROR
-    // ==========================================================
-
-    /*
-      This handles errors thrown from your
-      upload.middleware.js fileFilter.
-    */
 
     if (
       error.message &&
@@ -421,20 +321,12 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // DUPLICATE KEY ERROR
-    // ==========================================================
-
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: "A sequence with this step and variant already exists",
       });
     }
-
-    // ==========================================================
-    // MONGOOSE VALIDATION ERROR
-    // ==========================================================
 
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
@@ -446,10 +338,6 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // CAST ERROR
-    // ==========================================================
-
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
@@ -457,14 +345,268 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // GENERAL SERVER ERROR
-    // ==========================================================
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// GET SEQUENCES
+// ============================================================
+
+// ============================================================
+// GET TRACKING SUMMARY
+// ============================================================
+
+exports.getTrackingSummary = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User Authentication Required",
+      });
+    }
+
+    // ========================================================
+    // DATE FILTER
+    // ========================================================
+
+    const { startDate, endDate } = req.query;
+
+    let start;
+    let end;
+
+    // ========================================================
+    // START DATE
+    // ========================================================
+
+    if (startDate) {
+      start = new Date(startDate);
+
+      if (isNaN(start.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid startDate.",
+        });
+      }
+
+      start.setHours(0, 0, 0, 0);
+    }
+
+    // ========================================================
+    // END DATE
+    // ========================================================
+
+    if (endDate) {
+      end = new Date(endDate);
+
+      if (isNaN(end.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid endDate.",
+        });
+      }
+
+      end.setHours(23, 59, 59, 999);
+    }
+
+    // ========================================================
+    // BASE DELIVERY QUERY
+    // ========================================================
+
+    const deliveryQuery = {
+      userId,
+    };
+
+    // ========================================================
+    // DATE QUERY
+    // ========================================================
+
+    if (start || end) {
+      deliveryQuery.createdAt = {};
+
+      if (start) {
+        deliveryQuery.createdAt.$gte = start;
+      }
+
+      if (end) {
+        deliveryQuery.createdAt.$lte = end;
+      }
+    }
+
+    // ========================================================
+    // GET DELIVERIES
+    // ========================================================
+
+    const deliveries = await SEQUENCE_DELIVERY.find(deliveryQuery).lean();
+
+    // ========================================================
+    // CALCULATE STATISTICS
+    // ========================================================
+
+    let totalMails = 0;
+    let sent = 0;
+    let failed = 0;
+    let opened = 0;
+    let pending = 0;
+
+    for (const delivery of deliveries) {
+      totalMails++;
+
+      // ------------------------------------------------------
+      // SENT
+      // ------------------------------------------------------
+
+      if (delivery.status === "sent") {
+        sent++;
+      }
+
+      // ------------------------------------------------------
+      // FAILED
+      // ------------------------------------------------------
+
+      if (delivery.status === "failed") {
+        failed++;
+      }
+
+      // ------------------------------------------------------
+      // PENDING
+      // ------------------------------------------------------
+
+      if (delivery.status === "pending") {
+        pending++;
+      }
+
+      // ------------------------------------------------------
+      // OPENED
+      // ------------------------------------------------------
+
+      if (delivery.openedAt) {
+        opened++;
+      }
+    }
+
+    // ========================================================
+    // TOTAL LEADS
+    // ========================================================
+
+    const totalLeads = await LEADS_COLLECTION.countDocuments({
+      userId,
+    });
+
+    // ========================================================
+    // TODAY LEADS
+    // ========================================================
+
+    const now = new Date();
+
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+
+    const todayEnd = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    const todayLeads = await LEADS_COLLECTION.countDocuments({
+      userId,
+
+      createdAt: {
+        $gte: todayStart,
+        $lte: todayEnd,
+      },
+    });
+
+    // ========================================================
+    // ACTIVE SEQUENCES
+    // ========================================================
+
+    const activeSequences = await SEQUENCE_COLLECTION.countDocuments({
+      userId,
+      status: "active",
+    });
+
+    // ========================================================
+    // CLICKED
+    // ========================================================
+
+    // Currently your delivery model does not show a click
+    // tracking field in the code you sent.
+    //
+    // Keep this at 0 until click tracking is implemented.
+
+    const clicked = 0;
+
+    // ========================================================
+    // INTERESTED
+    // ========================================================
+
+    // Not implemented yet in your delivery model.
+    const interested = 0;
+
+    // ========================================================
+    // NOT INTERESTED
+    // ========================================================
+
+    // Not implemented yet in your delivery model.
+    const notInterested = 0;
+
+    // ========================================================
+    // RESPONSE
+    // ========================================================
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Tracking summary fetched successfully",
+
+      data: {
+        totalMails,
+
+        totalLeads,
+
+        todayLeads,
+
+        sent,
+
+        failed,
+
+        opened,
+
+        clicked,
+
+        pending,
+
+        interested,
+
+        notInterested,
+
+        activeSequences,
+      },
+    });
+  } catch (error) {
+    console.error("Error while fetching tracking summary:", error);
 
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-
       error: error.message,
     });
   }
@@ -481,10 +623,6 @@ exports.getSequence = async (req, res) => {
       });
     }
 
-    // ============================================================
-    // PAGINATION
-    // ============================================================
-
     const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
 
     const limit = Math.min(
@@ -494,27 +632,15 @@ exports.getSequence = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-    // ============================================================
-    // SEARCH
-    // ============================================================
-
     const search =
       typeof req.query.search === "string" ? req.query.search.trim() : "";
 
     const status =
       typeof req.query.status === "string" ? req.query.status.trim() : "";
 
-    // ============================================================
-    // QUERY
-    // ============================================================
-
     const query = {
-      userId: userId,
+      userId,
     };
-
-    // ============================================================
-    // SEARCH FILTER
-    // ============================================================
 
     if (search) {
       query.$or = [
@@ -545,23 +671,11 @@ exports.getSequence = async (req, res) => {
       ];
     }
 
-    // ============================================================
-    // STATUS FILTER
-    // ============================================================
-
     if (status) {
       query.status = status;
     }
 
-    // ============================================================
-    // TOTAL COUNT
-    // ============================================================
-
     const total = await SEQUENCE_COLLECTION.countDocuments(query);
-
-    // ============================================================
-    // FETCH DATA
-    // ============================================================
 
     const sequences = await SEQUENCE_COLLECTION.find(query)
       .sort({
@@ -572,15 +686,7 @@ exports.getSequence = async (req, res) => {
       .limit(limit)
       .lean();
 
-    // ============================================================
-    // PAGINATION
-    // ============================================================
-
     const totalPages = Math.ceil(total / limit);
-
-    // ============================================================
-    // RESPONSE
-    // ============================================================
 
     return res.status(200).json({
       success: true,
@@ -608,6 +714,45 @@ exports.getSequence = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// MANUALLY RUN SEQUENCE JOB
+// ============================================================
+
+exports.runSequence = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication required",
+      });
+    }
+
+    console.log("==============================================");
+    console.log("MANUAL SEQUENCE JOB REQUEST");
+    console.log("USER:", userId);
+    console.log("TIME:", new Date().toISOString());
+    console.log("==============================================");
+
+    const result = await processSequencesForUser(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Sequence job executed successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Manual sequence job error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to execute sequence job",
       error: error.message,
     });
   }

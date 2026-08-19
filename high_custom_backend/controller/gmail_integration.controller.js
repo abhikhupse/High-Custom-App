@@ -55,6 +55,11 @@ exports.connectGmail = async (req, res) => {
 
     const oauth2Client = createGoogleOAuthClient();
 
+    console.log("====================================");
+    console.log("GOOGLE CLIENT ID:", process.env.GOOGLE_CLIENT_ID);
+    console.log("GOOGLE REDIRECT URI:", process.env.GOOGLE_REDIRECT_URI);
+    console.log("====================================");
+
     // ========================================================
     // GOOGLE AUTH URL
     // ========================================================

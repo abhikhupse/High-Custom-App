@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../../services/leads_api.dart';
+import '../../../services/sequence_api.dart';
+
+// ============================================================
+// LEADS SCREEN
+// ============================================================
 
 class LeadsScreen extends StatefulWidget {
   const LeadsScreen({super.key});
@@ -13,11 +19,20 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF315BEF);
-  static const Color backgroundColor = Color(0xFFF5F7FA);
-  static const Color textColor = Color(0xFF101828);
-  static const Color secondaryTextColor = Color(0xFF667085);
-  static const Color borderColor = Color(0xFFD0D5DD);
+  static const Color primaryColor =
+      Color(0xFF4F46E5);
+
+  static const Color backgroundColor =
+      Color(0xFFF8FAFC);
+
+  static const Color textColor =
+      Color(0xFF101828);
+
+  static const Color secondaryTextColor =
+      Color(0xFF667085);
+
+  static const Color borderColor =
+      Color(0xFFE4E7EC);
 
   // ============================================================
   // CONTROLLERS
@@ -39,35 +54,36 @@ class _LeadsScreenState extends State<LeadsScreen> {
       TextEditingController();
 
   // ============================================================
-  // PAGINATION
+  // STATE
   // ============================================================
 
-  int entriesPerPage = 10;
-  int currentPage = 1;
+  bool isLoading = true;
 
-  // ============================================================
-  // DATE FILTER
-  // ============================================================
+  bool isAddingLead = false;
 
-  DateTime? fromDate;
-  DateTime? toDate;
+  bool isUpdatingLead = false;
+
+  bool isDeletingLead = false;
 
   bool todayOnly = false;
 
-  // ============================================================
-  // ADD / EDIT LEAD
-  // ============================================================
+  bool trackingEnabled = true;
+
+  int currentPage = 1;
+
+  int entriesPerPage = 10;
+
+  DateTime? fromDate;
+
+  DateTime? toDate;
 
   String selectedType = 'Email';
 
-  bool trackingEnabled = true;
-  bool isAddingLead = false;
-
   // ============================================================
-  // DUMMY LEADS
+  // LEADS DATA
   // ============================================================
 
- final List<Map<String, dynamic>> leads = [];
+  final List<Map<String, dynamic>> leads = [];
 
   // ============================================================
   // INIT
@@ -77,8 +93,160 @@ class _LeadsScreenState extends State<LeadsScreen> {
   void initState() {
     super.initState();
 
-    searchController.addListener(_onSearchChanged);
+    searchController.addListener(
+      _onSearchChanged,
+    );
+
+    _loadLeads();
   }
+
+  // ============================================================
+  // LOAD LEADS
+  // ============================================================
+
+  Future<void> _loadLeads({
+    bool showLoader = true,
+  }) async {
+    if (showLoader && mounted) {
+      setState(() {
+        isLoading = true;
+      });
+    }
+
+    try {
+      final response =
+          await LeadsApi.getLeads();
+
+      if (!mounted) return;
+
+      if (response['success'] == true) {
+        final serverLeads =
+            response['leads'];
+
+        if (serverLeads is List) {
+          setState(() {
+            leads.clear();
+
+            for (final item in serverLeads) {
+              if (item is Map) {
+                leads.add(
+                  _normalizeLead(
+                    Map<String, dynamic>.from(item),
+                  ),
+                );
+              }
+            }
+
+            currentPage = 1;
+          });
+        } else {
+          setState(() {
+            leads.clear();
+            currentPage = 1;
+          });
+        }
+      } else {
+        _showMessage(
+          response['message']?.toString() ??
+              'Unable to load leads.',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        _showMessage(
+          'Unable to load leads.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // NORMALIZE LEAD
+  // ============================================================
+
+  Map<String, dynamic> _normalizeLead(
+    Map<String, dynamic> lead,
+  ) {
+    final addedDate =
+        _parseDate(
+      lead['addedDate'] ??
+          lead['createdAt'],
+    );
+
+    final updatedDate =
+        _parseDate(
+      lead['updatedDate'] ??
+          lead['updatedAt'],
+    );
+
+    final tracking =
+        lead['tracking'] == true;
+
+    return {
+      '_id':
+          lead['_id'] ??
+          lead['id'] ??
+          '',
+
+      'email':
+          lead['email']?.toString() ?? '',
+
+      'firstName':
+          lead['firstName']?.toString() ?? '',
+
+      'lastName':
+          lead['lastName']?.toString() ?? '',
+
+      'company':
+          lead['company']?.toString() ?? '',
+
+      'type':
+          lead['type']?.toString() ?? 'Email',
+
+      'tracking':
+          tracking,
+
+      'trackingStatus':
+          lead['trackingStatus']?.toString() ??
+              (tracking ? 'Sent' : 'Skip'),
+
+      'addedDate':
+          addedDate ?? DateTime.now(),
+
+      'updatedDate':
+          updatedDate,
+    };
+  }
+
+  // ============================================================
+  // PARSE DATE
+  // ============================================================
+
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is DateTime) {
+      return value;
+    }
+
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+
+    return null;
+  }
+
+  // ============================================================
+  // SEARCH CHANGE
+  // ============================================================
 
   void _onSearchChanged() {
     if (!mounted) return;
@@ -94,12 +262,18 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
   @override
   void dispose() {
-    searchController.removeListener(_onSearchChanged);
+    searchController.removeListener(
+      _onSearchChanged,
+    );
 
     searchController.dispose();
+
     emailController.dispose();
+
     firstNameController.dispose();
+
     lastNameController.dispose();
+
     companyController.dispose();
 
     super.dispose();
@@ -110,19 +284,41 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // ============================================================
 
   List<Map<String, dynamic>> get filteredLeads {
-    List<Map<String, dynamic>> result = List.from(leads);
+    List<Map<String, dynamic>> result =
+        List<Map<String, dynamic>>.from(
+      leads,
+    );
 
-    final search = searchController.text.trim().toLowerCase();
+    final search =
+        searchController.text
+            .trim()
+            .toLowerCase();
+
+    // ==========================================================
+    // SEARCH
+    // ==========================================================
 
     if (search.isNotEmpty) {
       result = result.where((lead) {
-        final email = lead['email'].toString().toLowerCase();
+        final email =
+            lead['email']
+                .toString()
+                .toLowerCase();
+
         final firstName =
-            lead['firstName'].toString().toLowerCase();
+            lead['firstName']
+                .toString()
+                .toLowerCase();
+
         final lastName =
-            lead['lastName'].toString().toLowerCase();
+            lead['lastName']
+                .toString()
+                .toLowerCase();
+
         final company =
-            lead['company'].toString().toLowerCase();
+            lead['company']
+                .toString()
+                .toLowerCase();
 
         return email.contains(search) ||
             firstName.contains(search) ||
@@ -132,14 +328,15 @@ class _LeadsScreenState extends State<LeadsScreen> {
     }
 
     // ==========================================================
-    // TODAY FILTER
+    // TODAY
     // ==========================================================
 
     if (todayOnly) {
       final now = DateTime.now();
 
       result = result.where((lead) {
-        final date = lead['addedDate'] as DateTime;
+        final date =
+            lead['addedDate'] as DateTime;
 
         return date.year == now.year &&
             date.month == now.month &&
@@ -159,7 +356,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
       );
 
       result = result.where((lead) {
-        final date = lead['addedDate'] as DateTime;
+        final date =
+            lead['addedDate'] as DateTime;
 
         return !date.isBefore(startDate);
       }).toList();
@@ -180,7 +378,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
       );
 
       result = result.where((lead) {
-        final date = lead['addedDate'] as DateTime;
+        final date =
+            lead['addedDate'] as DateTime;
 
         return !date.isAfter(endDate);
       }).toList();
@@ -200,18 +399,24 @@ class _LeadsScreenState extends State<LeadsScreen> {
       return [];
     }
 
-    final start = (currentPage - 1) * entriesPerPage;
+    final start =
+        (currentPage - 1) *
+            entriesPerPage;
 
     if (start >= data.length) {
       return [];
     }
 
     final end =
-        (start + entriesPerPage) > data.length
+        (start + entriesPerPage) >
+                data.length
             ? data.length
             : start + entriesPerPage;
 
-    return data.sublist(start, end);
+    return data.sublist(
+      start,
+      end,
+    );
   }
 
   // ============================================================
@@ -223,7 +428,10 @@ class _LeadsScreenState extends State<LeadsScreen> {
       return 1;
     }
 
-    return (filteredLeads.length / entriesPerPage).ceil();
+    return (
+      filteredLeads.length /
+          entriesPerPage
+    ).ceil();
   }
 
   // ============================================================
@@ -233,27 +441,52 @@ class _LeadsScreenState extends State<LeadsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor:
+          backgroundColor,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isMobile = constraints.maxWidth < 800;
-
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(isMobile ? 18 : 28),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  _buildPageHeader(isMobile),
-                  SizedBox(
-                    height: isMobile ? 22 : 28,
-                  ),
-                  _buildMainContainer(isMobile),
-                ],
-              ),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _loadLeads(
+              showLoader: false,
             );
           },
+          child: LayoutBuilder(
+            builder: (
+              context,
+              constraints,
+            ) {
+              final isMobile =
+                  constraints.maxWidth < 800;
+
+              return SingleChildScrollView(
+                physics:
+                    const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.all(
+                  isMobile ? 18 : 28,
+                ),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    _buildPageHeader(
+                      isMobile,
+                    ),
+
+                    SizedBox(
+                      height:
+                          isMobile
+                              ? 22
+                              : 28,
+                    ),
+
+                    _buildMainContainer(
+                      isMobile,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -263,7 +496,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // PAGE HEADER
   // ============================================================
 
-  Widget _buildPageHeader(bool isMobile) {
+  Widget _buildPageHeader(
+    bool isMobile,
+  ) {
     if (isMobile) {
       return Column(
         crossAxisAlignment:
@@ -274,37 +509,50 @@ class _LeadsScreenState extends State<LeadsScreen> {
             style: TextStyle(
               color: textColor,
               fontSize: 30,
-              fontWeight: FontWeight.w800,
+              fontWeight:
+                  FontWeight.w800,
             ),
           ),
+
           const SizedBox(height: 6),
+
           const Text(
             'Manage and organize your leads',
             style: TextStyle(
-              color: secondaryTextColor,
+              color:
+                  secondaryTextColor,
               fontSize: 14,
             ),
           ),
+
           const SizedBox(height: 18),
+
           SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: _showAddLeadDialog,
-              icon: const Icon(Icons.add, size: 20),
+              onPressed:
+                  _showAddLeadDialog,
+              icon: const Icon(
+                Icons.add,
+                size: 20,
+              ),
               label: const Text(
                 'Add Lead',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    primaryColor,
+                foregroundColor:
+                    Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
+                shape:
+                    RoundedRectangleBorder(
                   borderRadius:
-                      BorderRadius.circular(8),
+                      BorderRadius.circular(
+                    8,
+                  ),
                 ),
               ),
             ),
@@ -314,6 +562,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
     }
 
     return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.center,
       children: [
         const Expanded(
           child: Column(
@@ -325,39 +575,49 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 style: TextStyle(
                   color: textColor,
                   fontSize: 30,
-                  fontWeight: FontWeight.w800,
+                  fontWeight:
+                      FontWeight.w800,
                 ),
               ),
+
               SizedBox(height: 6),
+
               Text(
                 'Manage and organize your leads',
                 style: TextStyle(
-                  color: secondaryTextColor,
+                  color:
+                      secondaryTextColor,
                   fontSize: 14,
                 ),
               ),
             ],
           ),
         ),
+
         ElevatedButton.icon(
-          onPressed: _showAddLeadDialog,
-          icon: const Icon(Icons.add, size: 20),
+          onPressed:
+              _showAddLeadDialog,
+          icon: const Icon(
+            Icons.add,
+            size: 20,
+          ),
           label: const Text(
             'Add Lead',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryColor,
-            foregroundColor: Colors.white,
+          style:
+              ElevatedButton.styleFrom(
+            backgroundColor:
+                primaryColor,
+            foregroundColor:
+                Colors.white,
             elevation: 0,
             padding:
                 const EdgeInsets.symmetric(
               horizontal: 18,
               vertical: 14,
             ),
-            shape: RoundedRectangleBorder(
+            shape:
+                RoundedRectangleBorder(
               borderRadius:
                   BorderRadius.circular(8),
             ),
@@ -371,210 +631,77 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // MAIN CONTAINER
   // ============================================================
 
-  Widget _buildMainContainer(bool isMobile) {
+  Widget _buildMainContainer(
+    bool isMobile,
+  ) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 16 : 20),
+      padding: EdgeInsets.all(
+        isMobile ? 16 : 20,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius:
-            BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: borderColor,
+        ),
       ),
       child: Column(
         children: [
-          _buildActionBar(isMobile),
-          const SizedBox(height: 22),
-          _buildActiveFilters(),
-          if (_hasActiveFilter)
-            const SizedBox(height: 18),
-          _buildTableControls(isMobile),
-          const SizedBox(height: 20),
-          if (isMobile)
-            _buildMobileList()
+          _buildToolbar(
+            isMobile,
+          ),
+
+          const SizedBox(height: 18),
+
+          if (isLoading)
+            _buildLoadingState()
+          else if (isMobile)
+            _buildMobileTable()
           else
             _buildDesktopTable(),
-          const SizedBox(height: 20),
-          _buildPagination(),
+
+          const SizedBox(height: 18),
+
+          if (!isLoading)
+            _buildPagination(),
         ],
       ),
     );
   }
 
   // ============================================================
-  // ACTION BAR
+  // LOADING STATE
   // ============================================================
 
-  Widget _buildActionBar(bool isMobile) {
-    final buttons = [
-      _actionButton(
-        icon: Icons.download_outlined,
-        label: 'Download Excel',
-        onPressed: _downloadExcel,
-      ),
-      _actionButton(
-        icon: Icons.upload_file_outlined,
-        label: 'Upload Excel',
-        onPressed: _uploadExcel,
-      ),
-      _actionButton(
-        icon: Icons.today_outlined,
-        label: 'Today Added',
-        active: todayOnly,
-        onPressed: _toggleTodayFilter,
-      ),
-      _actionButton(
-        icon: Icons.calendar_month_outlined,
-        label: 'Date Filter',
-        active:
-            fromDate != null || toDate != null,
-        onPressed: _showDateFilter,
-      ),
-    ];
-
-    if (isMobile) {
-      return Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: buttons[0]),
-              const SizedBox(width: 8),
-              Expanded(child: buttons[1]),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: buttons[2]),
-              const SizedBox(width: 8),
-              Expanded(child: buttons[3]),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: buttons,
-      ),
-    );
-  }
-
-  // ============================================================
-  // ACTION BUTTON
-  // ============================================================
-
-  Widget _actionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    bool active = false,
-  }) {
-    return SizedBox(
-      height: 42,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 17),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: active
-              ? Colors.white
-              : const Color(0xFF344054),
-          backgroundColor:
-              active ? primaryColor : Colors.white,
-          side: BorderSide(
-            color: active
-                ? primaryColor
-                : const Color(0xFFD0D5DD),
-          ),
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 13,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(8),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // ACTIVE FILTER
-  // ============================================================
-
-  bool get _hasActiveFilter {
-    return todayOnly ||
-        fromDate != null ||
-        toDate != null;
-  }
-
-  Widget _buildActiveFilters() {
-    if (!_hasActiveFilter) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildLoadingState() {
     return Container(
       width: double.infinity,
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
+        vertical: 70,
       ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius:
-            BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFFDCE5FF),
-        ),
-      ),
-      child: Row(
+      child: const Column(
         children: [
-          const Icon(
-            Icons.filter_alt_outlined,
-            size: 17,
-            color: primaryColor,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              todayOnly
-                  ? 'Showing leads added today'
-                  : 'Date: ${_formatDateOnly(fromDate)}'
-                      '${toDate != null ? ' - ${_formatDateOnly(toDate)}' : ''}',
-              style: const TextStyle(
-                color: Color(0xFF344054),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+          SizedBox(
+            width: 32,
+            height: 32,
+            child:
+                CircularProgressIndicator(
+              strokeWidth: 3,
+              color: primaryColor,
             ),
           ),
-          TextButton(
-            onPressed: _clearDateFilters,
-            child: const Text(
-              'Clear',
-              style: TextStyle(
-                color: primaryColor,
-                fontWeight: FontWeight.w600,
-              ),
+
+          SizedBox(height: 16),
+
+          Text(
+            'Loading leads...',
+            style: TextStyle(
+              color:
+                  secondaryTextColor,
+              fontSize: 13,
             ),
           ),
         ],
@@ -583,51 +710,54 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // TABLE CONTROLS
+  // TOOLBAR
   // ============================================================
 
-  Widget _buildTableControls(bool isMobile) {
+  Widget _buildToolbar(
+    bool isMobile,
+  ) {
     if (isMobile) {
       return Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
         children: [
+          _buildSearchField(),
+
+          const SizedBox(height: 12),
+
           Row(
             children: [
-              const Text(
-                'Show',
-                style: TextStyle(
-                  color: Color(0xFF344054),
-                  fontSize: 13,
+              Expanded(
+                child:
+                    OutlinedButton.icon(
+                  onPressed:
+                      _toggleTodayFilter,
+                  icon: const Icon(
+                    Icons.today_outlined,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Today',
+                  ),
                 ),
               ),
-              const SizedBox(width: 7),
-              _buildEntriesDropdown(),
-              const SizedBox(width: 7),
-              const Text(
-                'entries',
-                style: TextStyle(
-                  color: Color(0xFF344054),
-                  fontSize: 13,
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child:
+                    OutlinedButton.icon(
+                  onPressed:
+                      _showDateFilter,
+                  icon: const Icon(
+                    Icons
+                        .date_range_outlined,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Date',
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 42,
-            child: TextField(
-              controller: searchController,
-              style: const TextStyle(
-                color: textColor,
-                fontSize: 14,
-              ),
-              cursorColor: primaryColor,
-              decoration:
-                  _searchDecoration(
-                'Search leads...',
-              ),
-            ),
           ),
         ],
       );
@@ -635,46 +765,35 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
     return Row(
       children: [
-        const Text(
-          'Show',
-          style: TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 13,
+        Expanded(
+          child: _buildSearchField(),
+        ),
+
+        const SizedBox(width: 12),
+
+        OutlinedButton.icon(
+          onPressed:
+              _toggleTodayFilter,
+          icon: const Icon(
+            Icons.today_outlined,
+            size: 18,
+          ),
+          label: const Text(
+            'Today',
           ),
         ),
-        const SizedBox(width: 7),
-        _buildEntriesDropdown(),
-        const SizedBox(width: 7),
-        const Text(
-          'entries',
-          style: TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 13,
+
+        const SizedBox(width: 10),
+
+        OutlinedButton.icon(
+          onPressed:
+              _showDateFilter,
+          icon: const Icon(
+            Icons.date_range_outlined,
+            size: 18,
           ),
-        ),
-        const Spacer(),
-        const Text(
-          'Search:',
-          style: TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 270,
-          height: 42,
-          child: TextField(
-            controller: searchController,
-            style: const TextStyle(
-              color: textColor,
-              fontSize: 14,
-            ),
-            cursorColor: primaryColor,
-            decoration:
-                _searchDecoration(
-              'Search leads...',
-            ),
+          label: const Text(
+            'Date',
           ),
         ),
       ],
@@ -682,109 +801,72 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // ENTRIES DROPDOWN
+  // SEARCH
   // ============================================================
 
-  Widget _buildEntriesDropdown() {
-    return Container(
-      height: 40,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 8,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: borderColor,
-        ),
-        borderRadius:
-            BorderRadius.circular(8),
-      ),
-      child:
-          DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: entriesPerPage,
-          dropdownColor: Colors.white,
-          style: const TextStyle(
-            color: textColor,
-            fontSize: 13,
-          ),
-          items: const [
-            DropdownMenuItem(
-              value: 10,
-              child: Text('10'),
-            ),
-            DropdownMenuItem(
-              value: 25,
-              child: Text('25'),
-            ),
-            DropdownMenuItem(
-              value: 50,
-              child: Text('50'),
-            ),
-          ],
-          onChanged: (value) {
-            if (value == null) return;
-
-            setState(() {
-              entriesPerPage = value;
-              currentPage = 1;
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // SEARCH DECORATION
-  // ============================================================
-
-  InputDecoration _searchDecoration(
-    String hint,
-  ) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(
-        color: Color(0xFF98A2B3),
+  Widget _buildSearchField() {
+    return TextField(
+      controller:
+          searchController,
+      style: const TextStyle(
+        color: textColor,
         fontSize: 13,
       ),
-      prefixIcon: const Icon(
-        Icons.search,
-        size: 19,
-        color: Color(0xFF667085),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 12,
-      ),
-      border: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(
-          color: borderColor,
+      decoration:
+          InputDecoration(
+        hintText:
+            'Search by email, name or company...',
+        hintStyle:
+            const TextStyle(
+          color: Color(0xFF98A2B3),
+          fontSize: 13,
         ),
-      ),
-      enabledBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(
-          color: borderColor,
+        prefixIcon:
+            const Icon(
+          Icons.search,
+          size: 19,
+          color:
+              Color(0xFF667085),
         ),
-      ),
-      focusedBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(
-          color: primaryColor,
-          width: 1.5,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(
+          horizontal: 12,
+        ),
+        border:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            8,
+          ),
+          borderSide:
+              const BorderSide(
+            color: borderColor,
+          ),
+        ),
+        enabledBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            8,
+          ),
+          borderSide:
+              const BorderSide(
+            color: borderColor,
+          ),
+        ),
+        focusedBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            8,
+          ),
+          borderSide:
+              const BorderSide(
+            color: primaryColor,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -801,19 +883,57 @@ class _LeadsScreenState extends State<LeadsScreen> {
       return _buildEmptyState();
     }
 
+    return _buildDataTable(
+      data,
+      emailWidth: 190,
+      companyWidth: 150,
+      spacing: 24,
+    );
+  }
+
+  // ============================================================
+  // MOBILE TABLE
+  // ============================================================
+
+  Widget _buildMobileTable() {
+    final data = paginatedLeads;
+
+    if (data.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return _buildDataTable(
+      data,
+      emailWidth: 180,
+      companyWidth: 140,
+      spacing: 20,
+    );
+  }
+
+  // ============================================================
+  // DATA TABLE
+  // ============================================================
+
+  Widget _buildDataTable(
+    List<Map<String, dynamic>> data, {
+    required double emailWidth,
+    required double companyWidth,
+    required double spacing,
+  }) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius:
             BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFFE4E7EC),
+          color: borderColor,
         ),
       ),
       child: ClipRRect(
         borderRadius:
             BorderRadius.circular(10),
-        child: SingleChildScrollView(
+        child:
+            SingleChildScrollView(
           scrollDirection:
               Axis.horizontal,
           child: DataTable(
@@ -830,368 +950,172 @@ class _LeadsScreenState extends State<LeadsScreen> {
             ),
             dataTextStyle:
                 const TextStyle(
-              color: Color(0xFF344054),
+              color:
+                  Color(0xFF344054),
               fontSize: 13,
             ),
-            columnSpacing: 24,
+            columnSpacing:
+                spacing,
             columns: const [
               DataColumn(
-                label: Text('EMAIL'),
+                label:
+                    Text('EMAIL'),
               ),
               DataColumn(
-                label: Text('FIRST NAME'),
+                label:
+                    Text('FIRST NAME'),
               ),
               DataColumn(
-                label: Text('LAST NAME'),
+                label:
+                    Text('LAST NAME'),
               ),
               DataColumn(
-                label: Text('COMPANY'),
+                label:
+                    Text('COMPANY'),
               ),
               DataColumn(
-                label: Text('TYPE'),
+                label:
+                    Text('TYPE'),
               ),
               DataColumn(
-                label: Text('TRACKING'),
+                label:
+                    Text('TRACKING'),
               ),
               DataColumn(
-                label: Text('ADDED DATE'),
+                label:
+                    Text('ADDED DATE'),
               ),
               DataColumn(
-                label: Text('ACTIONS'),
+                label:
+                    Text('ACTIONS'),
               ),
             ],
-            rows: data.map((lead) {
-              return DataRow(
-                cells: [
-                  DataCell(
-                    SizedBox(
-                      width: 190,
-                      child: Text(
-                        lead['email'].toString(),
-                        overflow:
-                            TextOverflow.ellipsis,
+            rows:
+                data.map(
+              (lead) {
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      SizedBox(
+                        width:
+                            emailWidth,
+                        child: Text(
+                          lead['email']
+                              .toString(),
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                        ),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    Text(
-                      lead['firstName']
-                          .toString(),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      lead['lastName']
-                          .toString(),
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 150,
-                      child: Text(
-                        lead['company']
+
+                    DataCell(
+                      Text(
+                        lead['firstName']
                             .toString(),
-                        overflow:
-                            TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                  DataCell(
-                    _typeBadge(
-                      lead['type'].toString(),
-                    ),
-                  ),
-                  DataCell(
-                    _trackingBadge(
-                      lead['tracking'] == true,
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      _formatDateTime(
-                        lead['addedDate'],
+
+                    DataCell(
+                      Text(
+                        lead['lastName']
+                            .toString(),
                       ),
                     ),
-                  ),
 
-                  // ==================================================
-                  // VIEW + EDIT + DELETE
-                  // ==================================================
-
-                  DataCell(
-                    Row(
-                      mainAxisSize:
-                          MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: 'View Lead',
-                          onPressed: () {
-                            _viewLead(lead);
-                          },
-                          icon: const Icon(
-                            Icons.visibility_outlined,
-                            color: primaryColor,
-                            size: 20,
-                          ),
+                    DataCell(
+                      SizedBox(
+                        width:
+                            companyWidth,
+                        child: Text(
+                          lead['company']
+                              .toString(),
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
                         ),
-                        IconButton(
-                          tooltip: 'Edit Lead',
-                          onPressed: () {
-                            _showEditLeadDialog(
-                              lead,
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            color: Color(
-                              0xFF344054,
+                      ),
+                    ),
+
+                    DataCell(
+                      _typeBadge(
+                        lead['type']
+                            .toString(),
+                      ),
+                    ),
+
+                    DataCell(
+                      _trackingBadge(
+                        lead[
+                                'trackingStatus']
+                            ?.toString() ??
+                            'Skip',
+                      ),
+                    ),
+
+                    DataCell(
+                      Text(
+                        _formatDate(
+                          lead['addedDate']
+                              as DateTime,
+                        ),
+                      ),
+                    ),
+
+                    DataCell(
+                      Row(
+                        mainAxisSize:
+                            MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip:
+                                'Edit',
+                            onPressed:
+                                () {
+                              _showEditLeadDialog(
+                                lead,
+                              );
+                            },
+                            icon:
+                                const Icon(
+                              Icons
+                                  .edit_outlined,
+                              size: 19,
+                              color:
+                                  secondaryTextColor,
                             ),
-                            size: 20,
                           ),
-                        ),
-                        IconButton(
-                          tooltip: 'Delete Lead',
-                          onPressed: () {
-                            _deleteLead(lead);
-                          },
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
-                            size: 21,
+
+                          IconButton(
+                            tooltip:
+                                'Delete',
+                            onPressed:
+                                () {
+                              _deleteLead(
+                                lead,
+                              );
+                            },
+                            icon:
+                                const Icon(
+                              Icons
+                                  .delete_outline,
+                              size: 19,
+                              color:
+                                  Color(
+                                0xFFD92D20,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // MOBILE LIST
-  // ============================================================
-
-  Widget _buildMobileList() {
-    final data = paginatedLeads;
-
-    if (data.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return Column(
-      children: data.map((lead) {
-        return _buildLeadCard(lead);
-      }).toList(),
-    );
-  }
-
-  // ============================================================
-  // MOBILE CARD
-  // ============================================================
-
-  Widget _buildLeadCard(
-    Map<String, dynamic> lead,
-  ) {
-    return Container(
-      width: double.infinity,
-      margin:
-          const EdgeInsets.only(bottom: 12),
-      padding:
-          const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE4E7EC),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFEFF4FF),
-                  borderRadius:
-                      BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: primaryColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${lead['firstName']} ${lead['lastName']}',
-                      style:
-                          const TextStyle(
-                        color: textColor,
-                        fontSize: 15,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      lead['email'].toString(),
-                      maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(
-                        color:
-                            secondaryTextColor,
-                        fontSize: 12,
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-
-              // VIEW
-              IconButton(
-                tooltip: 'View Lead',
-                onPressed: () {
-                  _viewLead(lead);
-                },
-                icon: const Icon(
-                  Icons.visibility_outlined,
-                  color: primaryColor,
-                  size: 21,
-                ),
-              ),
-
-              // EDIT
-              IconButton(
-                tooltip: 'Edit Lead',
-                onPressed: () {
-                  _showEditLeadDialog(lead);
-                },
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: Color(0xFF344054),
-                  size: 21,
-                ),
-              ),
-
-              // DELETE
-              IconButton(
-                tooltip: 'Delete Lead',
-                onPressed: () {
-                  _deleteLead(lead);
-                },
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.red,
-                ),
-              ),
-            ],
+                );
+              },
+            ).toList(),
           ),
-          const SizedBox(height: 16),
-          _mobileInfoRow(
-            'Company',
-            lead['company'].toString(),
-            Icons.business_outlined,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _mobileInfoRow(
-                  'Type',
-                  lead['type'].toString(),
-                  Icons.category_outlined,
-                ),
-              ),
-              Expanded(
-                child: _mobileInfoRow(
-                  'Tracking',
-                  lead['tracking'] == true
-                      ? 'Enabled'
-                      : 'Disabled',
-                  Icons.track_changes_outlined,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _mobileInfoRow(
-            'Added Date',
-            _formatDateTime(
-              lead['addedDate'],
-            ),
-            Icons.calendar_today_outlined,
-          ),
-        ],
+        ),
       ),
-    );
-  }
-
-  // ============================================================
-  // MOBILE INFO
-  // ============================================================
-
-  Widget _mobileInfoRow(
-    String title,
-    String value,
-    IconData icon,
-  ) {
-    return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: secondaryTextColor,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color:
-                      secondaryTextColor,
-                  fontSize: 10,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                value,
-                maxLines: 2,
-                overflow:
-                    TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: textColor,
-                  fontSize: 12,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -1199,25 +1123,92 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // TYPE BADGE
   // ============================================================
 
-  Widget _typeBadge(String type) {
+  Widget _typeBadge(
+    String type,
+  ) {
+    Color background;
+    Color foreground;
+    IconData icon;
+
+    switch (
+        type.toLowerCase()) {
+      case 'email':
+        background =
+            const Color(
+          0xFFEFF4FF,
+        );
+        foreground =
+            const Color(
+          0xFF3538CD,
+        );
+        icon =
+            Icons.email_outlined;
+        break;
+
+      case 'whatsapp':
+        background =
+            const Color(
+          0xFFECFDF3,
+        );
+        foreground =
+            const Color(
+          0xFF027A48,
+        );
+        icon =
+            Icons.chat_outlined;
+        break;
+
+      default:
+        background =
+            const Color(
+          0xFFF2F4F7,
+        );
+        foreground =
+            const Color(
+          0xFF344054,
+        );
+        icon =
+            Icons.category_outlined;
+    }
+
     return Container(
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 10,
+        horizontal: 9,
         vertical: 6,
       ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F7),
+      decoration:
+          BoxDecoration(
+        color: background,
         borderRadius:
-            BorderRadius.circular(20),
-      ),
-      child: Text(
-        type,
-        style: const TextStyle(
-          color: Color(0xFF344054),
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+            BorderRadius.circular(
+          20,
         ),
+      ),
+      child: Row(
+        mainAxisSize:
+            MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: foreground,
+          ),
+          const SizedBox(
+            width: 5,
+          ),
+          Text(
+            type,
+            style:
+                TextStyle(
+              color:
+                  foreground,
+              fontSize: 12,
+              fontWeight:
+                  FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1226,42 +1217,128 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // TRACKING BADGE
   // ============================================================
 
-  Widget _trackingBadge(bool enabled) {
+  Widget _trackingBadge(
+    String status,
+  ) {
+    Color background;
+    Color foreground;
+    IconData icon;
+
+    switch (
+        status.trim().toLowerCase()) {
+      case 'sent':
+        background =
+            const Color(
+          0xFFECFDF3,
+        );
+        foreground =
+            const Color(
+          0xFF027A48,
+        );
+        icon =
+            Icons.check_circle_outline;
+        break;
+
+      case 'seen':
+        background =
+            const Color(
+          0xFFEFF4FF,
+        );
+        foreground =
+            const Color(
+          0xFF315BEF,
+        );
+        icon =
+            Icons.visibility_outlined;
+        break;
+
+      case 'skip':
+      case 'skipped':
+        background =
+            const Color(
+          0xFFF2F4F7,
+        );
+        foreground =
+            const Color(
+          0xFF667085,
+        );
+        icon =
+            Icons.remove_circle_outline;
+        break;
+
+      case 'failed':
+        background =
+            const Color(
+          0xFFFEF3F2,
+        );
+        foreground =
+            const Color(
+          0xFFB42318,
+        );
+        icon =
+            Icons.error_outline;
+        break;
+
+      case 'pending':
+        background =
+            const Color(
+          0xFFFFFAEB,
+        );
+        foreground =
+            const Color(
+          0xFFB54708,
+        );
+        icon =
+            Icons.schedule_outlined;
+        break;
+
+      default:
+        background =
+            const Color(
+          0xFFF2F4F7,
+        );
+        foreground =
+            const Color(
+          0xFF344054,
+        );
+        icon =
+            Icons.help_outline;
+
+        status = 'Unknown';
+    }
+
     return Container(
       padding:
           const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 6,
       ),
-      decoration: BoxDecoration(
-        color: enabled
-            ? const Color(0xFFECFDF3)
-            : const Color(0xFFF2F4F7),
+      decoration:
+          BoxDecoration(
+        color: background,
         borderRadius:
-            BorderRadius.circular(20),
+            BorderRadius.circular(
+          20,
+        ),
       ),
       child: Row(
         mainAxisSize:
             MainAxisSize.min,
         children: [
           Icon(
-            enabled
-                ? Icons.check_circle
-                : Icons.cancel_outlined,
+            icon,
             size: 14,
-            color: enabled
-                ? const Color(0xFF027A48)
-                : secondaryTextColor,
+            color: foreground,
           ),
-          const SizedBox(width: 5),
+          const SizedBox(
+            width: 5,
+          ),
           Text(
-            enabled
-                ? 'Enabled'
-                : 'Disabled',
-            style: TextStyle(
-              color: enabled
-                  ? const Color(0xFF027A48)
-                  : secondaryTextColor,
+            status,
+            style:
+                TextStyle(
+              color:
+                  foreground,
               fontSize: 12,
               fontWeight:
                   FontWeight.w600,
@@ -1281,29 +1358,49 @@ class _LeadsScreenState extends State<LeadsScreen> {
       width: double.infinity,
       padding:
           const EdgeInsets.symmetric(
-        vertical: 55,
+        vertical: 60,
+        horizontal: 20,
       ),
-      child: Column(
+      decoration:
+          BoxDecoration(
+        border: Border.all(
+          color: borderColor,
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          10,
+        ),
+      ),
+      child: const Column(
         children: [
-          const Icon(
+          Icon(
             Icons.people_outline,
-            size: 48,
-            color: Color(0xFF98A2B3),
+            size: 46,
+            color:
+                Color(0xFF98A2B3),
           ),
-          const SizedBox(height: 12),
-          const Text(
+
+          SizedBox(height: 14),
+
+          Text(
             'No leads found',
-            style: TextStyle(
-              color: Color(0xFF344054),
+            style:
+                TextStyle(
+              color: textColor,
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight:
+                  FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 5),
-          const Text(
+
+          SizedBox(height: 5),
+
+          Text(
             'Try changing your search or filters.',
-            style: TextStyle(
-              color: secondaryTextColor,
+            style:
+                TextStyle(
+              color:
+                  secondaryTextColor,
               fontSize: 13,
             ),
           ),
@@ -1317,417 +1414,1016 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // ============================================================
 
   Widget _buildPagination() {
-    final total = filteredLeads.length;
+    final total =
+        filteredLeads.length;
+
+    if (total == 0) {
+      return const SizedBox.shrink();
+    }
+
+    final start =
+        ((currentPage - 1) *
+                entriesPerPage) +
+            1;
+
+    final end =
+        (currentPage *
+                entriesPerPage) >
+            total
+        ? total
+        : currentPage *
+            entriesPerPage;
 
     return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.end,
       children: [
-        Text(
-          'Total: $total',
-          style: const TextStyle(
-            color: secondaryTextColor,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(width: 10),
-        OutlinedButton(
-          onPressed: currentPage > 1
-              ? () {
-                  setState(() {
-                    currentPage--;
-                  });
-                }
-              : null,
-          child: const Text('Previous'),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF4FF),
-            borderRadius:
-                BorderRadius.circular(8),
-          ),
+        Expanded(
           child: Text(
-            '$currentPage / $totalPages',
-            style: const TextStyle(
-              color: primaryColor,
-              fontWeight:
-                  FontWeight.w600,
+            'Showing $start - $end of $total',
+            style:
+                const TextStyle(
+              color:
+                  secondaryTextColor,
               fontSize: 13,
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        OutlinedButton(
-          onPressed: currentPage < totalPages
-              ? () {
-                  setState(() {
-                    currentPage++;
-                  });
-                }
-              : null,
-          child: const Text('Next'),
+
+        IconButton(
+          tooltip:
+              'Previous',
+          onPressed:
+              currentPage > 1
+                  ? () {
+                      setState(() {
+                        currentPage--;
+                      });
+                    }
+                  : null,
+          icon:
+              const Icon(
+            Icons.chevron_left,
+          ),
+        ),
+
+        Container(
+          padding:
+              const EdgeInsets
+                  .symmetric(
+            horizontal: 12,
+            vertical: 7,
+          ),
+          decoration:
+              BoxDecoration(
+            color:
+                primaryColor,
+            borderRadius:
+                BorderRadius.circular(
+              6,
+            ),
+          ),
+          child: Text(
+            '$currentPage',
+            style:
+                const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight:
+                  FontWeight.w600,
+            ),
+          ),
+        ),
+
+        IconButton(
+          tooltip:
+              'Next',
+          onPressed:
+              currentPage <
+                      totalPages
+                  ? () {
+                      setState(() {
+                        currentPage++;
+                      });
+                    }
+                  : null,
+          icon:
+              const Icon(
+            Icons.chevron_right,
+          ),
         ),
       ],
     );
   }
 
   // ============================================================
-  // VIEW LEAD
+  // FORMAT DATE
   // ============================================================
 
-  void _viewLead(
+  String _formatDate(
+    DateTime date,
+  ) {
+    final day =
+        date.day.toString().padLeft(
+              2,
+              '0',
+            );
+
+    final month =
+        date.month.toString().padLeft(
+              2,
+              '0',
+            );
+
+    final year =
+        date.year.toString();
+
+    return '$day/$month/$year';
+  }
+
+  // ============================================================
+  // ADD LEAD
+  // ============================================================
+
+  Future<void> _addLead(
+    BuildContext dialogContext,
+  ) async {
+    final email =
+        emailController.text.trim();
+
+    final firstName =
+        firstNameController.text.trim();
+
+    final lastName =
+        lastNameController.text.trim();
+
+    final company =
+        companyController.text.trim();
+
+    if (email.isEmpty) {
+      _showMessage(
+        'Email is required.',
+      );
+      return;
+    }
+
+    final emailRegex =
+        RegExp(
+      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    );
+
+    if (!emailRegex.hasMatch(
+      email,
+    )) {
+      _showMessage(
+        'Please enter a valid email address.',
+      );
+      return;
+    }
+
+    setState(() {
+      isAddingLead = true;
+    });
+
+    try {
+      final response =
+          await LeadsApi.createLead(
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        company: company,
+        type: selectedType,
+        tracking: trackingEnabled,
+      );
+
+      if (!mounted) return;
+
+      if (response['success'] ==
+          true) {
+        Map<String, dynamic>? sequenceResponse;
+
+        if (trackingEnabled && selectedType == 'Email') {
+          sequenceResponse =
+              await SequenceApi.runSequence();
+        }
+
+        Navigator.pop(
+          dialogContext,
+        );
+
+        _clearForm();
+
+        final sequenceFailed =
+          sequenceResponse != null &&
+            sequenceResponse['success'] != true;
+
+        _showMessage(
+          sequenceFailed
+            ? 'Lead added, but the sequence could not be run.'
+            : response['message']
+                ?.toString() ??
+              'Lead added successfully.',
+        );
+
+        await _loadLeads(
+          showLoader: false,
+        );
+      } else {
+        _showMessage(
+          response['message']
+                  ?.toString() ??
+              'Unable to add lead.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Unable to add lead. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isAddingLead = false;
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // CLEAR FORM
+  // ============================================================
+
+  void _clearForm() {
+    emailController.clear();
+
+    firstNameController.clear();
+
+    lastNameController.clear();
+
+    companyController.clear();
+
+    selectedType = 'Email';
+
+    trackingEnabled = true;
+  }
+
+  // ============================================================
+  // UPDATE LEAD
+  // ============================================================
+
+  Future<void> _updateLead(
+    BuildContext dialogContext,
+    Map<String, dynamic> lead,
+  ) async {
+    final leadId =
+        lead['_id']?.toString() ?? '';
+
+    if (leadId.isEmpty) {
+      _showMessage(
+        'Lead ID not found.',
+      );
+      return;
+    }
+
+    final email =
+        emailController.text.trim();
+
+    final firstName =
+        firstNameController.text.trim();
+
+    final lastName =
+        lastNameController.text.trim();
+
+    final company =
+        companyController.text.trim();
+
+    if (email.isEmpty) {
+      _showMessage(
+        'Email is required.',
+      );
+      return;
+    }
+
+    final emailRegex =
+        RegExp(
+      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    );
+
+    if (!emailRegex.hasMatch(
+      email,
+    )) {
+      _showMessage(
+        'Please enter a valid email address.',
+      );
+      return;
+    }
+
+    setState(() {
+      isUpdatingLead = true;
+    });
+
+    try {
+      final response =
+          await LeadsApi.updateLead(
+        leadId: leadId,
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        company: company,
+        type: selectedType,
+        tracking: trackingEnabled,
+      );
+
+      if (!mounted) return;
+
+      if (response['success'] ==
+          true) {
+        Navigator.pop(
+          dialogContext,
+        );
+
+        _clearForm();
+
+        _showMessage(
+          response['message']
+                  ?.toString() ??
+              'Lead updated successfully.',
+        );
+
+        await _loadLeads(
+          showLoader: false,
+        );
+      } else {
+        _showMessage(
+          response['message']
+                  ?.toString() ??
+              'Unable to update lead.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Unable to update lead. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUpdatingLead = false;
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // DELETE LEAD
+  // ============================================================
+
+  void _deleteLead(
     Map<String, dynamic> lead,
   ) {
     showDialog(
       context: context,
-      builder: (dialogContext) {
-        return Dialog(
+      builder:
+          (dialogContext) {
+        return AlertDialog(
           backgroundColor:
-              Colors.transparent,
-          insetPadding:
-              const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(
-              maxWidth: 550,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(18),
-              ),
-              child: Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-                children: [
-                  // HEADER
-                  Container(
-                    padding:
-                        const EdgeInsets.all(20),
-                    decoration:
-                        const BoxDecoration(
-                      color: Color(0xFF101828),
-                      borderRadius:
-                          BorderRadius.only(
-                        topLeft:
-                            Radius.circular(18),
-                        topRight:
-                            Radius.circular(18),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration:
-                              BoxDecoration(
-                            color: primaryColor
-                                .withOpacity(
-                              0.18,
-                            ),
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                              10,
-                            ),
-                          ),
-                          child:
-                              const Icon(
-                            Icons
-                                .visibility_outlined,
-                            color:
-                                Color(
-                              0xFF7C9AFF,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 12,
-                        ),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
-                            children: [
-                              Text(
-                                'Lead Details',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      Colors
-                                          .white,
-                                  fontSize:
-                                      19,
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
-                                ),
-                              ),
-                              SizedBox(
-                                  height: 3),
-                              Text(
-                                'View complete lead information',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      Color(
-                                    0xFF98A2B3,
-                                  ),
-                                  fontSize:
-                                      12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            Navigator.pop(
-                              dialogContext,
-                            );
-                          },
-                          icon:
-                              const Icon(
-                            Icons.close,
-                            color:
-                                Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              Colors.white,
 
-                  // BODY
-                  Padding(
-                    padding:
-                        const EdgeInsets.all(
-                      20,
-                    ),
-                    child: Column(
-                      children: [
-                        _viewInfoRow(
-                          'Email Address',
-                          lead['email']
-                              .toString(),
-                          Icons
-                              .email_outlined,
-                        ),
-                        _viewInfoRow(
-                          'First Name',
-                          lead['firstName']
-                              .toString(),
-                          Icons
-                              .person_outline,
-                        ),
-                        _viewInfoRow(
-                          'Last Name',
-                          lead['lastName']
-                              .toString(),
-                          Icons
-                              .person_outline,
-                        ),
-                        _viewInfoRow(
-                          'Company',
-                          lead['company']
-                              .toString(),
-                          Icons
-                              .business_outlined,
-                        ),
-                        _viewInfoRow(
-                          'Type',
-                          lead['type']
-                              .toString(),
-                          Icons
-                              .category_outlined,
-                        ),
-                        _viewInfoRow(
-                          'Tracking',
-                          lead['tracking'] ==
-                                  true
-                              ? 'Enabled'
-                              : 'Disabled',
-                          Icons
-                              .track_changes_outlined,
-                        ),
-                        _viewInfoRow(
-                          'Added Date',
-                          _formatDateTime(
-                            lead['addedDate'],
-                          ),
-                          Icons
-                              .calendar_today_outlined,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // FOOTER
-                  Container(
-                    padding:
-                        const EdgeInsets.all(
-                      18,
-                    ),
-                    decoration:
-                        const BoxDecoration(
-                      color:
-                          Color(0xFFF9FAFB),
-                      borderRadius:
-                          BorderRadius.only(
-                        bottomLeft:
-                            Radius.circular(
-                          18,
-                        ),
-                        bottomRight:
-                            Radius.circular(
-                          18,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.end,
-                      children: [
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(
-                              dialogContext,
-                            );
-                          },
-                          child:
-                              const Text(
-                            'Close',
-                          ),
-                        ),
-                        const SizedBox(
-                            width: 10),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(
-                              dialogContext,
-                            );
-
-                            _showEditLeadDialog(
-                              lead,
-                            );
-                          },
-                          icon:
-                              const Icon(
-                            Icons
-                                .edit_outlined,
-                            size: 18,
-                          ),
-                          label:
-                              const Text(
-                            'Edit Lead',
-                          ),
-                          style:
-                              ElevatedButton
-                                  .styleFrom(
-                            backgroundColor:
-                                primaryColor,
-                            foregroundColor:
-                                Colors.white,
-                            elevation: 0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          title:
+              const Text(
+            'Delete Lead',
+            style:
+                TextStyle(
+              color:
+                  textColor,
+              fontWeight:
+                  FontWeight.w700,
             ),
           ),
+
+          content:
+              Text(
+            'Are you sure you want to delete '
+            '${lead['firstName']} '
+            '${lead['lastName']}?',
+            style:
+                const TextStyle(
+              color:
+                  secondaryTextColor,
+            ),
+          ),
+
+          actions: [
+            TextButton(
+              onPressed:
+                  () {
+                Navigator.pop(
+                  dialogContext,
+                );
+              },
+              child:
+                  const Text(
+                'Cancel',
+              ),
+            ),
+
+            ElevatedButton(
+              onPressed:
+                  isDeletingLead
+                      ? null
+                      : () async {
+                          Navigator.pop(
+                            dialogContext,
+                          );
+
+                          await _performDeleteLead(
+                            lead,
+                          );
+                        },
+              style:
+                  ElevatedButton
+                      .styleFrom(
+                backgroundColor:
+                    Colors.red,
+                foregroundColor:
+                    Colors.white,
+                elevation:
+                    0,
+              ),
+              child:
+                  const Text(
+                'Delete',
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
   // ============================================================
-  // VIEW INFO ROW
+  // PERFORM DELETE
   // ============================================================
 
-  Widget _viewInfoRow(
-    String label,
-    String value,
-    IconData icon,
-  ) {
-    return Container(
-      width: double.infinity,
-      margin:
-          const EdgeInsets.only(
-        bottom: 10,
-      ),
-      padding:
-          const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius:
-            BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFE4E7EC),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color:
-                  const Color(0xFFEFF4FF),
-              borderRadius:
-                  BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: primaryColor,
-              size: 19,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style:
-                      const TextStyle(
-                    color:
-                        secondaryTextColor,
-                    fontSize: 11,
+  Future<void> _performDeleteLead(
+    Map<String, dynamic> lead,
+  ) async {
+    final leadId =
+        lead['_id']?.toString() ?? '';
+
+    if (leadId.isEmpty) {
+      _showMessage(
+        'Lead ID not found.',
+      );
+      return;
+    }
+
+    setState(() {
+      isDeletingLead = true;
+    });
+
+    try {
+      final response =
+          await LeadsApi.deleteLead(
+        leadId: leadId,
+      );
+
+      if (!mounted) return;
+
+      if (response['success'] ==
+          true) {
+        _showMessage(
+          response['message']
+                  ?.toString() ??
+              'Lead deleted successfully.',
+        );
+
+        await _loadLeads(
+          showLoader: false,
+        );
+      } else {
+        _showMessage(
+          response['message']
+                  ?.toString() ??
+              'Unable to delete lead.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Unable to delete lead.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isDeletingLead = false;
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // TODAY FILTER
+  // ============================================================
+
+  void _toggleTodayFilter() {
+    setState(() {
+      todayOnly =
+          !todayOnly;
+
+      if (todayOnly) {
+        fromDate = null;
+        toDate = null;
+      }
+
+      currentPage = 1;
+    });
+  }
+
+  // ============================================================
+  // DATE FILTER
+  // ============================================================
+
+  Future<void> _showDateFilter() async {
+    DateTime? tempFromDate =
+        fromDate;
+
+    DateTime? tempToDate =
+        toDate;
+
+    await showDialog(
+      context: context,
+      barrierDismissible:
+          true,
+      builder:
+          (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return Dialog(
+              backgroundColor:
+                  Colors.transparent,
+              insetPadding:
+                  const EdgeInsets
+                      .symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              child: Container(
+                constraints:
+                    const BoxConstraints(
+                  maxWidth: 520,
+                ),
+                decoration:
+                    BoxDecoration(
+                  color:
+                      Colors.white,
+                  borderRadius:
+                      BorderRadius
+                          .circular(
+                    18,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  style:
-                      const TextStyle(
-                    color: textColor,
-                    fontSize: 14,
-                    fontWeight:
-                        FontWeight.w600,
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+                  children: [
+                    Container(
+                      width:
+                          double.infinity,
+                      padding:
+                          const EdgeInsets
+                              .all(
+                        20,
+                      ),
+                      decoration:
+                          const BoxDecoration(
+                        color:
+                            Color(
+                          0xFF101828,
+                        ),
+                        borderRadius:
+                            BorderRadius.only(
+                          topLeft:
+                              Radius.circular(
+                            18,
+                          ),
+                          topRight:
+                              Radius.circular(
+                            18,
+                          ),
+                        ),
+                      ),
+                      child:
+                          Row(
+                        children: [
+                          Container(
+                            width:
+                                42,
+                            height:
+                                42,
+                            decoration:
+                                BoxDecoration(
+                              color:
+                                  primaryColor.withOpacity(
+                                0.18,
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(
+                                10,
+                              ),
+                            ),
+                            child:
+                                const Icon(
+                              Icons
+                                  .date_range_outlined,
+                              color:
+                                  Color(
+                                0xFF7C9AFF,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 12,
+                          ),
+
+                          const Expanded(
+                            child:
+                                Text(
+                              'Filter by Date',
+                              style:
+                                  TextStyle(
+                                color:
+                                    Colors.white,
+                                fontSize:
+                                    18,
+                                fontWeight:
+                                    FontWeight.w700,
+                              ),
+                            ),
+                          ),
+
+                          IconButton(
+                            onPressed:
+                                () {
+                              Navigator.pop(
+                                dialogContext,
+                              );
+                            },
+                            icon:
+                                const Icon(
+                              Icons.close,
+                              color:
+                                  Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Padding(
+                      padding:
+                          const EdgeInsets
+                              .all(
+                        22,
+                      ),
+                      child:
+                          Row(
+                        children: [
+                          Expanded(
+                            child:
+                                _dateSelector(
+                              label:
+                                  'From Date',
+                              value:
+                                  tempFromDate,
+                              onTap:
+                                  () async {
+                                final picked =
+                                    await showDatePicker(
+                                  context:
+                                      context,
+                                  firstDate:
+                                      DateTime(
+                                    2020,
+                                  ),
+                                  lastDate:
+                                      DateTime(
+                                    2035,
+                                  ),
+                                  initialDate:
+                                      tempFromDate ??
+                                          DateTime
+                                              .now(),
+                                );
+
+                                if (picked !=
+                                    null) {
+                                  setDialogState(
+                                    () {
+                                      tempFromDate =
+                                          picked;
+                                    },
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 12,
+                          ),
+
+                          Expanded(
+                            child:
+                                _dateSelector(
+                              label:
+                                  'To Date',
+                              value:
+                                  tempToDate,
+                              onTap:
+                                  () async {
+                                final picked =
+                                    await showDatePicker(
+                                  context:
+                                      context,
+                                  firstDate:
+                                      DateTime(
+                                    2020,
+                                  ),
+                                  lastDate:
+                                      DateTime(
+                                    2035,
+                                  ),
+                                  initialDate:
+                                      tempToDate ??
+                                          DateTime
+                                              .now(),
+                                );
+
+                                if (picked !=
+                                    null) {
+                                  setDialogState(
+                                    () {
+                                      tempToDate =
+                                          picked;
+                                    },
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Container(
+                      padding:
+                          const EdgeInsets
+                              .all(
+                        18,
+                      ),
+                      decoration:
+                          const BoxDecoration(
+                        color:
+                            Color(
+                          0xFFF9FAFB,
+                        ),
+                        borderRadius:
+                            BorderRadius.only(
+                          bottomLeft:
+                              Radius.circular(
+                            18,
+                          ),
+                          bottomRight:
+                              Radius.circular(
+                            18,
+                          ),
+                        ),
+                      ),
+                      child:
+                          Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment
+                                .end,
+                        children: [
+                          OutlinedButton(
+                            onPressed:
+                                () {
+                              setDialogState(
+                                () {
+                                  tempFromDate =
+                                      null;
+                                  tempToDate =
+                                      null;
+                                },
+                              );
+                            },
+                            child:
+                                const Text(
+                              'Clear',
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 10,
+                          ),
+
+                          ElevatedButton(
+                            onPressed:
+                                () {
+                              setState(
+                                () {
+                                  fromDate =
+                                      tempFromDate;
+
+                                  toDate =
+                                      tempToDate;
+
+                                  todayOnly =
+                                      false;
+
+                                  currentPage =
+                                      1;
+                                },
+                              );
+
+                              Navigator.pop(
+                                dialogContext,
+                              );
+                            },
+                            style:
+                                ElevatedButton
+                                    .styleFrom(
+                              backgroundColor:
+                                  primaryColor,
+                              foregroundColor:
+                                  Colors.white,
+                              elevation:
+                                  0,
+                            ),
+                            child:
+                                const Text(
+                              'Apply',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // DATE SELECTOR
+  // ============================================================
+
+  Widget _dateSelector({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style:
+              const TextStyle(
+            color:
+                secondaryTextColor,
+            fontSize: 12,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(
+          height: 7,
+        ),
+
+        InkWell(
+          onTap: onTap,
+          borderRadius:
+              BorderRadius.circular(
+            8,
+          ),
+          child:
+              Container(
+            height: 48,
+            padding:
+                const EdgeInsets
+                    .symmetric(
+              horizontal: 12,
+            ),
+            decoration:
+                BoxDecoration(
+              color:
+                  Colors.white,
+              border:
+                  Border.all(
+                color:
+                    borderColor,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                8,
+              ),
+            ),
+            child:
+                Row(
+              children: [
+                const Icon(
+                  Icons
+                      .calendar_today_outlined,
+                  size: 17,
+                  color:
+                      secondaryTextColor,
+                ),
+
+                const SizedBox(
+                  width: 8,
+                ),
+
+                Expanded(
+                  child:
+                      Text(
+                    value ==
+                            null
+                        ? 'Select date'
+                        : _formatDate(
+                            value,
+                          ),
+                    style:
+                        const TextStyle(
+                      color:
+                          textColor,
+                      fontSize:
+                          13,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // ADD LEAD DIALOG
+  // ============================================================
+
+  void _showAddLeadDialog() {
+    _clearForm();
+
+    showDialog(
+      context: context,
+      barrierDismissible:
+          false,
+      builder:
+          (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return Dialog(
+              backgroundColor:
+                  Colors.transparent,
+              insetPadding:
+                  const EdgeInsets
+                      .symmetric(
+                horizontal: 18,
+                vertical: 20,
+              ),
+              child:
+                  _buildLeadDialog(
+                dialogContext:
+                    dialogContext,
+                setDialogState:
+                    setDialogState,
+                isEdit:
+                    false,
+                lead:
+                    null,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1758,8 +2454,10 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
+      barrierDismissible:
+          false,
+      builder:
+          (dialogContext) {
         return StatefulBuilder(
           builder: (
             context,
@@ -1769,768 +2467,276 @@ class _LeadsScreenState extends State<LeadsScreen> {
               backgroundColor:
                   Colors.transparent,
               insetPadding:
-                  const EdgeInsets.symmetric(
+                  const EdgeInsets
+                      .symmetric(
                 horizontal: 18,
                 vertical: 20,
               ),
-              child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 600,
+              child:
+                  _buildLeadDialog(
+                dialogContext:
+                    dialogContext,
+                setDialogState:
+                    setDialogState,
+                isEdit:
+                    true,
+                lead:
+                    lead,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // LEAD DIALOG
+  // ============================================================
+
+  Widget _buildLeadDialog({
+    required BuildContext dialogContext,
+    required StateSetter setDialogState,
+    required bool isEdit,
+    required Map<String, dynamic>? lead,
+  }) {
+    return ConstrainedBox(
+      constraints:
+          const BoxConstraints(
+        maxWidth: 600,
+      ),
+      child: Container(
+        constraints:
+            BoxConstraints(
+          maxHeight:
+              MediaQuery.of(
+                    context,
+                  ).size.height *
+                  0.90,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              Colors.white,
+          borderRadius:
+              BorderRadius.circular(
+            18,
+          ),
+        ),
+        child:
+            Column(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            isEdit
+                ? _buildEditDialogHeader(
+                    dialogContext,
+                  )
+                : _buildDialogHeader(
+                    dialogContext,
+                  ),
+
+            Flexible(
+              child:
+                  SingleChildScrollView(
+                padding:
+                    const EdgeInsets
+                        .all(
+                  22,
                 ),
-                child: Container(
-                  constraints:
-                      BoxConstraints(
-                    maxHeight:
-                        MediaQuery.of(context)
-                                .size
-                                .height *
-                            0.90,
-                  ),
-                  decoration:
-                      BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.circular(
-                      18,
+                child:
+                    Column(
+                  children: [
+                    _formField(
+                      controller:
+                          emailController,
+                      label:
+                          'Email Address',
+                      hint:
+                          'john@example.com',
+                      icon:
+                          Icons
+                              .email_outlined,
+                      keyboardType:
+                          TextInputType
+                              .emailAddress,
                     ),
-                  ),
-                  child: Column(
-                    mainAxisSize:
-                        MainAxisSize.min,
-                    children: [
-                      _buildEditDialogHeader(
-                        dialogContext,
-                      ),
 
-                      Flexible(
-                        child:
-                            SingleChildScrollView(
-                          padding:
-                              const EdgeInsets.all(
-                            22,
-                          ),
-                          child: Column(
-                            children: [
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child:
                               _formField(
-                                controller:
-                                    emailController,
-                                label:
-                                    'Email Address',
-                                hint:
-                                    'john@example.com',
-                                icon:
-                                    Icons
-                                        .email_outlined,
-                                keyboardType:
-                                    TextInputType
-                                        .emailAddress,
-                              ),
-
-                              const SizedBox(
-                                height: 16,
-                              ),
-
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child:
-                                        _formField(
-                                      controller:
-                                          firstNameController,
-                                      label:
-                                          'First Name',
-                                      hint:
-                                          'John',
-                                      icon:
-                                          Icons
-                                              .person_outline,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 12,
-                                  ),
-                                  Expanded(
-                                    child:
-                                        _formField(
-                                      controller:
-                                          lastNameController,
-                                      label:
-                                          'Last Name',
-                                      hint:
-                                          'Smith',
-                                      icon:
-                                          Icons
-                                              .person_outline,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(
-                                height: 16,
-                              ),
-
-                              _formField(
-                                controller:
-                                    companyController,
-                                label:
-                                    'Company',
-                                hint:
-                                    'ABC Company',
-                                icon:
-                                    Icons
-                                        .business_outlined,
-                              ),
-
-                              const SizedBox(
-                                height: 16,
-                              ),
-
-                              _dropdownField(
-                                label: 'Type',
-                                value:
-                                    selectedType,
-                                items: const [
-                                  'Email',
-                                  'WhatsApp',
-                                ],
-                                onChanged:
-                                    (value) {
-                                  if (value ==
-                                      null) {
-                                    return;
-                                  }
-
-                                  setDialogState(
-                                    () {
-                                      selectedType =
-                                          value;
-                                    },
-                                  );
-                                },
-                              ),
-
-                              const SizedBox(
-                                height: 16,
-                              ),
-
-                              Container(
-                                decoration:
-                                    BoxDecoration(
-                                  color:
-                                      const Color(
-                                    0xFFF9FAFB,
-                                  ),
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
-                                    10,
-                                  ),
-                                  border:
-                                      Border.all(
-                                    color:
-                                        const Color(
-                                      0xFFE4E7EC,
-                                    ),
-                                  ),
-                                ),
-                                child:
-                                    SwitchListTile(
-                                  contentPadding:
-                                      const EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        14,
-                                    vertical: 4,
-                                  ),
-                                  title:
-                                      const Text(
-                                    'Enable Tracking',
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          textColor,
-                                      fontSize:
-                                          14,
-                                      fontWeight:
-                                          FontWeight
-                                              .w600,
-                                    ),
-                                  ),
-                                  subtitle:
-                                      const Text(
-                                    'Track email opens and clicks',
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          secondaryTextColor,
-                                      fontSize:
-                                          12,
-                                    ),
-                                  ),
-                                  value:
-                                      trackingEnabled,
-                                  activeColor:
-                                      primaryColor,
-                                  onChanged:
-                                      (value) {
-                                    setDialogState(
-                                      () {
-                                        trackingEnabled =
-                                            value;
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // FOOTER
-                      Container(
-                        padding:
-                            const EdgeInsets.all(
-                          18,
-                        ),
-                        decoration:
-                            const BoxDecoration(
-                          color:
-                              Color(0xFFF9FAFB),
-                          borderRadius:
-                              BorderRadius.only(
-                            bottomLeft:
-                                Radius.circular(
-                              18,
-                            ),
-                            bottomRight:
-                                Radius.circular(
-                              18,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.end,
-                          children: [
-                            OutlinedButton(
-                              onPressed: () {
-                                Navigator.pop(
-                                  dialogContext,
-                                );
-                              },
-                              child:
-                                  const Text(
-                                'Cancel',
-                              ),
-                            ),
-                            const SizedBox(
-                                width: 10),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                _updateLead(
-                                  dialogContext,
-                                  lead,
-                                );
-                              },
-                              icon:
-                                  const Icon(
+                            controller:
+                                firstNameController,
+                            label:
+                                'First Name',
+                            hint:
+                                'John',
+                            icon:
                                 Icons
-                                    .save_outlined,
-                                size: 18,
-                              ),
-                              label:
-                                  const Text(
-                                'Save Changes',
-                              ),
-                              style:
-                                  ElevatedButton
-                                      .styleFrom(
-                                backgroundColor:
-                                    primaryColor,
-                                foregroundColor:
-                                    Colors.white,
-                                elevation: 0,
-                              ),
-                            ),
-                          ],
+                                    .person_outline,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
-  // ============================================================
-  // EDIT DIALOG HEADER
-  // ============================================================
+                        const SizedBox(
+                          width: 12,
+                        ),
 
-  Widget _buildEditDialogHeader(
-    BuildContext dialogContext,
-  ) {
-    return Container(
-      padding:
-          const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF101828),
-        borderRadius:
-            BorderRadius.only(
-          topLeft: Radius.circular(18),
-          topRight: Radius.circular(18),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color:
-                  primaryColor.withOpacity(
-                0.18,
-              ),
-              borderRadius:
-                  BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.edit_outlined,
-              color: Color(0xFF7C9AFF),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Edit Lead',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Update lead information',
-                  style: TextStyle(
-                    color: Color(0xFF98A2B3),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.pop(
-                dialogContext,
-              );
-            },
-            icon: const Icon(
-              Icons.close,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // ADD LEAD DIALOG
-  // ============================================================
-
-  void _showAddLeadDialog() {
-    emailController.clear();
-    firstNameController.clear();
-    lastNameController.clear();
-    companyController.clear();
-
-    selectedType = 'Email';
-    trackingEnabled = true;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (
-            context,
-            setDialogState,
-          ) {
-            return Dialog(
-              backgroundColor:
-                  Colors.transparent,
-              insetPadding:
-                  const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 20,
-              ),
-              child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 600,
-                ),
-                child: Container(
-                  constraints:
-                      BoxConstraints(
-                    maxHeight:
-                        MediaQuery.of(context)
-                                .size
-                                .height *
-                            0.90,
-                  ),
-                  decoration:
-                      BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.circular(
-                      18,
+                        Expanded(
+                          child:
+                              _formField(
+                            controller:
+                                lastNameController,
+                            label:
+                                'Last Name',
+                            hint:
+                                'Doe',
+                            icon:
+                                Icons
+                                    .person_outline,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: Column(
-                    mainAxisSize:
-                        MainAxisSize.min,
-                    children: [
-                      _buildDialogHeader(
-                        dialogContext,
-                      ),
-                      Flexible(
-                        child:
-                            SingleChildScrollView(
-                          padding:
-                              const EdgeInsets.all(
-                            22,
-                          ),
-                          child: Column(
-                            children: [
-                              _formField(
-                                controller:
-                                    emailController,
-                                label:
-                                    'Email Address',
-                                hint:
-                                    'john@example.com',
-                                icon:
-                                    Icons
-                                        .email_outlined,
-                                keyboardType:
-                                    TextInputType
-                                        .emailAddress,
-                              ),
-                              const SizedBox(
-                                height: 16,
-                              ),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child:
-                                        _formField(
-                                      controller:
-                                          firstNameController,
-                                      label:
-                                          'First Name',
-                                      hint:
-                                          'John',
-                                      icon:
-                                          Icons
-                                              .person_outline,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 12,
-                                  ),
-                                  Expanded(
-                                    child:
-                                        _formField(
-                                      controller:
-                                          lastNameController,
-                                      label:
-                                          'Last Name',
-                                      hint:
-                                          'Smith',
-                                      icon:
-                                          Icons
-                                              .person_outline,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: 16,
-                              ),
-                              _formField(
-                                controller:
-                                    companyController,
-                                label:
-                                    'Company',
-                                hint:
-                                    'ABC Company',
-                                icon:
-                                    Icons
-                                        .business_outlined,
-                              ),
-                              const SizedBox(
-                                height: 16,
-                              ),
-                              _dropdownField(
-                                label: 'Type',
-                                value:
-                                    selectedType,
-                                items: const [
-                                  'Email',
-                                  'WhatsApp',
-                                ],
-                                onChanged:
-                                    (value) {
-                                  if (value ==
-                                      null) {
-                                    return;
-                                  }
 
-                                  setDialogState(
-                                    () {
-                                      selectedType =
-                                          value;
-                                    },
-                                  );
-                                },
-                              ),
-                              const SizedBox(
-                                height: 16,
-                              ),
-                              Container(
-                                decoration:
-                                    BoxDecoration(
-                                  color:
-                                      const Color(
-                                    0xFFF9FAFB,
-                                  ),
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
-                                    10,
-                                  ),
-                                  border:
-                                      Border.all(
-                                    color:
-                                        const Color(
-                                      0xFFE4E7EC,
-                                    ),
-                                  ),
-                                ),
-                                child:
-                                    SwitchListTile(
-                                  contentPadding:
-                                      const EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        14,
-                                    vertical: 4,
-                                  ),
-                                  title:
-                                      const Text(
-                                    'Enable Tracking',
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          textColor,
-                                      fontSize:
-                                          14,
-                                      fontWeight:
-                                          FontWeight
-                                              .w600,
-                                    ),
-                                  ),
-                                  subtitle:
-                                      const Text(
-                                    'Track email opens and clicks',
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          secondaryTextColor,
-                                      fontSize:
-                                          12,
-                                    ),
-                                  ),
-                                  value:
-                                      trackingEnabled,
-                                  activeColor:
-                                      primaryColor,
-                                  onChanged:
-                                      (value) {
-                                    setDialogState(
-                                      () {
-                                        trackingEnabled =
-                                            value;
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      _buildDialogFooter(
-                        dialogContext,
-                      ),
-                    ],
-                  ),
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    _formField(
+                      controller:
+                          companyController,
+                      label:
+                          'Company',
+                      hint:
+                          'Company name',
+                      icon:
+                          Icons
+                              .business_outlined,
+                    ),
+
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    _buildDropdownField(
+                      label:
+                          'Type',
+                      value:
+                          selectedType,
+                      items:
+                          const [
+                        'Email',
+                        'WhatsApp',
+                      ],
+                      onChanged:
+                          (value) {
+                        setDialogState(
+                          () {
+                            selectedType =
+                                value!;
+                          },
+                        );
+                      },
+                    ),
+
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    _buildTrackingSwitch(
+                      setDialogState,
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
 
-  // ============================================================
-  // DIALOG HEADER
-  // ============================================================
-
-  Widget _buildDialogHeader(
-    BuildContext dialogContext,
-  ) {
-    return Container(
-      padding:
-          const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF101828),
-        borderRadius:
-            BorderRadius.only(
-          topLeft: Radius.circular(18),
-          topRight: Radius.circular(18),
+            _buildDialogFooter(
+              dialogContext,
+              isEdit,
+              lead,
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color:
-                  primaryColor.withOpacity(
-                0.18,
-              ),
-              borderRadius:
-                  BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.person_add_outlined,
-              color: Color(0xFF7C9AFF),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Add New Lead',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Add a new lead to your database',
-                  style: TextStyle(
-                    color: Color(0xFF98A2B3),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.pop(
-                dialogContext,
-              );
-            },
-            icon: const Icon(
-              Icons.close,
-              color: Colors.white,
-            ),
-          ),
-        ],
       ),
     );
   }
 
   // ============================================================
-  // DIALOG FOOTER
+  // TRACKING SWITCH
   // ============================================================
 
-  Widget _buildDialogFooter(
-    BuildContext dialogContext,
+  Widget _buildTrackingSwitch(
+    StateSetter setDialogState,
   ) {
     return Container(
-      padding:
-          const EdgeInsets.all(18),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
+      decoration:
+          BoxDecoration(
+        color:
+            const Color(
+          0xFFF9FAFB,
+        ),
         borderRadius:
-            BorderRadius.only(
-          bottomLeft:
-              Radius.circular(18),
-          bottomRight:
-              Radius.circular(18),
+            BorderRadius.circular(
+          10,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
         ),
       ),
-      child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.end,
-        children: [
-          OutlinedButton(
-            onPressed: () {
-              Navigator.pop(
-                dialogContext,
-              );
-            },
-            child: const Text(
-              'Cancel',
-            ),
+      child:
+          SwitchListTile(
+        contentPadding:
+            const EdgeInsets
+                .symmetric(
+          horizontal: 14,
+          vertical: 4,
+        ),
+        title:
+            const Text(
+          'Enable Tracking',
+          style:
+              TextStyle(
+            color:
+                textColor,
+            fontSize:
+                14,
+            fontWeight:
+                FontWeight.w600,
           ),
-          const SizedBox(width: 10),
-          ElevatedButton.icon(
-            onPressed: () {
-              _addLead(dialogContext);
-            },
-            icon: const Icon(
-              Icons.person_add_outlined,
-              size: 18,
-            ),
-            label: const Text(
-              'Add Lead',
-            ),
-            style:
-                ElevatedButton.styleFrom(
-              backgroundColor:
-                  primaryColor,
-              foregroundColor:
-                  Colors.white,
-              elevation: 0,
-            ),
+        ),
+        subtitle:
+            const Text(
+          'Track email opens and clicks',
+          style:
+              TextStyle(
+            color:
+                secondaryTextColor,
+            fontSize:
+                12,
           ),
-        ],
+        ),
+        value:
+            trackingEnabled,
+        activeColor:
+            primaryColor,
+        onChanged:
+            (value) {
+          setDialogState(
+            () {
+              trackingEnabled =
+                  value;
+            },
+          );
+        },
       ),
     );
   }
@@ -2552,61 +2758,100 @@ class _LeadsScreenState extends State<LeadsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                13,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 7),
+
+        const SizedBox(
+          height: 7,
+        ),
+
         TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(
-            color: textColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+          controller:
+              controller,
+          keyboardType:
+              keyboardType,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                14,
           ),
-          cursorColor: primaryColor,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(
-              color: Color(0xFF98A2B3),
-              fontSize: 13,
+          decoration:
+              InputDecoration(
+            hintText:
+                hint,
+            hintStyle:
+                const TextStyle(
+              color:
+                  Color(
+                0xFF98A2B3,
+              ),
+              fontSize:
+                  13,
             ),
-            prefixIcon: Icon(
+            prefixIcon:
+                Icon(
               icon,
-              size: 19,
-              color: secondaryTextColor,
+              size:
+                  19,
+              color:
+                  secondaryTextColor,
             ),
-            filled: true,
-            fillColor: Colors.white,
+            filled:
+                true,
+            fillColor:
+                Colors.white,
+            contentPadding:
+                const EdgeInsets
+                    .symmetric(
+              horizontal:
+                  12,
+            ),
             border:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(8),
+                  BorderRadius.circular(
+                8,
+              ),
               borderSide:
                   const BorderSide(
-                color: borderColor,
+                color:
+                    borderColor,
               ),
             ),
             enabledBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(8),
+                  BorderRadius.circular(
+                8,
+              ),
               borderSide:
                   const BorderSide(
-                color: borderColor,
+                color:
+                    borderColor,
               ),
             ),
             focusedBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(8),
+                  BorderRadius.circular(
+                8,
+              ),
               borderSide:
                   const BorderSide(
-                color: primaryColor,
-                width: 1.5,
+                color:
+                    primaryColor,
+                width:
+                    1.5,
               ),
             ),
           ),
@@ -2619,7 +2864,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // DROPDOWN
   // ============================================================
 
-  Widget _dropdownField({
+  Widget _buildDropdownField({
     required String label,
     required String value,
     required List<String> items,
@@ -2631,45 +2876,81 @@ class _LeadsScreenState extends State<LeadsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                13,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 7),
+
+        const SizedBox(
+          height: 7,
+        ),
+
         Container(
-          width: double.infinity,
-          height: 48,
+          width:
+              double.infinity,
+          height:
+              48,
           padding:
-              const EdgeInsets.symmetric(
-            horizontal: 12,
+              const EdgeInsets
+                  .symmetric(
+            horizontal:
+                12,
           ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(
-              color: borderColor,
+          decoration:
+              BoxDecoration(
+            color:
+                Colors.white,
+            border:
+                Border.all(
+              color:
+                  borderColor,
             ),
             borderRadius:
-                BorderRadius.circular(8),
+                BorderRadius.circular(
+              8,
+            ),
           ),
           child:
               DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              dropdownColor: Colors.white,
-              style: const TextStyle(
-                color: textColor,
-                fontSize: 14,
+            child:
+                DropdownButton<String>(
+              value:
+                  value,
+              isExpanded:
+                  true,
+              dropdownColor:
+                  Colors.white,
+              style:
+                  const TextStyle(
+                color:
+                    textColor,
+                fontSize:
+                    14,
               ),
-              items: items.map((item) {
-                return DropdownMenuItem(
-                  value: item,
-                  child: Text(item),
-                );
-              }).toList(),
-              onChanged: onChanged,
+              items:
+                  items.map(
+                (
+                  item,
+                ) {
+                  return DropdownMenuItem<
+                      String>(
+                    value:
+                        item,
+                    child:
+                        Text(
+                      item,
+                    ),
+                  );
+                },
+              ).toList(),
+              onChanged:
+                  onChanged,
             ),
           ),
         ),
@@ -2678,870 +2959,307 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // ADD LEAD
+  // DIALOG HEADER
   // ============================================================
 
-  Future<void> _addLead(
+  Widget _buildDialogHeader(
     BuildContext dialogContext,
-  ) async {
-    final email = emailController.text.trim();
-    final firstName = firstNameController.text.trim();
-    final lastName = lastNameController.text.trim();
-    final company = companyController.text.trim();
-
-    if (email.isEmpty) {
-      _showMessage('Email is Required.');
-      return;
-    }
-
-    final emailRegex = RegExp(
-      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+  ) {
+    return _dialogHeader(
+      dialogContext,
+      Icons.person_add_outlined,
+      'Add New Lead',
+      'Add a new lead to your database',
     );
-
-    if (!emailRegex.hasMatch(email)) {
-      _showMessage('Email is Required.');
-      return;
-    }
-
-    setState(() {
-      isAddingLead = true;
-    });
-
-    try {
-      final response = await LeadsApi.createLead(
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        company: company,
-        type: selectedType,
-        tracking: trackingEnabled,
-      );
-
-      if (!mounted) return;
-
-      if (response['success'] == true) {
-        Navigator.pop(dialogContext);
-        _showMessage(
-          response['message'] ?? 'Lead added successfully.',
-        );
-        emailController.clear();
-        firstNameController.clear();
-        lastNameController.clear();
-        companyController.clear();
-        selectedType = 'Email';
-        trackingEnabled = true;
-      } else {
-        _showMessage(
-          response['message'] ?? 'Unable to add lead.',
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        _showMessage('Unable to add lead. Please try again.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isAddingLead = false;
-        });
-      }
-    }
   }
 
   // ============================================================
-  // UPDATE LEAD
+  // EDIT HEADER
   // ============================================================
 
-  void _updateLead(
+  Widget _buildEditDialogHeader(
     BuildContext dialogContext,
-    Map<String, dynamic> lead,
   ) {
-    final email = emailController.text.trim();
-    final firstName = firstNameController.text.trim();
-    final lastName = lastNameController.text.trim();
-    final company = companyController.text.trim();
-
-    if (email.isEmpty) {
-      _showMessage('Email is required.');
-      return;
-    }
-
-    final emailRegex = RegExp(
-      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    return _dialogHeader(
+      dialogContext,
+      Icons.edit_outlined,
+      'Edit Lead',
+      'Update lead information',
     );
-
-    if (!emailRegex.hasMatch(email)) {
-      _showMessage('Please enter a valid email address.');
-      return;
-    }
-
-    setState(() {
-      lead['email'] = email;
-      lead['firstName'] = firstName;
-      lead['lastName'] = lastName;
-      lead['company'] = company;
-      lead['type'] = selectedType;
-      lead['tracking'] = trackingEnabled;
-    });
-
-    Navigator.pop(dialogContext);
-
-    _showMessage('Lead updated successfully.');
   }
 
   // ============================================================
-  // DELETE LEAD
+  // COMMON HEADER
   // ============================================================
 
-  void _deleteLead(
-    Map<String, dynamic> lead,
+  Widget _dialogHeader(
+    BuildContext dialogContext,
+    IconData icon,
+    String title,
+    String subtitle,
   ) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: const Text(
-            'Delete Lead',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.w700,
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets
+              .all(
+        20,
+      ),
+      decoration:
+          const BoxDecoration(
+        color:
+            Color(
+          0xFF101828,
+        ),
+        borderRadius:
+            BorderRadius.only(
+          topLeft:
+              Radius.circular(
+            18,
+          ),
+          topRight:
+              Radius.circular(
+            18,
+          ),
+        ),
+      ),
+      child:
+          Row(
+        children: [
+          Container(
+            width:
+                42,
+            height:
+                42,
+            decoration:
+                BoxDecoration(
+              color:
+                  primaryColor
+                      .withOpacity(
+                0.18,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                10,
+              ),
+            ),
+            child:
+                Icon(
+              icon,
+              color:
+                  const Color(
+                0xFF7C9AFF,
+              ),
             ),
           ),
-          content: Text(
-            'Are you sure you want to delete '
-            '${lead['firstName']} ${lead['lastName']}?',
-            style: const TextStyle(
-              color: secondaryTextColor,
+
+          const SizedBox(
+            width: 12,
+          ),
+
+          Expanded(
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+              children: [
+                Text(
+                  title,
+                  style:
+                      const TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize:
+                        19,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 3,
+                ),
+
+                Text(
+                  subtitle,
+                  style:
+                      const TextStyle(
+                    color:
+                        Color(
+                      0xFF98A2B3,
+                    ),
+                    fontSize:
+                        12,
+                  ),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                setState(() {
-                  leads.removeWhere((item) {
-                    final sameEmail = item['email'] == lead['email'];
-                    final sameName =
-                        item['firstName'] == lead['firstName'] &&
-                            item['lastName'] == lead['lastName'];
-                    return sameEmail && sameName;
-                  });
-                  currentPage = 1;
-                });
-                _showMessage('Lead deleted successfully.');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                elevation: 0,
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
-  // ============================================================
-  // TODAY FILTER
-  // ============================================================
-
-  void _toggleTodayFilter() {
-    setState(() {
-      todayOnly = !todayOnly;
-
-      if (todayOnly) {
-        fromDate = null;
-        toDate = null;
-      }
-
-      currentPage = 1;
-    });
-  }
-
-  // ============================================================
-  // DATE FILTER
-  // ============================================================
-
-  Future<void> _showDateFilter() async {
-    DateTime? tempFromDate = fromDate;
-    DateTime? tempToDate = toDate;
-
-    await showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (
-            context,
-            setDialogState,
-          ) {
-            return Dialog(
-              backgroundColor:
-                  Colors.transparent,
-              insetPadding:
-                  const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 24,
-              ),
-              child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 520,
-                ),
-                child: Container(
-                  decoration:
-                      BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    mainAxisSize:
-                        MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding:
-                            const EdgeInsets.all(
-                          20,
-                        ),
-                        decoration:
-                            const BoxDecoration(
-                          color:
-                              Color(0xFF101828),
-                          borderRadius:
-                              BorderRadius.only(
-                            topLeft:
-                                Radius.circular(
-                              18,
-                            ),
-                            topRight:
-                                Radius.circular(
-                              18,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration:
-                                  BoxDecoration(
-                                color:
-                                    primaryColor
-                                        .withOpacity(
-                                  0.18,
-                                ),
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  10,
-                                ),
-                              ),
-                              child:
-                                  const Icon(
-                                Icons
-                                    .calendar_month_outlined,
-                                color:
-                                    Color(
-                                  0xFF7C9AFF,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 12,
-                            ),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
-                                children: [
-                                  Text(
-                                    'Filter Leads',
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          Colors
-                                              .white,
-                                      fontSize:
-                                          18,
-                                      fontWeight:
-                                          FontWeight
-                                              .w700,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 3,
-                                  ),
-                                  Text(
-                                    'Select a date range to filter leads',
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          Color(
-                                        0xFF98A2B3,
-                                      ),
-                                      fontSize:
-                                          12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                Navigator.pop(
-                                  dialogContext,
-                                );
-                              },
-                              icon:
-                                  const Icon(
-                                Icons.close,
-                                color:
-                                    Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Padding(
-                        padding:
-                            const EdgeInsets.all(
-                          20,
-                        ),
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
-                          children: [
-                            const Text(
-                              'Date Range',
-                              style:
-                                  TextStyle(
-                                color:
-                                    textColor,
-                                fontSize: 14,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 12,
-                            ),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child:
-                                      _dateBox(
-                                    label:
-                                        'From Date',
-                                    date:
-                                        tempFromDate,
-                                    onTap:
-                                        () async {
-                                      final date =
-                                          await _pickSingleDate(
-                                        context,
-                                        tempFromDate ??
-                                            DateTime
-                                                .now(),
-                                      );
-
-                                      if (date !=
-                                          null) {
-                                        setDialogState(
-                                          () {
-                                            tempFromDate =
-                                                date;
-
-                                            if (tempToDate !=
-                                                    null &&
-                                                tempToDate!.isBefore(
-                                                  date,
-                                                )) {
-                                              tempToDate =
-                                                  date;
-                                            }
-                                          },
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(
-                                  width: 12,
-                                ),
-                                Expanded(
-                                  child:
-                                      _dateBox(
-                                    label:
-                                        'To Date',
-                                    date:
-                                        tempToDate,
-                                    onTap:
-                                        () async {
-                                      final date =
-                                          await _pickSingleDate(
-                                        context,
-                                        tempToDate ??
-                                            tempFromDate ??
-                                            DateTime
-                                                .now(),
-                                      );
-
-                                      if (date !=
-                                          null) {
-                                        if (tempFromDate !=
-                                                null &&
-                                            date.isBefore(
-                                              tempFromDate!,
-                                            )) {
-                                          _showMessage(
-                                            'To Date cannot be before From Date.',
-                                          );
-                                          return;
-                                        }
-
-                                        setDialogState(
-                                          () {
-                                            tempToDate =
-                                                date;
-                                          },
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(
-                              height: 18,
-                            ),
-                            const Text(
-                              'Quick Select',
-                              style:
-                                  TextStyle(
-                                color:
-                                    textColor,
-                                fontSize: 14,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _quickDateButton(
-                                  'Today',
-                                  () {
-                                    final now =
-                                        DateTime.now();
-
-                                    setDialogState(
-                                      () {
-                                        tempFromDate =
-                                            now;
-                                        tempToDate =
-                                            now;
-                                      },
-                                    );
-                                  },
-                                ),
-                                _quickDateButton(
-                                  'Last 7 Days',
-                                  () {
-                                    final now =
-                                        DateTime.now();
-
-                                    setDialogState(
-                                      () {
-                                        tempFromDate =
-                                            now.subtract(
-                                          const Duration(
-                                            days: 6,
-                                          ),
-                                        );
-                                        tempToDate =
-                                            now;
-                                      },
-                                    );
-                                  },
-                                ),
-                                _quickDateButton(
-                                  'This Month',
-                                  () {
-                                    final now =
-                                        DateTime.now();
-
-                                    setDialogState(
-                                      () {
-                                        tempFromDate =
-                                            DateTime(
-                                          now.year,
-                                          now.month,
-                                          1,
-                                        );
-                                        tempToDate =
-                                            now;
-                                      },
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Container(
-                        padding:
-                            const EdgeInsets.all(
-                          18,
-                        ),
-                        decoration:
-                            const BoxDecoration(
-                          color:
-                              Color(0xFFF9FAFB),
-                          borderRadius:
-                              BorderRadius.only(
-                            bottomLeft:
-                                Radius.circular(
-                              18,
-                            ),
-                            bottomRight:
-                                Radius.circular(
-                              18,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                setDialogState(
-                                  () {
-                                    tempFromDate =
-                                        null;
-                                    tempToDate =
-                                        null;
-                                  },
-                                );
-                              },
-                              child:
-                                  const Text(
-                                'Clear',
-                              ),
-                            ),
-                            const Spacer(),
-                            OutlinedButton(
-                              onPressed: () {
-                                Navigator.pop(
-                                  dialogContext,
-                                );
-                              },
-                              child:
-                                  const Text(
-                                'Cancel',
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  fromDate =
-                                      tempFromDate;
-                                  toDate =
-                                      tempToDate;
-                                  todayOnly =
-                                      false;
-                                  currentPage =
-                                      1;
-                                });
-
-                                Navigator.pop(
-                                  dialogContext,
-                                );
-                              },
-                              style:
-                                  ElevatedButton
-                                      .styleFrom(
-                                backgroundColor:
-                                    primaryColor,
-                                foregroundColor:
-                                    Colors.white,
-                                elevation: 0,
-                              ),
-                              child:
-                                  const Text(
-                                'Apply Filter',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // SINGLE DATE PICKER
-  // ============================================================
-
-  Future<DateTime?> _pickSingleDate(
-    BuildContext context,
-    DateTime initialDate,
-  ) async {
-    return showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme:
-                const ColorScheme.light(
-              primary: primaryColor,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: textColor,
-            ),
-            datePickerTheme:
-                const DatePickerThemeData(
-              backgroundColor: Colors.white,
-              headerBackgroundColor:
-                  Color(0xFF101828),
-              headerForegroundColor:
+          IconButton(
+            onPressed:
+                () {
+              Navigator.pop(
+                dialogContext,
+              );
+            },
+            icon:
+                const Icon(
+              Icons.close,
+              color:
                   Colors.white,
             ),
           ),
-          child: child!,
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // DATE BOX
-  // ============================================================
-
-  Widget _dateBox({
-    required String label,
-    required DateTime? date,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius:
-          BorderRadius.circular(10),
-      child: Container(
-        padding:
-            const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: borderColor,
-          ),
-          borderRadius:
-              BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.calendar_today_outlined,
-              size: 18,
-              color: secondaryTextColor,
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style:
-                        const TextStyle(
-                      color:
-                          secondaryTextColor,
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    date == null
-                        ? 'Select date'
-                        : _formatDateOnly(date),
-                    style:
-                        TextStyle(
-                      color: date == null
-                          ? const Color(
-                              0xFF98A2B3,
-                            )
-                          : textColor,
-                      fontSize: 13,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   // ============================================================
-  // QUICK DATE BUTTON
+  // DIALOG FOOTER
   // ============================================================
 
-  Widget _quickDateButton(
-    String label,
-    VoidCallback onPressed,
+  Widget _buildDialogFooter(
+    BuildContext dialogContext,
+    bool isEdit,
+    Map<String, dynamic>? lead,
   ) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style:
-          OutlinedButton.styleFrom(
-        foregroundColor: primaryColor,
-        side: const BorderSide(
-          color: Color(0xFFD0D5DD),
+    final saving =
+        isEdit
+            ? isUpdatingLead
+            : isAddingLead;
+
+    return Container(
+      padding:
+          const EdgeInsets
+              .all(
+        18,
+      ),
+      decoration:
+          const BoxDecoration(
+        color:
+            Color(
+          0xFFF9FAFB,
         ),
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 9,
-        ),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(8),
+        borderRadius:
+            BorderRadius.only(
+          bottomLeft:
+              Radius.circular(
+            18,
+          ),
+          bottomRight:
+              Radius.circular(
+            18,
+          ),
         ),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+      child:
+          Row(
+        mainAxisAlignment:
+            MainAxisAlignment
+                .end,
+        children: [
+          OutlinedButton(
+            onPressed:
+                saving
+                    ? null
+                    : () {
+                        Navigator.pop(
+                          dialogContext,
+                        );
+                      },
+            child:
+                const Text(
+              'Cancel',
+            ),
+          ),
+
+          const SizedBox(
+            width: 10,
+          ),
+
+          ElevatedButton.icon(
+            onPressed:
+                saving
+                    ? null
+                    : () {
+                        if (isEdit) {
+                          _updateLead(
+                            dialogContext,
+                            lead!,
+                          );
+                        } else {
+                          _addLead(
+                            dialogContext,
+                          );
+                        }
+                      },
+            icon:
+                saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth:
+                              2,
+                          color:
+                              Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons
+                            .save_outlined,
+                        size: 18,
+                      ),
+            label:
+                Text(
+              saving
+                  ? 'Saving...'
+                  : isEdit
+                      ? 'Save Changes'
+                      : 'Save Lead',
+            ),
+            style:
+                ElevatedButton
+                    .styleFrom(
+              backgroundColor:
+                  primaryColor,
+              foregroundColor:
+                  Colors.white,
+              elevation:
+                  0,
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  // ============================================================
-  // CLEAR FILTERS
-  // ============================================================
-
-  void _clearDateFilters() {
-    setState(() {
-      fromDate = null;
-      toDate = null;
-      todayOnly = false;
-      currentPage = 1;
-    });
-  }
-
-  // ============================================================
-  // DOWNLOAD EXCEL
-  // ============================================================
-
-  void _downloadExcel() {
-    _showMessage(
-      'Excel download will be connected to the backend.',
-    );
-  }
-
-  // ============================================================
-  // UPLOAD EXCEL
-  // ============================================================
-
-  void _uploadExcel() {
-    _showMessage(
-      'Excel upload will be connected to the backend.',
-    );
-  }
-
-  // ============================================================
-  // DATE FORMAT
-  // ============================================================
-
-  String _formatDateOnly(DateTime? date) {
-    if (date == null) {
-      return 'Select date';
-    }
-
-    return '${date.day.toString().padLeft(2, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.year}';
-  }
-
-  String _formatDateTime(dynamic value) {
-    if (value == null) {
-      return '-';
-    }
-
-    DateTime? date;
-
-    if (value is DateTime) {
-      date = value;
-    } else {
-      try {
-        date = DateTime.parse(
-          value.toString(),
-        );
-      } catch (_) {
-        return value.toString();
-      }
-    }
-
-    return '${date.day.toString().padLeft(2, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.year} '
-        '${date.hour.toString().padLeft(2, '0')}:'
-        '${date.minute.toString().padLeft(2, '0')}';
   }
 
   // ============================================================
   // MESSAGE
   // ============================================================
 
-  void _showMessage(String message) {
+  void _showMessage(
+    String message,
+  ) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(
+      context,
+    ).hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content:
+            Text(message),
         behavior:
-            SnackBarBehavior.floating,
+            SnackBarBehavior
+                .floating,
       ),
     );
   }

@@ -1,16 +1,21 @@
 const LEADS_COLLECTION = require("../model/leads.model");
-const USER_COLLECTION = require("../model/user.model");
+const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
+
 // ============================================================
-// CREATE LEAD
+// GET LOGGED-IN USER ID
 // ============================================================
 
-exports.createLead = async (req, res) => {
+const getUserId = (req) => {
+  return req.user?.id || req.user?._id;
+};
+
+// ============================================================
+// GET ALL LEADS
+// ============================================================
+
+exports.getLeads = async (req, res) => {
   try {
-    // ========================================================
-    // GET LOGGED-IN USER
-    // ========================================================
-
-    const userId = req.user?.id || req.user?._id;
+    const userId = getUserId(req);
 
     if (!userId) {
       return res.status(401).json({
@@ -20,13 +25,176 @@ exports.createLead = async (req, res) => {
     }
 
     // ========================================================
-    // GET REQUEST DATA
+    // DATE FILTER
+    // ========================================================
+
+    const { startDate, endDate } = req.query;
+
+    // ========================================================
+    // BUILD QUERY
+    // ========================================================
+
+    const query = {
+      userId: userId,
+    };
+
+    // ========================================================
+    // START DATE
+    // ========================================================
+
+    if (startDate) {
+      const start = new Date(startDate);
+
+      if (isNaN(start.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid startDate.",
+        });
+      }
+
+      // Start of selected day
+      start.setHours(0, 0, 0, 0);
+
+      query.createdAt = {
+        ...query.createdAt,
+        $gte: start,
+      };
+    }
+
+    // ========================================================
+    // END DATE
+    // ========================================================
+
+    if (endDate) {
+      const end = new Date(endDate);
+
+      if (isNaN(end.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid endDate.",
+        });
+      }
+
+      // End of selected day
+      end.setHours(23, 59, 59, 999);
+
+      query.createdAt = {
+        ...query.createdAt,
+        $lte: end,
+      };
+    }
+
+    // ========================================================
+    // FIND USER LEADS
+    // ========================================================
+
+    const leads = await LEADS_COLLECTION.find(query)
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
+
+    const leadIds = leads.map((lead) => lead._id);
+    const deliveries = leadIds.length
+      ? await SEQUENCE_DELIVERY.find({
+          userId,
+          leadId: { $in: leadIds },
+        })
+          .sort({ createdAt: -1 })
+          .lean()
+      : [];
+
+    const trackingByLead = new Map();
+
+    for (const delivery of deliveries) {
+      const leadId = delivery.leadId.toString();
+
+      if (trackingByLead.has(leadId)) {
+        continue;
+      }
+
+      trackingByLead.set(
+        leadId,
+        delivery.openedAt
+          ? "Seen"
+          : delivery.status === "failed"
+            ? "Failed"
+            : delivery.status === "pending"
+              ? "Pending"
+              : "Sent",
+      );
+    }
+
+    // ========================================================
+    // RESPONSE
+    // ========================================================
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Leads fetched successfully.",
+
+      leads: leads.map((lead) => ({
+        id: lead._id,
+
+        _id: lead._id,
+
+        email: lead.email || "",
+
+        firstName: lead.firstName || "",
+
+        lastName: lead.lastName || "",
+
+        company: lead.company || "",
+
+        type: lead.type || "Email",
+
+        tracking: lead.tracking !== false,
+
+        trackingStatus:
+          lead.tracking === false
+            ? "Skip"
+            : trackingByLead.get(lead._id.toString()) || "Pending",
+
+        addedDate: lead.createdAt,
+
+        updatedDate: lead.updatedAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Error while fetching leads:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// CREATE LEAD
+// ============================================================
+
+exports.createLead = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication required.",
+      });
+    }
+
+    // ========================================================
+    // REQUEST DATA
     // ========================================================
 
     const { firstName, lastName, email, company, type, tracking } = req.body;
 
     // ========================================================
-    // VALIDATE EMAIL
+    // EMAIL REQUIRED
     // ========================================================
 
     if (!email || !email.trim()) {
@@ -39,7 +207,7 @@ exports.createLead = async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     // ========================================================
-    // VALIDATE EMAIL FORMAT
+    // EMAIL VALIDATION
     // ========================================================
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -52,7 +220,7 @@ exports.createLead = async (req, res) => {
     }
 
     // ========================================================
-    // CHECK EXISTING EMAIL FOR THIS USER
+    // DUPLICATE CHECK
     // ========================================================
 
     const existingLead = await LEADS_COLLECTION.findOne({
@@ -68,13 +236,13 @@ exports.createLead = async (req, res) => {
     }
 
     // ========================================================
-    // VALIDATE TYPE
+    // TYPE
     // ========================================================
 
     const leadType = type === "WhatsApp" ? "WhatsApp" : "Email";
 
     // ========================================================
-    // CREATE LEAD
+    // CREATE
     // ========================================================
 
     const newLead = await LEADS_COLLECTION.create({
@@ -105,6 +273,8 @@ exports.createLead = async (req, res) => {
       lead: {
         id: newLead._id,
 
+        _id: newLead._id,
+
         email: newLead.email,
 
         firstName: newLead.firstName,
@@ -117,7 +287,11 @@ exports.createLead = async (req, res) => {
 
         tracking: newLead.tracking,
 
+        trackingStatus: newLead.tracking ? "Pending" : "Skip",
+
         addedDate: newLead.createdAt,
+
+        updatedDate: newLead.updatedAt,
       },
     });
   } catch (error) {
@@ -152,11 +326,7 @@ exports.createLead = async (req, res) => {
 
 exports.editLead = async (req, res) => {
   try {
-    // ========================================================
-    // GET LOGGED-IN USER
-    // ========================================================
-
-    const userId = req.user?.id;
+    const userId = getUserId(req);
 
     if (!userId) {
       return res.status(401).json({
@@ -166,7 +336,7 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // GET LEAD ID
+    // LEAD ID
     // ========================================================
 
     const { leadId } = req.params;
@@ -179,13 +349,13 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // GET REQUEST DATA
+    // REQUEST DATA
     // ========================================================
 
     const { firstName, lastName, email, company, type, tracking } = req.body;
 
     // ========================================================
-    // FIND EXISTING LEAD
+    // FIND LEAD
     // ========================================================
 
     const existingLead = await LEADS_COLLECTION.findOne({
@@ -201,7 +371,7 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // NORMALIZE DATA
+    // NORMALIZE
     // ========================================================
 
     const newFirstName = firstName?.trim() || "";
@@ -217,7 +387,7 @@ exports.editLead = async (req, res) => {
     const newTracking = tracking !== false;
 
     // ========================================================
-    // VALIDATE EMAIL
+    // EMAIL REQUIRED
     // ========================================================
 
     if (!newEmail) {
@@ -228,7 +398,7 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // VALIDATE EMAIL FORMAT
+    // EMAIL FORMAT
     // ========================================================
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -241,7 +411,7 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // CHECK WHETHER ANYTHING CHANGED
+    // CHECK CHANGES
     // ========================================================
 
     const noChanges =
@@ -252,10 +422,6 @@ exports.editLead = async (req, res) => {
       existingLead.type === newType &&
       existingLead.tracking === newTracking;
 
-    // ========================================================
-    // SAME OLD DETAILS
-    // ========================================================
-
     if (noChanges) {
       return res.status(400).json({
         success: false,
@@ -265,14 +431,18 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // CHECK WHETHER EMAIL BELONGS TO ANOTHER LEAD
+    // DUPLICATE EMAIL
     // ========================================================
 
     if (newEmail !== existingLead.email) {
       const duplicateLead = await LEADS_COLLECTION.findOne({
         userId: userId,
+
         email: newEmail,
-        id: { $ne: leadId },
+
+        _id: {
+          $ne: leadId,
+        },
       });
 
       if (duplicateLead) {
@@ -284,7 +454,7 @@ exports.editLead = async (req, res) => {
     }
 
     // ========================================================
-    // UPDATE LEAD
+    // UPDATE
     // ========================================================
 
     existingLead.firstName = newFirstName;
@@ -307,11 +477,15 @@ exports.editLead = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+
       changed: true,
+
       message: "Lead updated successfully.",
 
       lead: {
         id: existingLead._id,
+
+        _id: existingLead._id,
 
         email: existingLead.email,
 
@@ -324,6 +498,8 @@ exports.editLead = async (req, res) => {
         type: existingLead.type,
 
         tracking: existingLead.tracking,
+
+        trackingStatus: existingLead.tracking ? "Sent" : "Skip",
 
         addedDate: existingLead.createdAt,
 
@@ -347,6 +523,81 @@ exports.editLead = async (req, res) => {
     // ========================================================
     // SERVER ERROR
     // ========================================================
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// DELETE LEAD
+// ============================================================
+
+exports.deleteLead = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication required.",
+      });
+    }
+
+    // ========================================================
+    // LEAD ID
+    // ========================================================
+
+    const { leadId } = req.params;
+
+    if (!leadId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lead ID is required.",
+      });
+    }
+
+    // ========================================================
+    // FIND LEAD
+    // ========================================================
+
+    const lead = await LEADS_COLLECTION.findOne({
+      _id: leadId,
+      userId: userId,
+    });
+
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found.",
+      });
+    }
+
+    // ========================================================
+    // DELETE
+    // ========================================================
+
+    await LEADS_COLLECTION.deleteOne({
+      _id: leadId,
+      userId: userId,
+    });
+
+    // ========================================================
+    // SUCCESS
+    // ========================================================
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Lead deleted successfully.",
+
+      leadId: lead._id,
+    });
+  } catch (error) {
+    console.error("Error while deleting lead:", error);
 
     return res.status(500).json({
       success: false,

@@ -206,7 +206,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // SEARCH WITH DEBOUNCE
+  // SEARCH
   // ============================================================
 
   void _onSearchChanged(String value) {
@@ -301,42 +301,42 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // IMPORTANT:
+    // Use the actual screen width.
+    //
+    // Do NOT use LayoutBuilder constraints here because
+    // MasterListScreen is inside the dashboard/sidebar layout.
+    final double screenWidth =
+        MediaQuery.of(context).size.width;
+
+    final bool isMobile = screenWidth < 600;
+
     return Scaffold(
       backgroundColor:
           const Color(0xFFF5F7FA),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final bool isMobile =
-                constraints.maxWidth < 700;
-
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(
-                isMobile ? 20 : 28,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(
+            isMobile ? 16 : 28,
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              _buildPageHeader(
+                isMobile,
               ),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  _buildPageHeader(
-                    isMobile,
-                  ),
 
-                  SizedBox(
-                    height:
-                        isMobile ? 24 : 30,
-                  ),
-
-                  _buildSequenceContainer(
-                    isMobile,
-                  ),
-                ],
+              SizedBox(
+                height:
+                    isMobile ? 24 : 30,
               ),
-            );
-          },
+
+              _buildSequenceContainer(
+                isMobile,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -390,7 +390,8 @@ class _MasterListScreenState extends State<MasterListScreen> {
               label: const Text(
                 'Add New Sequence',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight:
+                      FontWeight.w600,
                 ),
               ),
               style:
@@ -424,16 +425,19 @@ class _MasterListScreenState extends State<MasterListScreen> {
               Text(
                 'Sequence List',
                 style: TextStyle(
-                  color: Color(0xFF101828),
+                  color:
+                      Color(0xFF101828),
                   fontSize: 30,
-                  fontWeight: FontWeight.w800,
+                  fontWeight:
+                      FontWeight.w800,
                 ),
               ),
               SizedBox(height: 6),
               Text(
                 'Manage your automated email campaign sequences',
                 style: TextStyle(
-                  color: Color(0xFF667085),
+                  color:
+                      Color(0xFF667085),
                   fontSize: 15,
                 ),
               ),
@@ -487,7 +491,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(
-        isMobile ? 18 : 20,
+        isMobile ? 16 : 20,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -517,8 +521,10 @@ class _MasterListScreenState extends State<MasterListScreen> {
             _buildLoadingState()
           else if (errorMessage != null)
             _buildErrorState()
+          else if (sequences.isEmpty)
+            _buildEmptyState()
           else if (isMobile)
-            _buildMobileList()
+            _buildMobileTable()
           else
             _buildDesktopTable(),
 
@@ -829,7 +835,8 @@ class _MasterListScreenState extends State<MasterListScreen> {
           Text(
             errorMessage ??
                 'Something went wrong.',
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
             style: const TextStyle(
               color: Color(0xFF344054),
               fontSize: 15,
@@ -865,217 +872,195 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // MOBILE LIST
+  // MOBILE TABLE
   // ============================================================
 
-  Widget _buildMobileList() {
+  Widget _buildMobileTable() {
     if (sequences.isEmpty) {
       return _buildEmptyState();
     }
 
-    return Column(
-      children:
-          sequences.map((sequence) {
-        return _buildSequenceCard(
-          sequence,
-        );
-      }).toList(),
-    );
-  }
-
-  // ============================================================
-  // MOBILE CARD
-  // ============================================================
-
-  Widget _buildSequenceCard(
-    Map<String, dynamic> sequence,
-  ) {
     return Container(
       width: double.infinity,
-      margin:
-          const EdgeInsets.only(
-        bottom: 16,
-      ),
-      padding:
-          const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            const Color(0xFFF9FAFB),
-        borderRadius:
-            BorderRadius.circular(12),
         border: Border.all(
-          color:
-              const Color(0xFFE4E7EC),
+          color: const Color(0xFFE4E7EC),
         ),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Step ${sequence['step'] ?? '-'}',
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(0xFF101828),
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-              ),
-              _variantBadge(
-                sequence['variant']
-                        ?.toString() ??
-                    '-',
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          _mobileInfoRow(
-            'Gap Days',
-            '${sequence['gapDays'] ?? 0} day(s)',
-            Icons.schedule_outlined,
-          ),
-
-          const SizedBox(height: 12),
-
-          _mobileInfoRow(
-            'Subject',
-            sequence['subject']
-                    ?.toString() ??
-                '-',
-            Icons.subject_outlined,
-          ),
-
-          const SizedBox(height: 12),
-
-          _mobileInfoRow(
-            'Business Type',
-            sequence['type']
-                    ?.toString() ??
-                '-',
-            Icons.business_outlined,
-          ),
-
-          const SizedBox(height: 12),
-
-          _mobileInfoRow(
-            'Status',
-            sequence['status']
-                    ?.toString() ??
-                '-',
-            Icons.check_circle_outline,
-          ),
-
-          const SizedBox(height: 18),
-
-          Row(
-            children: [
-              Expanded(
-                child:
-                    OutlinedButton.icon(
-                  onPressed: () {
-                    _viewSequence(
-                      sequence,
-                    );
-                  },
-                  icon:
-                      const Icon(
-                    Icons
-                        .visibility_outlined,
-                    size: 18,
-                  ),
-                  label:
-                      const Text('View'),
-                  style:
-                      OutlinedButton.styleFrom(
-                    foregroundColor:
-                        const Color(
-                      0xFF315BEF,
-                    ),
-                    side:
-                        const BorderSide(
-                      color:
-                          Color(0xFF315BEF),
-                    ),
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child:
-                    ElevatedButton.icon(
-                  onPressed: () {
-                    _editSequence(
-                      sequence,
-                    );
-                  },
-                  icon:
-                      const Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                  ),
-                  label:
-                      const Text('Edit'),
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(
-                      0xFF315BEF,
-                    ),
-                    foregroundColor:
-                        Colors.white,
-                    elevation: 0,
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          SizedBox(
-            width: double.infinity,
-            child:
-                TextButton.icon(
-              onPressed: () {
-                _deleteSequence(
-                  sequence,
-                );
-              },
-              icon: const Icon(
-                Icons.delete_outline,
-                color: Colors.red,
-                size: 18,
-              ),
-              label:
-                  const Text(
-                'Delete Sequence',
-                style: TextStyle(
-                  color: Colors.red,
-                ),
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowHeight: 46,
+            dataRowMinHeight: 58,
+            dataRowMaxHeight: 70,
+            columnSpacing: 16,
+            horizontalMargin: 12,
+            headingRowColor: WidgetStateProperty.all(
+              const Color(0xFF101828),
             ),
+            headingTextStyle: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+            dataTextStyle: const TextStyle(
+              color: Color(0xFF344054),
+              fontSize: 12,
+            ),
+            columns: const [
+              DataColumn(label: Text('STEP')),
+              DataColumn(label: Text('GAP DAYS')),
+              DataColumn(label: Text('VARIANT')),
+              DataColumn(label: Text('MESSAGE')),
+              DataColumn(label: Text('SUBJECT')),
+              DataColumn(label: Text('BUSINESS TYPE')),
+              DataColumn(label: Text('WHATSAPP')),
+              DataColumn(label: Text('CREATED AT')),
+              DataColumn(label: Text('UPDATED AT')),
+              DataColumn(label: Text('DELETE')),
+              DataColumn(label: Text('EDIT')),
+              DataColumn(label: Text('VIEW')),
+            ],
+            rows: sequences.map((sequence) {
+              return DataRow(
+                cells: [
+                  DataCell(
+                    Text(
+                      sequence['step']?.toString() ?? '-',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF101828),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      sequence['gapDays']?.toString() ?? '-',
+                    ),
+                  ),
+                  DataCell(
+                    _variantBadge(
+                      sequence['variant']?.toString() ?? '-',
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 220,
+                      child: Text(
+                        sequence['content']?.toString() ?? '-',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 180,
+                      child: Text(
+                        sequence['subject']?.toString() ?? '-',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 140,
+                      child: Text(
+                        sequence['type']?.toString() ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 180,
+                      child: Text(
+                        _getWhatsApp(sequence),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      _formatDateTime(sequence['createdAt']),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      _formatDateTime(sequence['updatedAt']),
+                    ),
+                  ),
+                  DataCell(
+                    IconButton(
+                      tooltip: 'Delete sequence',
+                      onPressed: () => _deleteSequence(sequence),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    ElevatedButton(
+                      onPressed: () => _editSequence(sequence),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF315BEF),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                      ),
+                      child: const Text(
+                        'Edit',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    OutlinedButton(
+                      onPressed: () => _viewSequence(sequence),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF315BEF),
+                        side: const BorderSide(
+                          color: Color(0xFF315BEF),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                      ),
+                      child: const Text(
+                        'View',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1114,7 +1099,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // MOBILE INFO
+  // MOBILE INFO ROW
   // ============================================================
 
   Widget _mobileInfoRow(
@@ -1154,7 +1139,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
               Text(
                 value,
-                maxLines: 2,
+                maxLines: 3,
                 overflow:
                     TextOverflow.ellipsis,
                 style:
@@ -1185,6 +1170,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius:
             BorderRadius.circular(10),
         border: Border.all(
@@ -1195,266 +1181,336 @@ class _MasterListScreenState extends State<MasterListScreen> {
       child: ClipRRect(
         borderRadius:
             BorderRadius.circular(10),
-        child:
-            SingleChildScrollView(
+        child: SingleChildScrollView(
           scrollDirection:
               Axis.horizontal,
-          child: DataTable(
-            headingRowColor:
-                WidgetStateProperty.all(
-              const Color(0xFF101828),
+          child: ConstrainedBox(
+            constraints:
+                const BoxConstraints(
+              minWidth: 1500,
             ),
-            headingTextStyle:
-                const TextStyle(
-              color: Colors.white,
-              fontWeight:
-                  FontWeight.w700,
-              fontSize: 12,
-            ),
-            dataTextStyle:
-                const TextStyle(
-              color:
-                  Color(0xFF344054),
-              fontSize: 13,
-            ),
-            columnSpacing: 24,
-            columns: const [
-              DataColumn(
-                label: Text('VIEW'),
-              ),
-              DataColumn(
-                label: Text('EDIT'),
-              ),
-              DataColumn(
-                label: Text('STEP'),
-              ),
-              DataColumn(
-                label: Text('GAP DAYS'),
-              ),
-              DataColumn(
-                label: Text('VARIANT'),
-              ),
-              DataColumn(
-                label: Text('MESSAGE'),
-              ),
-              DataColumn(
-                label: Text('SUBJECT'),
-              ),
-              DataColumn(
-                label:
-                    Text('BUSINESS TYPE'),
-              ),
-              DataColumn(
-                label: Text('WHATSAPP'),
-              ),
-              DataColumn(
-                label: Text('STATUS'),
-              ),
-              DataColumn(
-                label: Text('CREATED'),
-              ),
-              DataColumn(
-                label: Text('UPDATED'),
-              ),
-              DataColumn(
-                label: Text('DELETE'),
-              ),
-            ],
-            rows: sequences.map(
-              (sequence) {
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      OutlinedButton(
-                        onPressed: () {
-                          _viewSequence(
-                            sequence,
-                          );
-                        },
-                        child:
-                            const Text('View'),
-                      ),
-                    ),
+            child: DataTable(
+              horizontalMargin: 16,
+              columnSpacing: 24,
 
-                    DataCell(
-                      ElevatedButton(
-                        onPressed: () {
-                          _editSequence(
-                            sequence,
-                          );
-                        },
-                        style:
-                            ElevatedButton
-                                .styleFrom(
-                          backgroundColor:
-                              const Color(
-                            0xFF315BEF,
+              headingRowHeight: 52,
+
+              dataRowMinHeight: 60,
+              dataRowMaxHeight: 90,
+
+              headingRowColor:
+                  WidgetStateProperty.all(
+                const Color(0xFF101828),
+              ),
+
+              headingTextStyle:
+                  const TextStyle(
+                color: Colors.white,
+                fontWeight:
+                    FontWeight.w700,
+                fontSize: 12,
+              ),
+
+              dataTextStyle:
+                  const TextStyle(
+                color:
+                    Color(0xFF344054),
+                fontSize: 13,
+              ),
+
+              // ==================================================
+              // EXACT COLUMN ORDER
+              // ==================================================
+
+              columns: const [
+                DataColumn(
+                  label: Text('STEP'),
+                ),
+                DataColumn(
+                  label: Text('GAP DAYS'),
+                ),
+                DataColumn(
+                  label: Text('VARIANT'),
+                ),
+                DataColumn(
+                  label: Text('MESSAGE'),
+                ),
+                DataColumn(
+                  label: Text('SUBJECT'),
+                ),
+                DataColumn(
+                  label: Text('BUSINESS TYPE'),
+                ),
+                DataColumn(
+                  label: Text('WHATSAPP'),
+                ),
+                DataColumn(
+                  label: Text('CREATED AT'),
+                ),
+                DataColumn(
+                  label: Text('UPDATED AT'),
+                ),
+                DataColumn(
+                  label: Text('DELETE'),
+                ),
+                DataColumn(
+                  label: Text('EDIT'),
+                ),
+                DataColumn(
+                  label: Text('VIEW'),
+                ),
+              ],
+
+              // ==================================================
+              // ROWS
+              // ==================================================
+
+              rows: sequences.map<DataRow>(
+                (sequence) {
+                  return DataRow(
+                    cells: [
+                      // STEP
+                      DataCell(
+                        Text(
+                          sequence['step']
+                                  ?.toString() ??
+                              '-',
+                          style:
+                              const TextStyle(
+                            fontWeight:
+                                FontWeight.w700,
+                            color:
+                                Color(0xFF101828),
                           ),
-                          foregroundColor:
-                              Colors.white,
-                          elevation: 0,
                         ),
-                        child:
-                            const Text('Edit'),
                       ),
-                    ),
 
-                    DataCell(
-                      Text(
-                        sequence['step']
-                                ?.toString() ??
-                            '-',
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        sequence['gapDays']
-                                ?.toString() ??
-                            '-',
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        sequence['variant']
-                                ?.toString() ??
-                            '-',
-                      ),
-                    ),
-
-                    DataCell(
-                      SizedBox(
-                        width: 180,
-                        child: Text(
-                          sequence['content']
+                      // GAP DAYS
+                      DataCell(
+                        Text(
+                          sequence['gapDays']
                                   ?.toString() ??
                               '-',
-                          maxLines: 2,
-                          overflow:
-                              TextOverflow
-                                  .ellipsis,
                         ),
                       ),
-                    ),
 
-                    DataCell(
-                      SizedBox(
-                        width: 180,
-                        child: Text(
-                          sequence['subject']
+                      // VARIANT
+                      DataCell(
+                        _variantBadge(
+                          sequence['variant']
                                   ?.toString() ??
                               '-',
-                          maxLines: 2,
-                          overflow:
-                              TextOverflow
-                                  .ellipsis,
                         ),
                       ),
-                    ),
 
-                    DataCell(
-                      Text(
-                        sequence['type']
-                                ?.toString() ??
-                            '-',
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        _getWhatsApp(
-                          sequence,
+                      // MESSAGE
+                      DataCell(
+                        SizedBox(
+                          width: 250,
+                          child: Text(
+                            sequence['content']
+                                    ?.toString() ??
+                                '-',
+                            maxLines: 2,
+                            overflow:
+                                TextOverflow
+                                    .ellipsis,
+                          ),
                         ),
                       ),
-                    ),
 
-                    DataCell(
-                      _statusBadge(
-                        sequence['status']
-                                ?.toString() ??
-                            '-',
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        _formatDate(
-                          sequence[
-                              'createdAt'],
+                      // SUBJECT
+                      DataCell(
+                        SizedBox(
+                          width: 220,
+                          child: Text(
+                            sequence['subject']
+                                    ?.toString() ??
+                                '-',
+                            maxLines: 2,
+                            overflow:
+                                TextOverflow
+                                    .ellipsis,
+                          ),
                         ),
                       ),
-                    ),
 
-                    DataCell(
-                      Text(
-                        _formatDate(
-                          sequence[
-                              'updatedAt'],
+                      // BUSINESS TYPE
+                      DataCell(
+                        SizedBox(
+                          width: 140,
+                          child: Text(
+                            sequence['type']
+                                    ?.toString() ??
+                                '-',
+                            maxLines: 1,
+                            overflow:
+                                TextOverflow
+                                    .ellipsis,
+                          ),
                         ),
                       ),
-                    ),
 
-                    DataCell(
-                      IconButton(
-                        onPressed: () {
-                          _deleteSequence(
-                            sequence,
-                          );
-                        },
-                        icon:
-                            const Icon(
-                          Icons
-                              .delete_outline,
-                          color: Colors.red,
+                      // WHATSAPP
+                      DataCell(
+                        SizedBox(
+                          width: 180,
+                          child: Text(
+                            _getWhatsApp(
+                              sequence,
+                            ),
+                            maxLines: 2,
+                            overflow:
+                                TextOverflow
+                                    .ellipsis,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
-            ).toList(),
+
+                      // CREATED AT
+                      DataCell(
+                        Text(
+                          _formatDateTime(
+                            sequence[
+                                'createdAt'],
+                          ),
+                        ),
+                      ),
+
+                      // UPDATED AT
+                      DataCell(
+                        Text(
+                          _formatDateTime(
+                            sequence[
+                                'updatedAt'],
+                          ),
+                        ),
+                      ),
+
+                      // DELETE
+                      DataCell(
+                        IconButton(
+                          tooltip:
+                              'Delete sequence',
+                          onPressed: () {
+                            _deleteSequence(
+                              sequence,
+                            );
+                          },
+                          icon:
+                              const Icon(
+                            Icons
+                                .delete_outline,
+                            color:
+                                Colors.red,
+                            size: 21,
+                          ),
+                        ),
+                      ),
+
+                      // EDIT
+                      DataCell(
+                        ElevatedButton(
+                          onPressed: () {
+                            _editSequence(
+                              sequence,
+                            );
+                          },
+                          style:
+                              ElevatedButton
+                                  .styleFrom(
+                            backgroundColor:
+                                const Color(
+                              0xFF315BEF,
+                            ),
+                            foregroundColor:
+                                Colors.white,
+                            elevation: 0,
+                            padding:
+                                const EdgeInsets
+                                    .symmetric(
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius
+                                      .circular(
+                                7,
+                              ),
+                            ),
+                          ),
+                          child:
+                              const Text(
+                            'Edit',
+                            style:
+                                TextStyle(
+                              fontSize: 13,
+                              fontWeight:
+                                  FontWeight
+                                      .w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // VIEW
+                      DataCell(
+                        OutlinedButton(
+                          onPressed: () {
+                            _viewSequence(
+                              sequence,
+                            );
+                          },
+                          style:
+                              OutlinedButton
+                                  .styleFrom(
+                            foregroundColor:
+                                const Color(
+                              0xFF315BEF,
+                            ),
+                            side:
+                                const BorderSide(
+                              color:
+                                  Color(
+                                0xFF315BEF,
+                              ),
+                            ),
+                            padding:
+                                const EdgeInsets
+                                    .symmetric(
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius
+                                      .circular(
+                                7,
+                              ),
+                            ),
+                          ),
+                          child:
+                              const Text(
+                            'View',
+                            style:
+                                TextStyle(
+                              fontSize: 13,
+                              fontWeight:
+                                  FontWeight
+                                      .w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ).toList(),
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // STATUS
-  // ============================================================
-
-  Widget _statusBadge(
-    String status,
-  ) {
-    final normalized =
-        status.toLowerCase();
-
-    final bool active =
-        normalized == 'active';
-
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: active
-            ? const Color(0xFFECFDF3)
-            : const Color(0xFFF2F4F7),
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: active
-              ? const Color(0xFF027A48)
-              : const Color(0xFF344054),
-          fontSize: 12,
-          fontWeight:
-              FontWeight.w600,
         ),
       ),
     );
@@ -1518,7 +1574,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // IMPROVED PAGINATION
+  // PAGINATION
   // ============================================================
 
   Widget _buildPagination() {
@@ -1898,24 +1954,6 @@ class _MasterListScreenState extends State<MasterListScreen> {
                     0xFFD0D5DD,
                   ),
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color:
-                        const Color(
-                      0xFF315BEF,
-                    ).withOpacity(
-                      0.18,
-                    ),
-                    blurRadius: 5,
-                    offset:
-                        const Offset(
-                      0,
-                      2,
-                    ),
-                  ),
-                ]
-              : null,
         ),
         child: Text(
           '$page',
@@ -1936,7 +1974,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // PAGINATION ICON BUTTON
+  // PAGINATION ICON
   // ============================================================
 
   Widget _paginationIconButton({
@@ -1994,7 +2032,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // CURRENT PAGE INDICATOR
+  // CURRENT PAGE
   // ============================================================
 
   Widget _currentPageIndicator() {
@@ -2058,6 +2096,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
               ),
               child: Column(
                 children: [
+                  // HEADER
                   Container(
                     padding:
                         const EdgeInsets
@@ -2112,8 +2151,10 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                       FontWeight.w700,
                                 ),
                               ),
+
                               const SizedBox(
                                   height: 4),
+
                               Text(
                                 'Step ${sequence['step'] ?? '-'} • Variant ${sequence['variant'] ?? '-'}',
                                 style:
@@ -2152,6 +2193,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
                     ),
                   ),
 
+                  // BODY
                   Expanded(
                     child:
                         SingleChildScrollView(
@@ -2192,6 +2234,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                             ?.toString() ??
                                         '-',
                               ),
+
                               _sequenceInfoCard(
                                 icon: Icons
                                     .schedule_outlined,
@@ -2200,6 +2243,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                 value:
                                     '${sequence['gapDays'] ?? 0} Day(s)',
                               ),
+
                               _sequenceInfoCard(
                                 icon: Icons
                                     .alt_route_outlined,
@@ -2210,6 +2254,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                             ?.toString() ??
                                         '-',
                               ),
+
                               _sequenceInfoCard(
                                 icon: Icons
                                     .business_outlined,
@@ -2265,9 +2310,9 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
                           _emailDetailContainer(
                             title:
-                                'Email Message',
+                                'Message',
                             icon: Icons
-                                .description_outlined,
+                                .message_outlined,
                             child:
                                 Container(
                               width:
@@ -2336,6 +2381,19 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                 Column(
                               children: [
                                 _detailRow(
+                                  'Business Type',
+                                  sequence['type']
+                                          ?.toString() ??
+                                      '-',
+                                  Icons
+                                      .business_outlined,
+                                ),
+
+                                const Divider(
+                                  height: 24,
+                                ),
+
+                                _detailRow(
                                   'WhatsApp',
                                   _getWhatsApp(
                                     sequence,
@@ -2343,11 +2401,13 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                   Icons
                                       .chat_outlined,
                                 ),
+
                                 const Divider(
                                   height: 24,
                                 ),
+
                                 _detailRow(
-                                  'Created',
+                                  'Created At',
                                   _formatDateTime(
                                     sequence[
                                         'createdAt'],
@@ -2355,11 +2415,13 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                   Icons
                                       .calendar_today_outlined,
                                 ),
+
                                 const Divider(
                                   height: 24,
                                 ),
+
                                 _detailRow(
-                                  'Last Updated',
+                                  'Updated At',
                                   _formatDateTime(
                                     sequence[
                                         'updatedAt'],
@@ -2375,6 +2437,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
                     ),
                   ),
 
+                  // FOOTER
                   Container(
                     padding:
                         const EdgeInsets.all(

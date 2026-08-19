@@ -35,6 +35,20 @@ class SequenceApi {
   }
 
   // ============================================================
+  // CLEAR TOKEN
+  // ============================================================
+
+  static Future<void> _clearToken() async {
+    await _storage.delete(
+      key: 'auth_token',
+    );
+
+    await _storage.delete(
+      key: 'token',
+    );
+  }
+
+  // ============================================================
   // CREATE SEQUENCE
   // ============================================================
 
@@ -150,7 +164,8 @@ class SequenceApi {
       };
 
       debugPrint(
-        'CREATE SEQUENCE BODY: ${jsonEncode(requestBody)}',
+        'CREATE SEQUENCE BODY: '
+        '${jsonEncode(requestBody)}',
       );
 
       final response = await http
@@ -176,24 +191,9 @@ class SequenceApi {
         'CREATE RESPONSE: ${response.body}',
       );
 
-      Map<String, dynamic> data = {};
-
-      if (response.body.isNotEmpty) {
-        try {
-          final decoded =
-              jsonDecode(response.body);
-
-          if (decoded is Map<String, dynamic>) {
-            data = decoded;
-          }
-        } catch (e) {
-          return {
-            'success': false,
-            'message':
-                'Invalid response from server.',
-          };
-        }
-      }
+      final data = _decodeResponse(
+        response.body,
+      );
 
       if (response.statusCode >= 200 &&
           response.statusCode < 300) {
@@ -204,13 +204,7 @@ class SequenceApi {
       }
 
       if (response.statusCode == 401) {
-        await _storage.delete(
-          key: 'auth_token',
-        );
-
-        await _storage.delete(
-          key: 'token',
-        );
+        await _clearToken();
 
         return {
           'success': false,
@@ -231,6 +225,146 @@ class SequenceApi {
     } catch (e) {
       debugPrint(
         'CREATE SEQUENCE ERROR: $e',
+      );
+
+      return {
+        'success': false,
+        'message':
+            'Unable to connect to the server.',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // GET TRACKING SUMMARY
+  //
+  // Supports:
+  //
+  // /tracking-summary
+  //
+  // /tracking-summary?startDate=...&endDate=...
+  //
+  // ============================================================
+
+  static Future<Map<String, dynamic>> getTrackingSummary({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final activeToken = await _getToken();
+
+      if (activeToken == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      // ========================================================
+      // QUERY PARAMETERS
+      // ========================================================
+
+      final queryParameters = <String, String>{};
+
+      if (startDate != null) {
+        queryParameters['startDate'] =
+            _formatDateForApi(startDate);
+      }
+
+      if (endDate != null) {
+        queryParameters['endDate'] =
+            _formatDateForApi(endDate);
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/tracking-summary',
+      ).replace(
+        queryParameters:
+            queryParameters.isEmpty
+                ? null
+                : queryParameters,
+      );
+
+      debugPrint(
+        'GET TRACKING SUMMARY URL: $uri',
+      );
+
+      // ========================================================
+      // GET REQUEST
+      // ========================================================
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Authorization':
+                  'Bearer $activeToken',
+            },
+          )
+          .timeout(
+            const Duration(seconds: 20),
+          );
+
+      debugPrint(
+        'TRACKING SUMMARY STATUS: '
+        '${response.statusCode}',
+      );
+
+      debugPrint(
+        'TRACKING SUMMARY RESPONSE: '
+        '${response.body}',
+      );
+
+      final data = _decodeResponse(
+        response.body,
+      );
+
+      // ========================================================
+      // SUCCESS
+      // ========================================================
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300) {
+        return {
+          'success': true,
+          ...data,
+        };
+      }
+
+      // ========================================================
+      // UNAUTHORIZED
+      // ========================================================
+
+      if (response.statusCode == 401) {
+        await _clearToken();
+
+        return {
+          'success': false,
+          'message':
+              data['message'] ??
+                  'Session expired. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      // ========================================================
+      // ERROR
+      // ========================================================
+
+      return {
+        'success': false,
+        'message':
+            data['message'] ??
+                'Unable to fetch tracking summary.',
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      debugPrint(
+        'GET TRACKING SUMMARY ERROR: $e',
       );
 
       return {
@@ -264,10 +398,6 @@ class SequenceApi {
         };
       }
 
-      // ========================================================
-      // QUERY PARAMETERS
-      // ========================================================
-
       final queryParameters = <String, String>{
         'page': page.toString(),
         'limit': limit.toString(),
@@ -283,18 +413,16 @@ class SequenceApi {
             status.trim();
       }
 
-      final uri = Uri.parse(baseUrl)
-          .replace(
-        queryParameters: queryParameters,
+      final uri = Uri.parse(
+        baseUrl,
+      ).replace(
+        queryParameters:
+            queryParameters,
       );
 
       debugPrint(
         'GET SEQUENCES URL: $uri',
       );
-
-      // ========================================================
-      // GET REQUEST
-      // ========================================================
 
       final response = await http
           .get(
@@ -310,35 +438,18 @@ class SequenceApi {
           );
 
       debugPrint(
-        'GET SEQUENCES STATUS: ${response.statusCode}',
+        'GET SEQUENCES STATUS: '
+        '${response.statusCode}',
       );
 
       debugPrint(
-        'GET SEQUENCES RESPONSE: ${response.body}',
+        'GET SEQUENCES RESPONSE: '
+        '${response.body}',
       );
 
-      Map<String, dynamic> data = {};
-
-      if (response.body.isNotEmpty) {
-        try {
-          final decoded =
-              jsonDecode(response.body);
-
-          if (decoded is Map<String, dynamic>) {
-            data = decoded;
-          }
-        } catch (e) {
-          return {
-            'success': false,
-            'message':
-                'Invalid response from server.',
-          };
-        }
-      }
-
-      // ========================================================
-      // SUCCESS
-      // ========================================================
+      final data = _decodeResponse(
+        response.body,
+      );
 
       if (response.statusCode >= 200 &&
           response.statusCode < 300) {
@@ -348,18 +459,8 @@ class SequenceApi {
         };
       }
 
-      // ========================================================
-      // UNAUTHORIZED
-      // ========================================================
-
       if (response.statusCode == 401) {
-        await _storage.delete(
-          key: 'auth_token',
-        );
-
-        await _storage.delete(
-          key: 'token',
-        );
+        await _clearToken();
 
         return {
           'success': false,
@@ -369,10 +470,6 @@ class SequenceApi {
           'sessionExpired': true,
         };
       }
-
-      // ========================================================
-      // ERROR
-      // ========================================================
 
       return {
         'success': false,
@@ -392,6 +489,153 @@ class SequenceApi {
             'Unable to connect to the server.',
         'error': e.toString(),
       };
+    }
+  }
+
+  // ============================================================
+  // RUN SEQUENCE
+  // ============================================================
+
+  static Future<Map<String, dynamic>> runSequence() async {
+    try {
+      final activeToken = await _getToken();
+
+      if (activeToken == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/run',
+      );
+
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization':
+                  'Bearer $activeToken',
+            },
+          )
+          .timeout(
+            const Duration(seconds: 30),
+          );
+
+      debugPrint(
+        'RUN SEQUENCE STATUS: '
+        '${response.statusCode}',
+      );
+
+      debugPrint(
+        'RUN SEQUENCE RESPONSE: '
+        '${response.body}',
+      );
+
+      final data = _decodeResponse(
+        response.body,
+      );
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300) {
+        return {
+          'success': true,
+          ...data,
+        };
+      }
+
+      if (response.statusCode == 401) {
+        await _clearToken();
+
+        return {
+          'success': false,
+          'message':
+              data['message'] ??
+                  'Session expired. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      return {
+        'success': false,
+        'message':
+            data['message'] ??
+                'Unable to run sequence.',
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      debugPrint(
+        'RUN SEQUENCE ERROR: $e',
+      );
+
+      return {
+        'success': false,
+        'message':
+            'Unable to connect to the server.',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // FORMAT DATE FOR API
+  // ============================================================
+
+  static String _formatDateForApi(
+    DateTime date,
+  ) {
+    final year =
+        date.year.toString().padLeft(
+              4,
+              '0',
+            );
+
+    final month =
+        date.month.toString().padLeft(
+              2,
+              '0',
+            );
+
+    final day =
+        date.day.toString().padLeft(
+              2,
+              '0',
+            );
+
+    return '$year-$month-$day';
+  }
+
+  // ============================================================
+  // DECODE RESPONSE
+  // ============================================================
+
+  static Map<String, dynamic> _decodeResponse(
+    String body,
+  ) {
+    if (body.trim().isEmpty) {
+      return {};
+    }
+
+    try {
+      final decoded =
+          jsonDecode(body);
+
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+
+      return {};
+    } catch (e) {
+      debugPrint(
+        'JSON DECODE ERROR: $e',
+      );
+
+      return {};
     }
   }
 }

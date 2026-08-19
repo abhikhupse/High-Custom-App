@@ -28,20 +28,17 @@ class LeadsApi {
         key: 'auth_token',
       );
 
-      if (token != null &&
-          token.trim().isNotEmpty) {
+      if (token != null && token.trim().isNotEmpty) {
         return token.trim();
       }
 
-      final legacyToken =
-          await storage.read(
+      final legacyToken = await storage.read(
         key: 'token',
       );
 
       if (legacyToken != null &&
           legacyToken.trim().isNotEmpty) {
-        final cleanToken =
-            legacyToken.trim();
+        final cleanToken = legacyToken.trim();
 
         await storage.write(
           key: 'auth_token',
@@ -56,8 +53,63 @@ class LeadsApi {
       }
 
       return null;
-    } catch (error) {
+    } catch (_) {
       return null;
+    }
+  }
+
+  // ============================================================
+  // COMMON HEADERS
+  // ============================================================
+
+  static Future<Map<String, String>?> _headers() async {
+    final token = await _token();
+
+    if (token == null || token.isEmpty) {
+      return null;
+    }
+
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  // ============================================================
+  // GET LEADS
+  // ============================================================
+
+  static Future<Map<String, dynamic>> getLeads() async {
+    try {
+      final headers = await _headers();
+
+      if (headers == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+        };
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(
+              '$baseUrl/leads/get-leads',
+            ),
+            headers: headers,
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          );
+
+      return _decodeResponse(response);
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Unable to connect to server.',
+        'error': error.toString(),
+      };
     }
   }
 
@@ -65,8 +117,7 @@ class LeadsApi {
   // CREATE LEAD
   // ============================================================
 
-  static Future<Map<String, dynamic>>
-      createLead({
+  static Future<Map<String, dynamic>> createLead({
     required String email,
     required String firstName,
     required String lastName,
@@ -75,10 +126,9 @@ class LeadsApi {
     required bool tracking,
   }) async {
     try {
-      final token = await _token();
+      final headers = await _headers();
 
-      if (token == null ||
-          token.isEmpty) {
+      if (headers == null) {
         return {
           'success': false,
           'message':
@@ -91,52 +141,118 @@ class LeadsApi {
             Uri.parse(
               '$baseUrl/leads/create-lead',
             ),
-            headers: {
-              'Accept':
-                  'application/json',
-
-              'Content-Type':
-                  'application/json',
-
-              'Authorization':
-                  'Bearer $token',
-            },
+            headers: headers,
             body: jsonEncode({
-              'email':
-                  email.trim(),
-
-              'firstName':
-                  firstName.trim(),
-
-              'lastName':
-                  lastName.trim(),
-
-              'company':
-                  company.trim(),
-
-              'type':
-                  type,
-
-              'tracking':
-                  tracking,
+              'email': email.trim(),
+              'firstName': firstName.trim(),
+              'lastName': lastName.trim(),
+              'company': company.trim(),
+              'type': type,
+              'tracking': tracking,
             }),
           )
           .timeout(
-            const Duration(
-              seconds: 15,
-            ),
+            const Duration(seconds: 15),
           );
 
-      return _decodeResponse(
-        response,
-      );
+      return _decodeResponse(response);
     } catch (error) {
       return {
         'success': false,
-        'message':
-            'Unable to connect to server.',
-        'error':
-            error.toString(),
+        'message': 'Unable to connect to server.',
+        'error': error.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // UPDATE LEAD
+  // ============================================================
+
+  static Future<Map<String, dynamic>> updateLead({
+    required String leadId,
+    required String email,
+    required String firstName,
+    required String lastName,
+    required String company,
+    required String type,
+    required bool tracking,
+  }) async {
+    try {
+      final headers = await _headers();
+
+      if (headers == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+        };
+      }
+
+      final response = await http
+          .put(
+            Uri.parse(
+              '$baseUrl/leads/update-lead/$leadId',
+            ),
+            headers: headers,
+            body: jsonEncode({
+              'email': email.trim(),
+              'firstName': firstName.trim(),
+              'lastName': lastName.trim(),
+              'company': company.trim(),
+              'type': type,
+              'tracking': tracking,
+            }),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          );
+
+      return _decodeResponse(response);
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Unable to connect to server.',
+        'error': error.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // DELETE LEAD
+  // ============================================================
+
+  static Future<Map<String, dynamic>> deleteLead({
+    required String leadId,
+  }) async {
+    try {
+      final headers = await _headers();
+
+      if (headers == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+        };
+      }
+
+      final response = await http
+          .delete(
+            Uri.parse(
+              '$baseUrl/leads/delete-lead/$leadId',
+            ),
+            headers: headers,
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          );
+
+      return _decodeResponse(response);
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Unable to connect to server.',
+        'error': error.toString(),
       };
     }
   }
@@ -145,41 +261,32 @@ class LeadsApi {
   // RESPONSE DECODER
   // ============================================================
 
-  static Map<String, dynamic>
-      _decodeResponse(
+  static Map<String, dynamic> _decodeResponse(
     http.Response response,
   ) {
     try {
-      final decoded =
-          jsonDecode(
-        response.body,
-      );
+      final decoded = jsonDecode(response.body);
 
       if (decoded is Map) {
         return {
-          'statusCode':
-              response.statusCode,
-
-          ...Map<String, dynamic>.from(
-            decoded,
-          ),
+          'statusCode': response.statusCode,
+          ...Map<String, dynamic>.from(decoded),
         };
       }
 
       return {
         'success': false,
-        'statusCode':
-            response.statusCode,
-        'message':
-            'Invalid server response.',
+        'statusCode': response.statusCode,
+        'message': 'Invalid server response.',
       };
-    } catch (error) {
+    } catch (_) {
       return {
         'success': false,
-        'statusCode':
-            response.statusCode,
+        'statusCode': response.statusCode,
         'message':
-            'Invalid server response.',
+            response.body.isNotEmpty
+                ? response.body
+                : 'Invalid server response.',
       };
     }
   }
