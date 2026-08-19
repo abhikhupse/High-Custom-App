@@ -215,6 +215,13 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
   const trackingUrl = `${baseUrl}/api/email-tracking/open/${trackingId}`;
 
+  console.log("==============================================");
+  console.log("TRACKING URL GENERATED");
+  console.log("TRACKING ID:", trackingId);
+  console.log("BASE URL:", baseUrl);
+  console.log("TRACKING URL:", trackingUrl);
+  console.log("==============================================");
+
   // ==========================================================
   // CREATE DELIVERY
   // ==========================================================

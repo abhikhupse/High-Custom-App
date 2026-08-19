@@ -10,7 +10,7 @@ const { sendSequenceToLead } = require("../services/sequence.service");
 // BASE URL
 // ============================================================
 
-const BASE_URL = process.env.APP_BASE_URL || "http://localhost:5000";
+const BASE_URL = process.env.APP_BASE_URL || "http://localhost:3000";
 
 // ============================================================
 // CHECK PREVIOUS STEP

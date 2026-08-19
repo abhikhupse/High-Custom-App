@@ -2,89 +2,290 @@ const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
 
 // ============================================================
-// 1. TRACK EMAIL OPEN
+// TRACK EMAIL OPEN
 // ============================================================
 
 exports.trackOpen = async (req, res) => {
+  const requestTime = new Date();
+
   try {
     const { trackingId } = req.params;
 
+    // ==========================================================
+    // LOG EVERY TRACKING REQUEST
+    // ==========================================================
+
+    console.log("");
+    console.log("============================================================");
+    console.log("🔥 EMAIL OPEN TRACKING REQUEST RECEIVED");
+    console.log("============================================================");
+
+    console.log("Time:", requestTime.toISOString());
+
+    console.log("Tracking ID:", trackingId);
+
+    console.log("IP:", req.ip || req.headers["x-forwarded-for"] || "unknown");
+
+    console.log("User-Agent:", req.headers["user-agent"] || "unknown");
+
+    console.log(
+      "Referer:",
+      req.headers.referer || req.headers.referrer || "none",
+    );
+
+    console.log("============================================================");
+
+    // ==========================================================
+    // VALIDATE TRACKING ID
+    // ==========================================================
+
     if (!trackingId) {
-      return res.status(400).send("Missing tracking ID");
+      console.error("❌ EMAIL OPEN ERROR: Missing tracking ID");
+
+      return sendTrackingPixel(res);
     }
+
+    // ==========================================================
+    // FIND DELIVERY
+    // ==========================================================
+
+    console.log("🔎 Searching SequenceDelivery...");
 
     const delivery = await SEQUENCE_DELIVERY.findOne({
       trackingId,
     });
 
+    // ==========================================================
+    // TRACKING ID NOT FOUND
+    // ==========================================================
+
     if (!delivery) {
-      return res.status(404).send("Tracking ID not found");
+      console.error("❌ TRACKING ID NOT FOUND:", trackingId);
+
+      console.log(
+        "============================================================",
+      );
+
+      return sendTrackingPixel(res);
     }
 
-    // --------------------------------------------------------
-    // Count every pixel request
-    // --------------------------------------------------------
+    // ==========================================================
+    // DELIVERY FOUND
+    // ==========================================================
 
-    delivery.openedCount = (delivery.openedCount || 0) + 1;
+    console.log("✅ DELIVERY FOUND");
 
-    // --------------------------------------------------------
-    // Only count the FIRST open in sequence statistics
-    // --------------------------------------------------------
+    console.log("Delivery ID:", delivery._id);
+
+    console.log("User ID:", delivery.userId);
+
+    console.log("Sequence ID:", delivery.sequenceId);
+
+    console.log("Lead ID:", delivery.leadId);
+
+    console.log("Email:", delivery.email);
+
+    console.log("Current Status:", delivery.status);
+
+    console.log("Previous Opened At:", delivery.openedAt || "NULL");
+
+    console.log("Previous Open Count:", delivery.openedCount || 0);
+
+    // ==========================================================
+    // INCREMENT OPEN COUNT
+    // ==========================================================
+
+    const previousOpenCount = delivery.openedCount || 0;
+
+    delivery.openedCount = previousOpenCount + 1;
+
+    // ==========================================================
+    // FIRST OPEN
+    // ==========================================================
 
     const firstOpen = !delivery.openedAt;
-    if (firstOpen) {
-      delivery.openedAt = new Date();
 
-      // Keep delivery status as "sent".
-      // Open tracking is represented by openedAt/openedCount.
+    if (firstOpen) {
+      console.log("🟢 FIRST OPEN DETECTED");
+
+      delivery.openedAt = requestTime;
+
+      // --------------------------------------------------------
+      // IMPORTANT
+      // --------------------------------------------------------
+      //
+      // Keep status as "sent".
+      //
+      // Do NOT do:
+      //
+      // delivery.status = "opened";
+      //
+      // Open tracking is represented by:
+      //
+      // openedAt
+      // openedCount
+      //
+      // --------------------------------------------------------
+
+      console.log("Opened At:", delivery.openedAt.toISOString());
+
+      // ========================================================
+      // UPDATE SEQUENCE OPEN STATISTICS
+      // ========================================================
 
       if (delivery.sequenceId) {
-        await SEQUENCE.findByIdAndUpdate(delivery.sequenceId, {
-          $inc: {
-            "statistics.opened": 1,
-          },
-        });
+        try {
+          const sequenceUpdate = await SEQUENCE.findByIdAndUpdate(
+            delivery.sequenceId,
+            {
+              $inc: {
+                "statistics.opened": 1,
+              },
+            },
+            {
+              new: true,
+            },
+          );
+
+          if (sequenceUpdate) {
+            console.log("✅ Sequence open statistics updated");
+
+            console.log(
+              "Sequence statistics.opened:",
+              sequenceUpdate.statistics?.opened || 0,
+            );
+          } else {
+            console.warn("⚠️ Sequence not found:", delivery.sequenceId);
+          }
+        } catch (sequenceError) {
+          console.error(
+            "❌ Failed to update sequence statistics:",
+            sequenceError,
+          );
+
+          // Do not fail the open tracking request
+          // because the delivery itself can still be saved.
+        }
       }
+    } else {
+      console.log("🔵 REPEAT OPEN / IMAGE REQUEST");
+
+      console.log("Original Opened At:", delivery.openedAt.toISOString());
     }
+
+    // ==========================================================
+    // SAVE DELIVERY
+    // ==========================================================
+
+    console.log("💾 Saving delivery...");
 
     await delivery.save();
 
-    // --------------------------------------------------------
-    // Transparent 1x1 GIF
-    // --------------------------------------------------------
+    // ==========================================================
+    // CONFIRM SAVE
+    // ==========================================================
 
-    const pixel = Buffer.from("R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=", "base64");
+    console.log("✅ DELIVERY SAVED");
 
-    res.set({
-      "Content-Type": "image/gif",
-      "Content-Length": pixel.length,
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      Pragma: "no-cache",
-      Expires: "0",
-    });
+    console.log("Tracking ID:", delivery.trackingId);
 
-    return res.status(200).send(pixel);
+    console.log("Opened At:", delivery.openedAt);
+
+    console.log("Opened Count:", delivery.openedCount);
+
+    console.log("Status:", delivery.status);
+
+    console.log("============================================================");
+
+    console.log("🔥 EMAIL OPEN TRACKING COMPLETED");
+
+    console.log("============================================================");
+
+    console.log("");
+
+    // ==========================================================
+    // RETURN TRACKING PIXEL
+    // ==========================================================
+
+    return sendTrackingPixel(res);
   } catch (error) {
-    console.error("TRACK OPEN ERROR:", error);
+    // ==========================================================
+    // ERROR
+    // ==========================================================
 
-    const pixel = Buffer.from("R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=", "base64");
+    console.error("");
+    console.error(
+      "============================================================",
+    );
 
-    res.set({
-      "Content-Type": "image/gif",
-      "Content-Length": pixel.length,
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-    });
+    console.error("❌ TRACK OPEN ERROR");
 
-    return res.status(200).send(pixel);
+    console.error(error);
+
+    console.error(
+      "============================================================",
+    );
+
+    console.error("");
+
+    // ----------------------------------------------------------
+    // IMPORTANT
+    // ----------------------------------------------------------
+    //
+    // Always return the tracking pixel.
+    //
+    // This prevents Gmail from receiving a broken image response.
+    //
+    // ----------------------------------------------------------
+
+    return sendTrackingPixel(res);
   }
 };
 
 // ============================================================
-// 2. GET TRACKING REPORT
+// TRACKING PIXEL RESPONSE
+// ============================================================
+
+function sendTrackingPixel(res) {
+  try {
+    // ----------------------------------------------------------
+    // Transparent 1x1 GIF
+    // ----------------------------------------------------------
+
+    const pixel = Buffer.from("R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=", "base64");
+
+    res.set({
+      "Content-Type": "image/gif",
+
+      "Content-Length": pixel.length,
+
+      "Cache-Control": "no-cache, no-store, must-revalidate, proxy-revalidate",
+
+      Pragma: "no-cache",
+
+      Expires: "0",
+
+      "X-Content-Type-Options": "nosniff",
+    });
+
+    return res.status(200).send(pixel);
+  } catch (error) {
+    console.error("❌ TRACKING PIXEL RESPONSE ERROR:", error);
+
+    return res.status(200).end();
+  }
+}
+
+// ============================================================
+// GET TRACKING REPORT
 // ============================================================
 
 exports.getTrackingReport = async (req, res) => {
   try {
+    // ==========================================================
+    // GET LOGGED-IN USER
+    // ==========================================================
+
     const userId = req.user?.id || req.user?._id;
 
     if (!userId) {
@@ -94,28 +295,37 @@ exports.getTrackingReport = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // QUERY PARAMETERS
+    // ==========================================================
+
     const { sequenceId, page = 1, limit = 20 } = req.query;
 
+    // ==========================================================
+    // PAGINATION
+    // ==========================================================
+
     const pageNumber = Math.max(Number(page) || 1, 1);
+
     const limitNumber = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
-    // --------------------------------------------------------
-    // Build query
-    // --------------------------------------------------------
+    // ==========================================================
+    // BUILD QUERY
+    // ==========================================================
 
-    const sequenceQuery = {
+    const deliveryQuery = {
       userId,
     };
 
-    if (sequenceId) {
-      sequenceQuery.sequenceId = sequenceId;
+    if (sequenceId && String(sequenceId).trim()) {
+      deliveryQuery.sequenceId = sequenceId;
     }
 
-    // --------------------------------------------------------
-    // Get deliveries
-    // --------------------------------------------------------
+    // ==========================================================
+    // GET DELIVERIES
+    // ==========================================================
 
-    const deliveries = await SEQUENCE_DELIVERY.find(sequenceQuery)
+    const deliveries = await SEQUENCE_DELIVERY.find(deliveryQuery)
       .populate("sequenceId", "step variant subject type")
       .populate("leadId", "firstName lastName name email phone")
       .sort({
@@ -125,11 +335,15 @@ exports.getTrackingReport = async (req, res) => {
       .limit(limitNumber)
       .lean();
 
-    const total = await SEQUENCE_DELIVERY.countDocuments(sequenceQuery);
+    // ==========================================================
+    // TOTAL
+    // ==========================================================
 
-    // --------------------------------------------------------
-    // Statistics
-    // --------------------------------------------------------
+    const total = await SEQUENCE_DELIVERY.countDocuments(deliveryQuery);
+
+    // ==========================================================
+    // STATISTICS
+    // ==========================================================
 
     const statistics = await SEQUENCE_DELIVERY.aggregate([
       {
@@ -137,13 +351,30 @@ exports.getTrackingReport = async (req, res) => {
           userId,
         },
       },
+
       {
         $group: {
           _id: null,
 
+          // --------------------------------------------------
+          // TOTAL DELIVERY RECORDS
+          // --------------------------------------------------
+
           totalSent: {
-            $sum: 1,
+            $sum: {
+              $cond: [
+                {
+                  $eq: ["$status", "sent"],
+                },
+                1,
+                0,
+              ],
+            },
           },
+
+          // --------------------------------------------------
+          // UNIQUE OPENED EMAILS
+          // --------------------------------------------------
 
           totalOpened: {
             $sum: {
@@ -157,11 +388,19 @@ exports.getTrackingReport = async (req, res) => {
             },
           },
 
+          // --------------------------------------------------
+          // TOTAL PIXEL REQUESTS
+          // --------------------------------------------------
+
           totalOpens: {
             $sum: {
               $ifNull: ["$openedCount", 0],
             },
           },
+
+          // --------------------------------------------------
+          // FAILED
+          // --------------------------------------------------
 
           totalFailed: {
             $sum: {
@@ -178,6 +417,10 @@ exports.getTrackingReport = async (req, res) => {
       },
     ]);
 
+    // ==========================================================
+    // DEFAULT STATISTICS
+    // ==========================================================
+
     const stats = statistics[0] || {
       totalSent: 0,
       totalOpened: 0,
@@ -185,29 +428,49 @@ exports.getTrackingReport = async (req, res) => {
       totalFailed: 0,
     };
 
-    const totalNotOpened = stats.totalSent - stats.totalOpened;
+    // ==========================================================
+    // NOT OPENED
+    // ==========================================================
+
+    const totalNotOpened = Math.max(stats.totalSent - stats.totalOpened, 0);
+
+    // ==========================================================
+    // OPEN RATE
+    // ==========================================================
 
     const openRate =
       stats.totalSent > 0
         ? Number(((stats.totalOpened / stats.totalSent) * 100).toFixed(2))
         : 0;
 
+    // ==========================================================
+    // RESPONSE
+    // ==========================================================
+
     return res.status(200).json({
       success: true,
 
       statistics: {
         totalSent: stats.totalSent,
+
         totalOpened: stats.totalOpened,
+
         totalNotOpened,
+
         totalOpens: stats.totalOpens,
+
         totalFailed: stats.totalFailed,
+
         openRate,
       },
 
       pagination: {
         page: pageNumber,
+
         limit: limitNumber,
+
         total,
+
         totalPages: Math.ceil(total / limitNumber),
       },
 
@@ -218,7 +481,9 @@ exports.getTrackingReport = async (req, res) => {
 
     return res.status(500).json({
       success: false,
+
       message: "Failed to get tracking report",
+
       error: error.message,
     });
   }
