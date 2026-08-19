@@ -32,10 +32,11 @@ exports.trackOpen = async (req, res) => {
     // --------------------------------------------------------
 
     const firstOpen = !delivery.openedAt;
-
     if (firstOpen) {
       delivery.openedAt = new Date();
-      delivery.status = "opened";
+
+      // Keep delivery status as "sent".
+      // Open tracking is represented by openedAt/openedCount.
 
       if (delivery.sequenceId) {
         await SEQUENCE.findByIdAndUpdate(delivery.sequenceId, {
