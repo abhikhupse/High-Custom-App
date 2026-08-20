@@ -1,7 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../services/leads_api.dart';
-import '../../../services/sequence_api.dart';
+import 'add_lead_screen.dart';
 
 // ============================================================
 // LEADS SCREEN
@@ -19,38 +25,45 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor =
-      Color(0xFF4F46E5);
+  static const Color pageBackground = Color(0xFFF4F6FA);
+  static const Color panelColor = Color(0xFF5B5E66);
+  static const Color tableColor = Color(0xFF0D101B);
+  static const Color inputColor = Color(0xFF0D101B);
 
-  static const Color backgroundColor =
-      Color(0xFFF8FAFC);
+  static const Color gold = Color(0xFFF2C45F);
+  static const Color goldDark = Color(0xFFD9A93F);
 
-  static const Color textColor =
-      Color(0xFF101828);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color lightText = Color(0xFFE8EAF0);
+  static const Color mutedText = Color(0xFF9CA3AF);
+  static const Color border = Color(0xFF777A82);
 
-  static const Color secondaryTextColor =
-      Color(0xFF667085);
-
-  static const Color borderColor =
-      Color(0xFFE4E7EC);
+  static const Color blue = Color(0xFF315BEF);
 
   // ============================================================
-  // CONTROLLERS
+  // API
   // ============================================================
 
-  final TextEditingController searchController =
+  static const String baseUrl =
+      'http://192.168.1.18:3000/api';
+
+  static const FlutterSecureStorage storage =
+      FlutterSecureStorage();
+
+  // ============================================================
+  // EDIT CONTROLLERS
+  // ============================================================
+
+  final TextEditingController editEmailController =
       TextEditingController();
 
-  final TextEditingController emailController =
+  final TextEditingController editFirstNameController =
       TextEditingController();
 
-  final TextEditingController firstNameController =
+  final TextEditingController editLastNameController =
       TextEditingController();
 
-  final TextEditingController lastNameController =
-      TextEditingController();
-
-  final TextEditingController companyController =
+  final TextEditingController editCompanyController =
       TextEditingController();
 
   // ============================================================
@@ -58,29 +71,24 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // ============================================================
 
   bool isLoading = true;
-
-  bool isAddingLead = false;
-
   bool isUpdatingLead = false;
-
   bool isDeletingLead = false;
+  bool isUploadingExcel = false;
+  bool isDownloadingExcel = false;
 
-  bool todayOnly = false;
-
+  bool todayOnly = true;
   bool trackingEnabled = true;
 
   int currentPage = 1;
-
   int entriesPerPage = 10;
 
   DateTime? fromDate;
-
   DateTime? toDate;
 
   String selectedType = 'Email';
 
   // ============================================================
-  // LEADS DATA
+  // DATA
   // ============================================================
 
   final List<Map<String, dynamic>> leads = [];
@@ -92,11 +100,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
   @override
   void initState() {
     super.initState();
-
-    searchController.addListener(
-      _onSearchChanged,
-    );
-
     _loadLeads();
   }
 
@@ -114,14 +117,12 @@ class _LeadsScreenState extends State<LeadsScreen> {
     }
 
     try {
-      final response =
-          await LeadsApi.getLeads();
+      final response = await LeadsApi.getLeads();
 
       if (!mounted) return;
 
       if (response['success'] == true) {
-        final serverLeads =
-            response['leads'];
+        final serverLeads = response['leads'];
 
         if (serverLeads is List) {
           setState(() {
@@ -151,7 +152,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
               'Unable to load leads.',
         );
       }
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
         _showMessage(
           'Unable to load leads.',
@@ -173,54 +174,34 @@ class _LeadsScreenState extends State<LeadsScreen> {
   Map<String, dynamic> _normalizeLead(
     Map<String, dynamic> lead,
   ) {
-    final addedDate =
-        _parseDate(
-      lead['addedDate'] ??
-          lead['createdAt'],
+    final addedDate = _parseDate(
+      lead['addedDate'] ?? lead['createdAt'],
     );
 
-    final updatedDate =
-        _parseDate(
-      lead['updatedDate'] ??
-          lead['updatedAt'],
+    final updatedDate = _parseDate(
+      lead['updatedDate'] ?? lead['updatedAt'],
     );
 
-    final tracking =
-        lead['tracking'] == true;
+    final tracking = lead['tracking'] == true;
+
+    String trackingStatus =
+        lead['trackingStatus']?.toString().trim() ?? '';
+
+    if (trackingStatus.isEmpty) {
+      trackingStatus = tracking ? 'Sent' : 'Skip';
+    }
 
     return {
-      '_id':
-          lead['_id'] ??
-          lead['id'] ??
-          '',
-
-      'email':
-          lead['email']?.toString() ?? '',
-
-      'firstName':
-          lead['firstName']?.toString() ?? '',
-
-      'lastName':
-          lead['lastName']?.toString() ?? '',
-
-      'company':
-          lead['company']?.toString() ?? '',
-
-      'type':
-          lead['type']?.toString() ?? 'Email',
-
-      'tracking':
-          tracking,
-
-      'trackingStatus':
-          lead['trackingStatus']?.toString() ??
-              (tracking ? 'Sent' : 'Skip'),
-
-      'addedDate':
-          addedDate ?? DateTime.now(),
-
-      'updatedDate':
-          updatedDate,
+      '_id': lead['_id'] ?? lead['id'] ?? '',
+      'email': lead['email']?.toString() ?? '',
+      'firstName': lead['firstName']?.toString() ?? '',
+      'lastName': lead['lastName']?.toString() ?? '',
+      'company': lead['company']?.toString() ?? '',
+      'type': lead['type']?.toString() ?? 'Email',
+      'tracking': tracking,
+      'trackingStatus': trackingStatus,
+      'addedDate': addedDate ?? DateTime.now(),
+      'updatedDate': updatedDate,
     };
   }
 
@@ -245,38 +226,19 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // SEARCH CHANGE
+  // TODAY COUNT
   // ============================================================
 
-  void _onSearchChanged() {
-    if (!mounted) return;
+  int get todayAddedCount {
+    final now = DateTime.now();
 
-    setState(() {
-      currentPage = 1;
-    });
-  }
+    return leads.where((lead) {
+      final date = lead['addedDate'] as DateTime;
 
-  // ============================================================
-  // DISPOSE
-  // ============================================================
-
-  @override
-  void dispose() {
-    searchController.removeListener(
-      _onSearchChanged,
-    );
-
-    searchController.dispose();
-
-    emailController.dispose();
-
-    firstNameController.dispose();
-
-    lastNameController.dispose();
-
-    companyController.dispose();
-
-    super.dispose();
+      return date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day;
+    }).length;
   }
 
   // ============================================================
@@ -285,58 +247,17 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
   List<Map<String, dynamic>> get filteredLeads {
     List<Map<String, dynamic>> result =
-        List<Map<String, dynamic>>.from(
-      leads,
-    );
+        List<Map<String, dynamic>>.from(leads);
 
-    final search =
-        searchController.text
-            .trim()
-            .toLowerCase();
-
-    // ==========================================================
-    // SEARCH
-    // ==========================================================
-
-    if (search.isNotEmpty) {
-      result = result.where((lead) {
-        final email =
-            lead['email']
-                .toString()
-                .toLowerCase();
-
-        final firstName =
-            lead['firstName']
-                .toString()
-                .toLowerCase();
-
-        final lastName =
-            lead['lastName']
-                .toString()
-                .toLowerCase();
-
-        final company =
-            lead['company']
-                .toString()
-                .toLowerCase();
-
-        return email.contains(search) ||
-            firstName.contains(search) ||
-            lastName.contains(search) ||
-            company.contains(search);
-      }).toList();
-    }
-
-    // ==========================================================
-    // TODAY
-    // ==========================================================
+    // ----------------------------------------------------------
+    // TODAY FILTER
+    // ----------------------------------------------------------
 
     if (todayOnly) {
       final now = DateTime.now();
 
       result = result.where((lead) {
-        final date =
-            lead['addedDate'] as DateTime;
+        final date = lead['addedDate'] as DateTime;
 
         return date.year == now.year &&
             date.month == now.month &&
@@ -344,9 +265,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
       }).toList();
     }
 
-    // ==========================================================
+    // ----------------------------------------------------------
     // FROM DATE
-    // ==========================================================
+    // ----------------------------------------------------------
 
     if (fromDate != null) {
       final startDate = DateTime(
@@ -356,16 +277,15 @@ class _LeadsScreenState extends State<LeadsScreen> {
       );
 
       result = result.where((lead) {
-        final date =
-            lead['addedDate'] as DateTime;
+        final date = lead['addedDate'] as DateTime;
 
         return !date.isBefore(startDate);
       }).toList();
     }
 
-    // ==========================================================
+    // ----------------------------------------------------------
     // TO DATE
-    // ==========================================================
+    // ----------------------------------------------------------
 
     if (toDate != null) {
       final endDate = DateTime(
@@ -378,8 +298,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
       );
 
       result = result.where((lead) {
-        final date =
-            lead['addedDate'] as DateTime;
+        final date = lead['addedDate'] as DateTime;
 
         return !date.isAfter(endDate);
       }).toList();
@@ -389,7 +308,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // PAGINATED LEADS
+  // PAGINATION
   // ============================================================
 
   List<Map<String, dynamic>> get paginatedLeads {
@@ -400,38 +319,26 @@ class _LeadsScreenState extends State<LeadsScreen> {
     }
 
     final start =
-        (currentPage - 1) *
-            entriesPerPage;
+        (currentPage - 1) * entriesPerPage;
 
     if (start >= data.length) {
       return [];
     }
 
     final end =
-        (start + entriesPerPage) >
-                data.length
+        start + entriesPerPage > data.length
             ? data.length
             : start + entriesPerPage;
 
-    return data.sublist(
-      start,
-      end,
-    );
+    return data.sublist(start, end);
   }
-
-  // ============================================================
-  // TOTAL PAGES
-  // ============================================================
 
   int get totalPages {
     if (filteredLeads.isEmpty) {
       return 1;
     }
 
-    return (
-      filteredLeads.length /
-          entriesPerPage
-    ).ceil();
+    return (filteredLeads.length / entriesPerPage).ceil();
   }
 
   // ============================================================
@@ -441,10 +348,10 @@ class _LeadsScreenState extends State<LeadsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          backgroundColor,
+      backgroundColor: pageBackground,
       body: SafeArea(
         child: RefreshIndicator(
+          color: goldDark,
           onRefresh: () async {
             await _loadLeads(
               showLoader: false,
@@ -456,32 +363,24 @@ class _LeadsScreenState extends State<LeadsScreen> {
               constraints,
             ) {
               final isMobile =
-                  constraints.maxWidth < 800;
+                  constraints.maxWidth < 850;
 
               return SingleChildScrollView(
                 physics:
                     const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.all(
+                padding: EdgeInsets.fromLTRB(
+                  isMobile ? 14 : 28,
                   isMobile ? 18 : 28,
+                  isMobile ? 14 : 28,
+                  35,
                 ),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
                   children: [
-                    _buildPageHeader(
-                      isMobile,
-                    ),
+                    _buildPageHeader(isMobile),
 
-                    SizedBox(
-                      height:
-                          isMobile
-                              ? 22
-                              : 28,
-                    ),
+                    const SizedBox(height: 16),
 
-                    _buildMainContainer(
-                      isMobile,
-                    ),
+                    _buildLeadsPanel(isMobile),
                   ],
                 ),
               );
@@ -496,265 +395,260 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // PAGE HEADER
   // ============================================================
 
-  Widget _buildPageHeader(
-    bool isMobile,
-  ) {
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Leads',
-            style: TextStyle(
-              color: textColor,
-              fontSize: 30,
-              fontWeight:
-                  FontWeight.w800,
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          const Text(
-            'Manage and organize your leads',
-            style: TextStyle(
-              color:
-                  secondaryTextColor,
-              fontSize: 14,
-            ),
-          ),
-
-          const SizedBox(height: 18),
-
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed:
-                  _showAddLeadDialog,
-              icon: const Icon(
-                Icons.add,
-                size: 20,
-              ),
-              label: const Text(
-                'Add Lead',
-              ),
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    primaryColor,
-                foregroundColor:
-                    Colors.white,
-                elevation: 0,
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    8,
-                  ),
-                ),
-              ),
-            ),
+  Widget _buildPageHeader(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 20,
+        vertical: isMobile ? 15 : 16,
+      ),
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.14),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
           ),
         ],
-      );
-    }
-
-    return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.center,
-      children: [
-        const Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Leads',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 30,
-                  fontWeight:
-                      FontWeight.w800,
+      ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: gold,
+                        borderRadius:
+                            BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.people_alt_outlined,
+                      color: gold,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Leads',
+                      style: TextStyle(
+                        color: white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
 
-              SizedBox(height: 6),
+                const SizedBox(height: 6),
 
-              Text(
-                'Manage and organize your leads',
-                style: TextStyle(
-                  color:
-                      secondaryTextColor,
-                  fontSize: 14,
+                const Text(
+                  'Manage and organize your leads',
+                  style: TextStyle(
+                    color: mutedText,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
 
-        ElevatedButton.icon(
-          onPressed:
-              _showAddLeadDialog,
-          icon: const Icon(
-            Icons.add,
-            size: 20,
-          ),
-          label: const Text(
-            'Add Lead',
-          ),
-          style:
-              ElevatedButton.styleFrom(
-            backgroundColor:
-                primaryColor,
-            foregroundColor:
-                Colors.white,
-            elevation: 0,
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 18,
-              vertical: 14,
+                const SizedBox(height: 14),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: _goldButton(
+                    label: 'Add Lead',
+                    icon: Icons.add,
+                    onPressed:
+                        _openAddLeadScreen,
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: gold,
+                    borderRadius:
+                        BorderRadius.circular(4),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                const Icon(
+                  Icons.people_alt_outlined,
+                  color: gold,
+                  size: 20,
+                ),
+
+                const SizedBox(width: 8),
+
+                const Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Leads',
+                      style: TextStyle(
+                        color: white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Manage and organize your leads',
+                      style: TextStyle(
+                        color: mutedText,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const Spacer(),
+
+                _goldButton(
+                  label: 'Add Lead',
+                  icon: Icons.add,
+                  onPressed:
+                      _openAddLeadScreen,
+                ),
+              ],
             ),
-            shape:
-                RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(8),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
   // ============================================================
-  // MAIN CONTAINER
+  // OPEN ADD LEAD SCREEN
   // ============================================================
 
-  Widget _buildMainContainer(
-    bool isMobile,
-  ) {
+  Future<void> _openAddLeadScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const AddLeadScreen(),
+      ),
+    );
+
+    if (!mounted) return;
+
+    await _loadLeads(
+      showLoader: false,
+    );
+  }
+
+  // ============================================================
+  // LEADS PANEL
+  // ============================================================
+
+  Widget _buildLeadsPanel(bool isMobile) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(
-        isMobile ? 16 : 20,
+        isMobile ? 14 : 15,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: panelColor,
         borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: borderColor,
-        ),
+            BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color:
+                Colors.black.withOpacity(0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          _buildToolbar(
-            isMobile,
-          ),
+          _buildExcelToolbar(isMobile),
 
           const SizedBox(height: 18),
 
-          if (isLoading)
-            _buildLoadingState()
-          else if (isMobile)
-            _buildMobileTable()
-          else
-            _buildDesktopTable(),
-
-          const SizedBox(height: 18),
-
-          if (!isLoading)
-            _buildPagination(),
+          _buildTable(isMobile),
         ],
       ),
     );
   }
 
   // ============================================================
-  // LOADING STATE
+  // EXCEL TOOLBAR
   // ============================================================
 
-  Widget _buildLoadingState() {
-    return Container(
-      width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
-        vertical: 70,
-      ),
-      child: const Column(
-        children: [
-          SizedBox(
-            width: 32,
-            height: 32,
-            child:
-                CircularProgressIndicator(
-              strokeWidth: 3,
-              color: primaryColor,
-            ),
-          ),
+  Widget _buildExcelToolbar(bool isMobile) {
+    final todayButton =
+        _todayFilterButton();
 
-          SizedBox(height: 16),
+    final dateButton =
+        _dateFilterButton();
 
-          Text(
-            'Loading leads...',
-            style: TextStyle(
-              color:
-                  secondaryTextColor,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // TOOLBAR
-  // ============================================================
-
-  Widget _buildToolbar(
-    bool isMobile,
-  ) {
     if (isMobile) {
       return Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.stretch,
         children: [
-          _buildSearchField(),
-
-          const SizedBox(height: 12),
-
           Row(
             children: [
               Expanded(
-                child:
-                    OutlinedButton.icon(
+                child: _darkActionButton(
+                  icon:
+                      Icons.download_outlined,
+                  text: isDownloadingExcel
+                      ? 'Downloading...'
+                      : 'Download Excel',
                   onPressed:
-                      _toggleTodayFilter,
-                  icon: const Icon(
-                    Icons.today_outlined,
-                    size: 18,
-                  ),
-                  label: const Text(
-                    'Today',
-                  ),
+                      isDownloadingExcel
+                          ? null
+                          : _downloadExcel,
                 ),
               ),
 
               const SizedBox(width: 10),
 
               Expanded(
-                child:
-                    OutlinedButton.icon(
+                child: _darkActionButton(
+                  icon:
+                      Icons.upload_file_outlined,
+                  text: isUploadingExcel
+                      ? 'Uploading...'
+                      : 'Upload Excel',
                   onPressed:
-                      _showDateFilter,
-                  icon: const Icon(
-                    Icons
-                        .date_range_outlined,
-                    size: 18,
-                  ),
-                  label: const Text(
-                    'Date',
-                  ),
+                      isUploadingExcel
+                          ? null
+                          : _uploadExcel,
+                  outlined: true,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          Row(
+            children: [
+              Expanded(
+                child: _todayFilterButton(
+                  expanded: true,
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: _dateFilterButton(
+                  expanded: true,
                 ),
               ),
             ],
@@ -765,546 +659,754 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
     return Row(
       children: [
-        Expanded(
-          child: _buildSearchField(),
-        ),
-
-        const SizedBox(width: 12),
-
-        OutlinedButton.icon(
-          onPressed:
-              _toggleTodayFilter,
-          icon: const Icon(
-            Icons.today_outlined,
-            size: 18,
-          ),
-          label: const Text(
-            'Today',
-          ),
+        _darkActionButton(
+          icon: Icons.download_outlined,
+          text: isDownloadingExcel
+              ? 'Downloading...'
+              : 'Download Excel',
+          onPressed: isDownloadingExcel
+              ? null
+              : _downloadExcel,
         ),
 
         const SizedBox(width: 10),
 
-        OutlinedButton.icon(
-          onPressed:
-              _showDateFilter,
-          icon: const Icon(
-            Icons.date_range_outlined,
-            size: 18,
-          ),
-          label: const Text(
-            'Date',
-          ),
+        _darkActionButton(
+          icon: Icons.upload_file_outlined,
+          text: isUploadingExcel
+              ? 'Uploading...'
+              : 'Upload Excel',
+          onPressed: isUploadingExcel
+              ? null
+              : _uploadExcel,
+          outlined: true,
         ),
+
+        const Spacer(),
+
+        todayButton,
+
+        const SizedBox(width: 10),
+
+        dateButton,
       ],
     );
   }
 
   // ============================================================
-  // SEARCH
+  // TODAY FILTER BUTTON
   // ============================================================
 
-  Widget _buildSearchField() {
-    return TextField(
-      controller:
-          searchController,
-      style: const TextStyle(
-        color: textColor,
-        fontSize: 13,
-      ),
-      decoration:
-          InputDecoration(
-        hintText:
-            'Search by email, name or company...',
-        hintStyle:
-            const TextStyle(
-          color: Color(0xFF98A2B3),
-          fontSize: 13,
-        ),
-        prefixIcon:
-            const Icon(
-          Icons.search,
-          size: 19,
-          color:
-              Color(0xFF667085),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding:
+  Widget _todayFilterButton({
+    bool expanded = false,
+  }) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          todayOnly = true;
+          fromDate = null;
+          toDate = null;
+          currentPage = 1;
+        });
+      },
+      borderRadius:
+          BorderRadius.circular(10),
+      child: Container(
+        height: 40,
+        width:
+            expanded ? double.infinity : null,
+        padding:
             const EdgeInsets.symmetric(
           horizontal: 12,
         ),
-        border:
-            OutlineInputBorder(
+        decoration: BoxDecoration(
+          color: gold,
           borderRadius:
-              BorderRadius.circular(
-            8,
-          ),
-          borderSide:
-              const BorderSide(
-            color: borderColor,
-          ),
+              BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  Colors.black.withOpacity(0.10),
+              blurRadius: 7,
+              offset:
+                  const Offset(0, 3),
+            ),
+          ],
         ),
-        enabledBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            8,
-          ),
-          borderSide:
-              const BorderSide(
-            color: borderColor,
-          ),
-        ),
-        focusedBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            8,
-          ),
-          borderSide:
-              const BorderSide(
-            color: primaryColor,
-            width: 1.5,
-          ),
+        child: Row(
+          mainAxisAlignment: expanded
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
+          mainAxisSize: expanded
+              ? MainAxisSize.max
+              : MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.today_outlined,
+              size: 16,
+              color: Color(0xFF30270F),
+            ),
+
+            const SizedBox(width: 6),
+
+            Flexible(
+              child: Text(
+                'Today Added: $todayAddedCount',
+                maxLines: 1,
+                overflow:
+                    TextOverflow.ellipsis,
+                textAlign:
+                    TextAlign.center,
+                style: const TextStyle(
+                  color:
+                      Color(0xFF30270F),
+                  fontSize: 11,
+                  fontWeight:
+                      FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   // ============================================================
-  // DESKTOP TABLE
+  // DATE FILTER BUTTON
   // ============================================================
 
-  Widget _buildDesktopTable() {
-    final data = paginatedLeads;
+  Widget _dateFilterButton({
+    bool expanded = false,
+  }) {
+    String label = 'Today';
 
-    if (data.isEmpty) {
-      return _buildEmptyState();
+    if (fromDate != null &&
+        toDate != null) {
+      label =
+          '${_shortDate(fromDate!)} - '
+          '${_shortDate(toDate!)}';
+    } else if (fromDate != null) {
+      label =
+          'From ${_shortDate(fromDate!)}';
+    } else if (toDate != null) {
+      label =
+          'Until ${_shortDate(toDate!)}';
     }
 
-    return _buildDataTable(
-      data,
-      emailWidth: 190,
-      companyWidth: 150,
-      spacing: 24,
+    return PopupMenuButton<String>(
+      tooltip: 'Date filter',
+      onSelected: (value) {
+        if (value == 'today') {
+          setState(() {
+            todayOnly = true;
+            fromDate = null;
+            toDate = null;
+            currentPage = 1;
+          });
+        }
+
+        if (value == 'all') {
+          setState(() {
+            todayOnly = false;
+            fromDate = null;
+            toDate = null;
+            currentPage = 1;
+          });
+        }
+
+        if (value == 'custom') {
+          _showDateFilter();
+        }
+      },
+      color: tableColor,
+      itemBuilder: (context) {
+        return const [
+          PopupMenuItem(
+            value: 'today',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.today_outlined,
+                  color: gold,
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Today',
+                  style: TextStyle(
+                    color: white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'all',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_month_outlined,
+                  color: gold,
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'All Dates',
+                  style: TextStyle(
+                    color: white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'custom',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.date_range_outlined,
+                  color: gold,
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Custom Range',
+                  style: TextStyle(
+                    color: white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ];
+      },
+      child: Container(
+        height: 40,
+        width:
+            expanded ? double.infinity : null,
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 12,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF747982),
+          borderRadius:
+              BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: expanded
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
+          mainAxisSize: expanded
+              ? MainAxisSize.max
+              : MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_month_outlined,
+              size: 16,
+              color: white,
+            ),
+
+            const SizedBox(width: 6),
+
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow:
+                    TextOverflow.ellipsis,
+                textAlign:
+                    TextAlign.center,
+                style: const TextStyle(
+                  color: white,
+                  fontSize: 11,
+                  fontWeight:
+                      FontWeight.w600,
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 3),
+
+            const Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: white,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   // ============================================================
-  // MOBILE TABLE
+  // TABLE
   // ============================================================
 
-  Widget _buildMobileTable() {
-    final data = paginatedLeads;
-
-    if (data.isEmpty) {
-      return _buildEmptyState();
+  Widget _buildTable(bool isMobile) {
+    if (isLoading) {
+      return _buildLoadingState();
     }
 
-    return _buildDataTable(
-      data,
-      emailWidth: 180,
-      companyWidth: 140,
-      spacing: 20,
+    final data = paginatedLeads;
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: tableColor,
+            borderRadius:
+                BorderRadius.circular(18),
+          ),
+          child: ClipRRect(
+            borderRadius:
+                BorderRadius.circular(18),
+            child: data.isEmpty
+                ? _buildEmptyTable()
+                : _buildDataTable(
+                    data,
+                    isMobile,
+                  ),
+          ),
+        ),
+
+        if (filteredLeads.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _buildPagination(isMobile),
+        ],
+      ],
     );
   }
 
   // ============================================================
   // DATA TABLE
+  //
+  // FINAL STRUCTURE:
+  //
+  // FULL NAME
+  // COMPANY
+  // TYPE
+  // EMAIL
+  // TRACKING
+  // ADDED DATE
+  // ACTIONS
   // ============================================================
 
   Widget _buildDataTable(
-    List<Map<String, dynamic>> data, {
-    required double emailWidth,
-    required double companyWidth,
-    required double spacing,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(10),
-        border: Border.all(
-          color: borderColor,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius:
-            BorderRadius.circular(10),
-        child:
-            SingleChildScrollView(
-          scrollDirection:
-              Axis.horizontal,
-          child: DataTable(
-            headingRowColor:
-                WidgetStateProperty.all(
-              const Color(0xFF101828),
-            ),
-            headingTextStyle:
-                const TextStyle(
-              color: Colors.white,
-              fontWeight:
-                  FontWeight.w700,
-              fontSize: 12,
-            ),
-            dataTextStyle:
-                const TextStyle(
-              color:
-                  Color(0xFF344054),
-              fontSize: 13,
-            ),
-            columnSpacing:
-                spacing,
-            columns: const [
-              DataColumn(
-                label:
-                    Text('EMAIL'),
-              ),
-              DataColumn(
-                label:
-                    Text('FIRST NAME'),
-              ),
-              DataColumn(
-                label:
-                    Text('LAST NAME'),
-              ),
-              DataColumn(
-                label:
-                    Text('COMPANY'),
-              ),
-              DataColumn(
-                label:
-                    Text('TYPE'),
-              ),
-              DataColumn(
-                label:
-                    Text('TRACKING'),
-              ),
-              DataColumn(
-                label:
-                    Text('ADDED DATE'),
-              ),
-              DataColumn(
-                label:
-                    Text('ACTIONS'),
-              ),
-            ],
-            rows:
-                data.map(
-              (lead) {
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      SizedBox(
-                        width:
-                            emailWidth,
-                        child: Text(
-                          lead['email']
-                              .toString(),
-                          overflow:
-                              TextOverflow
-                                  .ellipsis,
-                        ),
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        lead['firstName']
-                            .toString(),
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        lead['lastName']
-                            .toString(),
-                      ),
-                    ),
-
-                    DataCell(
-                      SizedBox(
-                        width:
-                            companyWidth,
-                        child: Text(
-                          lead['company']
-                              .toString(),
-                          overflow:
-                              TextOverflow
-                                  .ellipsis,
-                        ),
-                      ),
-                    ),
-
-                    DataCell(
-                      _typeBadge(
-                        lead['type']
-                            .toString(),
-                      ),
-                    ),
-
-                    DataCell(
-                      _trackingBadge(
-                        lead[
-                                'trackingStatus']
-                            ?.toString() ??
-                            'Skip',
-                      ),
-                    ),
-
-                    DataCell(
-                      Text(
-                        _formatDate(
-                          lead['addedDate']
-                              as DateTime,
-                        ),
-                      ),
-                    ),
-
-                    DataCell(
-                      Row(
-                        mainAxisSize:
-                            MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip:
-                                'Edit',
-                            onPressed:
-                                () {
-                              _showEditLeadDialog(
-                                lead,
-                              );
-                            },
-                            icon:
-                                const Icon(
-                              Icons
-                                  .edit_outlined,
-                              size: 19,
-                              color:
-                                  secondaryTextColor,
-                            ),
-                          ),
-
-                          IconButton(
-                            tooltip:
-                                'Delete',
-                            onPressed:
-                                () {
-                              _deleteLead(
-                                lead,
-                              );
-                            },
-                            icon:
-                                const Icon(
-                              Icons
-                                  .delete_outline,
-                              size: 19,
-                              color:
-                                  Color(
-                                0xFFD92D20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // TYPE BADGE
-  // ============================================================
-
-  Widget _typeBadge(
-    String type,
+    List<Map<String, dynamic>> data,
+    bool isMobile,
   ) {
-    Color background;
-    Color foreground;
-    IconData icon;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: DataTable(
+        headingRowHeight: 48,
+        dataRowMinHeight: 60,
+        dataRowMaxHeight: 72,
 
-    switch (
-        type.toLowerCase()) {
-      case 'email':
-        background =
-            const Color(
-          0xFFEFF4FF,
-        );
-        foreground =
-            const Color(
-          0xFF3538CD,
-        );
-        icon =
-            Icons.email_outlined;
-        break;
+        // Keep enough horizontal space so that
+        // the email is readable completely.
+        horizontalMargin: 18,
 
-      case 'whatsapp':
-        background =
-            const Color(
-          0xFFECFDF3,
-        );
-        foreground =
-            const Color(
-          0xFF027A48,
-        );
-        icon =
-            Icons.chat_outlined;
-        break;
+        columnSpacing:
+            isMobile ? 24 : 34,
 
-      default:
-        background =
-            const Color(
-          0xFFF2F4F7,
-        );
-        foreground =
-            const Color(
-          0xFF344054,
-        );
-        icon =
-            Icons.category_outlined;
-    }
+        dividerThickness: 0.25,
 
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
-      decoration:
-          BoxDecoration(
-        color: background,
-        borderRadius:
-            BorderRadius.circular(
-          20,
+        headingRowColor:
+            WidgetStateProperty.all(
+          tableColor,
         ),
-      ),
-      child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: foreground,
+
+        dataRowColor:
+            WidgetStateProperty.all(
+          tableColor,
+        ),
+
+        headingTextStyle:
+            const TextStyle(
+          color: gold,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.25,
+        ),
+
+        dataTextStyle:
+            const TextStyle(
+          color: lightText,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+
+        columns: const [
+          DataColumn(
+            label: Text('FULL NAME'),
           ),
-          const SizedBox(
-            width: 5,
+
+          DataColumn(
+            label: Text('COMPANY'),
           ),
-          Text(
-            type,
-            style:
-                TextStyle(
-              color:
-                  foreground,
-              fontSize: 12,
-              fontWeight:
-                  FontWeight.w600,
-            ),
+
+          DataColumn(
+            label: Text('TYPE'),
+          ),
+
+          DataColumn(
+            label: Text('EMAIL'),
+          ),
+
+          DataColumn(
+            label: Text('TRACKING'),
+          ),
+
+          DataColumn(
+            label: Text('ADDED DATE'),
+          ),
+
+          DataColumn(
+            label: Text('ACTIONS'),
           ),
         ],
+
+        rows: data.map(
+          (lead) {
+            final firstName =
+                lead['firstName']
+                        ?.toString()
+                        .trim() ??
+                    '';
+
+            final lastName =
+                lead['lastName']
+                        ?.toString()
+                        .trim() ??
+                    '';
+
+            final fullName =
+                '$firstName $lastName'
+                    .trim();
+
+            final company =
+                lead['company']
+                        ?.toString()
+                        .trim() ??
+                    '';
+
+            final email =
+                lead['email']
+                        ?.toString()
+                        .trim() ??
+                    '';
+
+            return DataRow(
+              cells: [
+                // ==================================================
+                // FULL NAME
+                // ==================================================
+
+                DataCell(
+                  SizedBox(
+                    width: isMobile ? 150 : 180,
+                    child: Text(
+                      fullName.isEmpty
+                          ? '-'
+                          : fullName,
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(
+                        color: lightText,
+                        fontSize: 12,
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // COMPANY
+                // ==================================================
+
+                DataCell(
+                  SizedBox(
+                    width: isMobile ? 140 : 170,
+                    child: Text(
+                      company.isEmpty
+                          ? '-'
+                          : company,
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // TYPE
+                // ==================================================
+
+                DataCell(
+                  _typeBadge(
+                    lead['type']
+                            ?.toString() ??
+                        'Email',
+                  ),
+                ),
+
+                // ==================================================
+                // EMAIL
+                //
+                // FULL EMAIL IS SHOWN.
+                // No TextOverflow.ellipsis here.
+                // ==================================================
+
+                DataCell(
+                  SizedBox(
+                    width: isMobile ? 260 : 300,
+                    child: Text(
+                      email.isEmpty
+                          ? '-'
+                          : email,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow:
+                          TextOverflow.visible,
+                      style:
+                          const TextStyle(
+                        color: lightText,
+                        fontSize: 12,
+                        fontWeight:
+                            FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // TRACKING
+                // ==================================================
+
+                DataCell(
+                  _trackingBadge(lead),
+                ),
+
+                // ==================================================
+                // ADDED DATE
+                // ==================================================
+
+                DataCell(
+                  Text(
+                    _formatDate(
+                      lead['addedDate']
+                          as DateTime,
+                    ),
+                    style:
+                        const TextStyle(
+                      color: lightText,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // ACTIONS
+                // ==================================================
+
+                DataCell(
+                  Row(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      // VIEW
+                      IconButton(
+                        tooltip: 'View',
+                        onPressed: () {
+                          _showViewLeadDialog(
+                            lead,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.visibility_outlined,
+                          color: blue,
+                          size: 18,
+                        ),
+                      ),
+
+                      // EDIT
+                      IconButton(
+                        tooltip: 'Edit',
+                        onPressed: () {
+                          _showEditLeadDialog(
+                            lead,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: gold,
+                          size: 18,
+                        ),
+                      ),
+
+                      // DELETE
+                      IconButton(
+                        tooltip: 'Delete',
+                        onPressed: () {
+                          _deleteLead(
+                            lead,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color:
+                              Color(0xFFFF7676),
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ).toList(),
       ),
     );
   }
 
   // ============================================================
   // TRACKING BADGE
+  //
+  // SENT    = GREEN
+  // OPENED  = BLUE
+  // CLICKED = PURPLE
+  // FAILED  = RED
+  // SKIP    = GREY
   // ============================================================
 
   Widget _trackingBadge(
-    String status,
+    Map<String, dynamic> lead,
   ) {
-    Color background;
-    Color foreground;
+    final rawStatus =
+        lead['trackingStatus']
+                ?.toString()
+                .trim() ??
+            '';
+
+    final status =
+        rawStatus.isEmpty
+            ? (lead['tracking'] == true
+                ? 'Sent'
+                : 'Skip')
+            : rawStatus;
+
+    final normalized =
+        status.toLowerCase();
+
+    Color backgroundColor;
+    Color borderColor;
+    Color textColor;
     IconData icon;
 
-    switch (
-        status.trim().toLowerCase()) {
-      case 'sent':
-        background =
-            const Color(
-          0xFFECFDF3,
-        );
-        foreground =
-            const Color(
-          0xFF027A48,
-        );
-        icon =
-            Icons.check_circle_outline;
-        break;
+    // ----------------------------------------------------------
+    // SENT
+    // ----------------------------------------------------------
 
-      case 'seen':
-        background =
-            const Color(
-          0xFFEFF4FF,
-        );
-        foreground =
-            const Color(
-          0xFF315BEF,
-        );
-        icon =
-            Icons.visibility_outlined;
-        break;
+    if (normalized == 'sent') {
+      backgroundColor =
+          const Color(0xFF123D2D);
 
-      case 'skip':
-      case 'skipped':
-        background =
-            const Color(
-          0xFFF2F4F7,
-        );
-        foreground =
-            const Color(
-          0xFF667085,
-        );
-        icon =
-            Icons.remove_circle_outline;
-        break;
+      borderColor =
+          const Color(0xFF287754);
 
-      case 'failed':
-        background =
-            const Color(
-          0xFFFEF3F2,
-        );
-        foreground =
-            const Color(
-          0xFFB42318,
-        );
-        icon =
-            Icons.error_outline;
-        break;
+      textColor =
+          const Color(0xFF65E49C);
 
-      case 'pending':
-        background =
-            const Color(
-          0xFFFFFAEB,
-        );
-        foreground =
-            const Color(
-          0xFFB54708,
-        );
-        icon =
-            Icons.schedule_outlined;
-        break;
+      icon =
+          Icons.check_circle_outline;
+    }
 
-      default:
-        background =
-            const Color(
-          0xFFF2F4F7,
-        );
-        foreground =
-            const Color(
-          0xFF344054,
-        );
-        icon =
-            Icons.help_outline;
+    // ----------------------------------------------------------
+    // OPENED
+    // BLUE
+    // ----------------------------------------------------------
 
-        status = 'Unknown';
+    else if (normalized == 'opened' ||
+        normalized == 'open' ||
+        normalized == 'seen') {
+      backgroundColor =
+          const Color(0xFF102F5C);
+
+      borderColor =
+          const Color(0xFF2F70C9);
+
+      textColor =
+          const Color(0xFF69A8FF);
+
+      icon =
+          Icons.visibility_outlined;
+    }
+
+    // ----------------------------------------------------------
+    // CLICKED
+    // PURPLE
+    // ----------------------------------------------------------
+
+    else if (normalized == 'clicked' ||
+        normalized == 'click') {
+      backgroundColor =
+          const Color(0xFF33205A);
+
+      borderColor =
+          const Color(0xFF7547C7);
+
+      textColor =
+          const Color(0xFFB993FF);
+
+      icon =
+          Icons.ads_click_outlined;
+    }
+
+    // ----------------------------------------------------------
+    // FAILED
+    // RED
+    // ----------------------------------------------------------
+
+    else if (normalized == 'failed' ||
+        normalized == 'fail') {
+      backgroundColor =
+          const Color(0xFF521F25);
+
+      borderColor =
+          const Color(0xFFB63E4A);
+
+      textColor =
+          const Color(0xFFFF777F);
+
+      icon =
+          Icons.error_outline;
+    }
+
+    // ----------------------------------------------------------
+    // SKIP
+    // GREY
+    // ----------------------------------------------------------
+
+    else {
+      backgroundColor =
+          const Color(0xFF30333A);
+
+      borderColor =
+          const Color(0xFF62666F);
+
+      textColor =
+          const Color(0xFFB8BDC7);
+
+      icon =
+          Icons.remove_circle_outline;
     }
 
     return Container(
@@ -1313,12 +1415,12 @@ class _LeadsScreenState extends State<LeadsScreen> {
         horizontal: 10,
         vertical: 6,
       ),
-      decoration:
-          BoxDecoration(
-        color: background,
+      decoration: BoxDecoration(
+        color: backgroundColor,
         borderRadius:
-            BorderRadius.circular(
-          20,
+            BorderRadius.circular(20),
+        border: Border.all(
+          color: borderColor,
         ),
       ),
       child: Row(
@@ -1327,21 +1429,18 @@ class _LeadsScreenState extends State<LeadsScreen> {
         children: [
           Icon(
             icon,
-            size: 14,
-            color: foreground,
+            size: 13,
+            color: textColor,
           ),
-          const SizedBox(
-            width: 5,
-          ),
+
+          const SizedBox(width: 5),
+
           Text(
-            status,
-            style:
-                TextStyle(
-              color:
-                  foreground,
-              fontSize: 12,
-              fontWeight:
-                  FontWeight.w600,
+            _capitalizeStatus(status),
+            style: TextStyle(
+              color: textColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -1350,164 +1449,363 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // EMPTY STATE
+  // CAPITALIZE STATUS
   // ============================================================
 
-  Widget _buildEmptyState() {
+  String _capitalizeStatus(String value) {
+    if (value.isEmpty) {
+      return value;
+    }
+
+    return value[0].toUpperCase() +
+        value.substring(1).toLowerCase();
+  }
+
+  // ============================================================
+  // TYPE BADGE
+  // ============================================================
+
+  Widget _typeBadge(String type) {
+    final isWhatsApp =
+        type.toLowerCase() == 'whatsapp';
+
     return Container(
-      width: double.infinity,
       padding:
           const EdgeInsets.symmetric(
-        vertical: 60,
-        horizontal: 20,
+        horizontal: 9,
+        vertical: 6,
       ),
-      decoration:
-          BoxDecoration(
-        border: Border.all(
-          color: borderColor,
-        ),
+      decoration: BoxDecoration(
+        color: isWhatsApp
+            ? const Color(0xFF174D37)
+            : const Color(0xFF202C59),
         borderRadius:
-            BorderRadius.circular(
-          10,
+            BorderRadius.circular(20),
+        border: Border.all(
+          color: isWhatsApp
+              ? const Color(0xFF2D815D)
+              : const Color(0xFF4057A2),
         ),
       ),
-      child: const Column(
+      child: Row(
+        mainAxisSize:
+            MainAxisSize.min,
         children: [
           Icon(
-            Icons.people_outline,
-            size: 46,
-            color:
-                Color(0xFF98A2B3),
+            isWhatsApp
+                ? Icons.chat_outlined
+                : Icons.email_outlined,
+            size: 13,
+            color: isWhatsApp
+                ? const Color(0xFF65E49C)
+                : const Color(0xFF9AAEFF),
           ),
 
-          SizedBox(height: 14),
+          const SizedBox(width: 5),
 
           Text(
-            'No leads found',
-            style:
-                TextStyle(
-              color: textColor,
-              fontSize: 16,
+            type,
+            style: TextStyle(
+              color: isWhatsApp
+                  ? const Color(0xFF65E49C)
+                  : const Color(0xFF9AAEFF),
+              fontSize: 11,
               fontWeight:
                   FontWeight.w700,
             ),
           ),
-
-          SizedBox(height: 5),
-
-          Text(
-            'Try changing your search or filters.',
-            style:
-                TextStyle(
-              color:
-                  secondaryTextColor,
-              fontSize: 13,
-            ),
-          ),
         ],
       ),
     );
   }
 
   // ============================================================
-  // PAGINATION
+  // VIEW LEAD
   // ============================================================
 
-  Widget _buildPagination() {
-    final total =
-        filteredLeads.length;
+  void _showViewLeadDialog(
+    Map<String, dynamic> lead,
+  ) {
+    final firstName =
+        lead['firstName']
+                ?.toString()
+                .trim() ??
+            '';
 
-    if (total == 0) {
-      return const SizedBox.shrink();
-    }
+    final lastName =
+        lead['lastName']
+                ?.toString()
+                .trim() ??
+            '';
 
-    final start =
-        ((currentPage - 1) *
-                entriesPerPage) +
-            1;
+    final fullName =
+        '$firstName $lastName'.trim();
 
-    final end =
-        (currentPage *
-                entriesPerPage) >
-            total
-        ? total
-        : currentPage *
-            entriesPerPage;
+    final email =
+        lead['email']
+                ?.toString()
+                .trim() ??
+            '';
 
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Showing $start - $end of $total',
-            style:
-                const TextStyle(
-              color:
-                  secondaryTextColor,
-              fontSize: 13,
+    final company =
+        lead['company']
+                ?.toString()
+                .trim() ??
+            '';
+
+    final type =
+        lead['type']
+                ?.toString() ??
+            'Email';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor:
+              Colors.transparent,
+          insetPadding:
+              const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 20,
+          ),
+          child: ConstrainedBox(
+            constraints:
+                const BoxConstraints(
+              maxWidth: 520,
+            ),
+            child: Container(
+              decoration:
+                  BoxDecoration(
+                color: tableColor,
+                borderRadius:
+                    BorderRadius.circular(18),
+              ),
+              child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                children: [
+                  _dialogHeader(
+                    dialogContext,
+                    Icons.visibility_outlined,
+                    'Lead Details',
+                    'View lead information',
+                  ),
+
+                  Padding(
+                    padding:
+                        const EdgeInsets.all(22),
+                    child: Column(
+                      children: [
+                        _viewInfoRow(
+                          'Full Name',
+                          fullName.isEmpty
+                              ? '-'
+                              : fullName,
+                          Icons.person_outline,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _viewInfoRow(
+                          'Email',
+                          email.isEmpty
+                              ? '-'
+                              : email,
+                          Icons.email_outlined,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _viewInfoRow(
+                          'Company',
+                          company.isEmpty
+                              ? '-'
+                              : company,
+                          Icons.business_outlined,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child:
+                                  _viewInfoRow(
+                                'Type',
+                                type,
+                                Icons.category_outlined,
+                              ),
+                            ),
+
+                            const SizedBox(
+                              width: 12,
+                            ),
+
+                            Expanded(
+                              child:
+                                  Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Tracking',
+                                    style:
+                                        TextStyle(
+                                      color:
+                                          mutedText,
+                                      fontSize:
+                                          11,
+                                      fontWeight:
+                                          FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 6,
+                                  ),
+                                  _trackingBadge(
+                                    lead,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _viewInfoRow(
+                          'Added Date',
+                          _formatDate(
+                            lead['addedDate']
+                                as DateTime,
+                          ),
+                          Icons.calendar_today_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Container(
+                    padding:
+                        const EdgeInsets.all(16),
+                    decoration:
+                        const BoxDecoration(
+                      color:
+                          Color(0xFF141824),
+                      borderRadius:
+                          BorderRadius.only(
+                        bottomLeft:
+                            Radius.circular(18),
+                        bottomRight:
+                            Radius.circular(18),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(
+                              dialogContext,
+                            );
+                          },
+                          style:
+                              ElevatedButton
+                                  .styleFrom(
+                            backgroundColor:
+                                gold,
+                            foregroundColor:
+                                const Color(
+                              0xFF30270F,
+                            ),
+                            elevation: 0,
+                          ),
+                          child:
+                              const Text(
+                            'Close',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        );
+      },
+    );
+  }
 
-        IconButton(
-          tooltip:
-              'Previous',
-          onPressed:
-              currentPage > 1
-                  ? () {
-                      setState(() {
-                        currentPage--;
-                      });
-                    }
-                  : null,
-          icon:
-              const Icon(
-            Icons.chevron_left,
+  // ============================================================
+  // VIEW INFO ROW
+  // ============================================================
+
+  Widget _viewInfoRow(
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style:
+              const TextStyle(
+            color: mutedText,
+            fontSize: 11,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
 
+        const SizedBox(height: 6),
+
         Container(
+          width: double.infinity,
           padding:
-              const EdgeInsets
-                  .symmetric(
+              const EdgeInsets.symmetric(
             horizontal: 12,
-            vertical: 7,
+            vertical: 12,
           ),
           decoration:
               BoxDecoration(
             color:
-                primaryColor,
+                const Color(0xFF161A27),
             borderRadius:
-                BorderRadius.circular(
-              6,
+                BorderRadius.circular(9),
+            border: Border.all(
+              color:
+                  const Color(0xFF292E3D),
             ),
           ),
-          child: Text(
-            '$currentPage',
-            style:
-                const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight:
-                  FontWeight.w600,
-            ),
-          ),
-        ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: mutedText,
+                size: 17,
+              ),
 
-        IconButton(
-          tooltip:
-              'Next',
-          onPressed:
-              currentPage <
-                      totalPages
-                  ? () {
-                      setState(() {
-                        currentPage++;
-                      });
-                    }
-                  : null,
-          icon:
-              const Icon(
-            Icons.chevron_right,
+              const SizedBox(width: 8),
+
+              Expanded(
+                child: Text(
+                  value,
+                  style:
+                      const TextStyle(
+                    color: lightText,
+                    fontSize: 12,
+                    fontWeight:
+                        FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1515,155 +1813,1173 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // FORMAT DATE
+  // PAGINATION
   // ============================================================
 
-  String _formatDate(
-    DateTime date,
-  ) {
-    final day =
-        date.day.toString().padLeft(
-              2,
-              '0',
-            );
+  Widget _buildPagination(bool isMobile) {
+    final pages = totalPages;
 
-    final month =
-        date.month.toString().padLeft(
-              2,
-              '0',
-            );
+    if (pages <= 1) {
+      return const SizedBox.shrink();
+    }
 
-    final year =
-        date.year.toString();
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 10 : 14,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF41444C),
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF666A73),
+        ),
+      ),
+      child: isMobile
+          ? Column(
+              children: [
+                Text(
+                  'Page $currentPage of $pages',
+                  style: const TextStyle(
+                    color: lightText,
+                    fontSize: 11,
+                    fontWeight:
+                        FontWeight.w600,
+                  ),
+                ),
 
-    return '$day/$month/$year';
+                const SizedBox(height: 9),
+
+                SingleChildScrollView(
+                  scrollDirection:
+                      Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+                    children: [
+                      _paginationButton(
+                        icon:
+                            Icons.chevron_left,
+                        label: 'Previous',
+                        enabled:
+                            currentPage > 1,
+                        onPressed:
+                            currentPage > 1
+                                ? () {
+                                    setState(() {
+                                      currentPage--;
+                                    });
+                                  }
+                                : null,
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      ..._buildPageNumbers(),
+
+                      const SizedBox(width: 8),
+
+                      _paginationButton(
+                        icon:
+                            Icons.chevron_right,
+                        label: 'Next',
+                        enabled:
+                            currentPage < pages,
+                        onPressed:
+                            currentPage < pages
+                                ? () {
+                                    setState(() {
+                                      currentPage++;
+                                    });
+                                  }
+                                : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Text(
+                  'Page $currentPage of $pages',
+                  style: const TextStyle(
+                    color: lightText,
+                    fontSize: 11,
+                    fontWeight:
+                        FontWeight.w600,
+                  ),
+                ),
+
+                const Spacer(),
+
+                _paginationButton(
+                  icon: Icons.chevron_left,
+                  label: 'Previous',
+                  enabled:
+                      currentPage > 1,
+                  onPressed:
+                      currentPage > 1
+                          ? () {
+                              setState(() {
+                                currentPage--;
+                              });
+                            }
+                          : null,
+                ),
+
+                const SizedBox(width: 8),
+
+                ..._buildPageNumbers(),
+
+                const SizedBox(width: 8),
+
+                _paginationButton(
+                  icon:
+                      Icons.chevron_right,
+                  label: 'Next',
+                  enabled:
+                      currentPage < pages,
+                  onPressed:
+                      currentPage < pages
+                          ? () {
+                              setState(() {
+                                currentPage++;
+                              });
+                            }
+                          : null,
+                ),
+              ],
+            ),
+    );
   }
 
   // ============================================================
-  // ADD LEAD
+  // PAGE NUMBERS
   // ============================================================
 
-  Future<void> _addLead(
-    BuildContext dialogContext,
-  ) async {
-    final email =
-        emailController.text.trim();
+  List<Widget> _buildPageNumbers() {
+    final pages = totalPages;
 
-    final firstName =
-        firstNameController.text.trim();
+    final List<int> pageNumbers = [];
 
-    final lastName =
-        lastNameController.text.trim();
+    if (pages <= 5) {
+      for (
+        int i = 1;
+        i <= pages;
+        i++
+      ) {
+        pageNumbers.add(i);
+      }
+    } else {
+      pageNumbers.add(1);
 
-    final company =
-        companyController.text.trim();
+      if (currentPage > 3) {
+        pageNumbers.add(-1);
+      }
 
-    if (email.isEmpty) {
-      _showMessage(
-        'Email is required.',
-      );
-      return;
+      final start =
+          currentPage <= 3
+              ? 2
+              : currentPage - 1;
+
+      final end =
+          currentPage >= pages - 2
+              ? pages - 1
+              : currentPage + 1;
+
+      for (
+        int i = start;
+        i <= end;
+        i++
+      ) {
+        if (i > 1 && i < pages) {
+          pageNumbers.add(i);
+        }
+      }
+
+      if (currentPage < pages - 2) {
+        pageNumbers.add(-1);
+      }
+
+      pageNumbers.add(pages);
     }
 
-    final emailRegex =
-        RegExp(
-      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-    );
-
-    if (!emailRegex.hasMatch(
-      email,
-    )) {
-      _showMessage(
-        'Please enter a valid email address.',
-      );
-      return;
-    }
-
-    setState(() {
-      isAddingLead = true;
-    });
-
-    try {
-      final response =
-          await LeadsApi.createLead(
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        company: company,
-        type: selectedType,
-        tracking: trackingEnabled,
-      );
-
-      if (!mounted) return;
-
-      if (response['success'] ==
-          true) {
-        Map<String, dynamic>? sequenceResponse;
-
-        if (trackingEnabled && selectedType == 'Email') {
-          sequenceResponse =
-              await SequenceApi.runSequence();
+    return pageNumbers.map(
+      (page) {
+        if (page == -1) {
+          return const Padding(
+            padding:
+                EdgeInsets.symmetric(
+              horizontal: 4,
+            ),
+            child: Text(
+              '...',
+              style: TextStyle(
+                color: mutedText,
+                fontSize: 12,
+              ),
+            ),
+          );
         }
 
-        Navigator.pop(
-          dialogContext,
-        );
+        final selected =
+            page == currentPage;
 
-        _clearForm();
-
-        final sequenceFailed =
-          sequenceResponse != null &&
-            sequenceResponse['success'] != true;
-
-        _showMessage(
-          sequenceFailed
-            ? 'Lead added, but the sequence could not be run.'
-            : response['message']
-                ?.toString() ??
-              'Lead added successfully.',
+        return Padding(
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 2,
+          ),
+          child: InkWell(
+            onTap: selected
+                ? null
+                : () {
+                    setState(() {
+                      currentPage = page;
+                    });
+                  },
+            borderRadius:
+                BorderRadius.circular(8),
+            child: Container(
+              width: 34,
+              height: 34,
+              alignment:
+                  Alignment.center,
+              decoration:
+                  BoxDecoration(
+                color: selected
+                    ? gold
+                    : const Color(
+                        0xFF30333B,
+                      ),
+                borderRadius:
+                    BorderRadius.circular(
+                  8,
+                ),
+                border: Border.all(
+                  color: selected
+                      ? gold
+                      : const Color(
+                          0xFF5F636C,
+                        ),
+                ),
+              ),
+              child: Text(
+                '$page',
+                style: TextStyle(
+                  color: selected
+                      ? const Color(
+                          0xFF30270F,
+                        )
+                      : lightText,
+                  fontSize: 11,
+                  fontWeight:
+                      FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
         );
-
-        await _loadLeads(
-          showLoader: false,
-        );
-      } else {
-        _showMessage(
-          response['message']
-                  ?.toString() ??
-              'Unable to add lead.',
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        _showMessage(
-          'Unable to add lead. Please try again.',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isAddingLead = false;
-        });
-      }
-    }
+      },
+    ).toList();
   }
 
   // ============================================================
-  // CLEAR FORM
+  // PAGINATION BUTTON
   // ============================================================
 
-  void _clearForm() {
-    emailController.clear();
+  Widget _paginationButton({
+    required IconData icon,
+    required String label,
+    required bool enabled,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      height: 34,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: 16,
+        ),
+        label: Text(
+          label,
+          style:
+              const TextStyle(
+            fontSize: 10,
+            fontWeight:
+                FontWeight.w700,
+          ),
+        ),
+        style:
+            OutlinedButton.styleFrom(
+          foregroundColor:
+              enabled ? gold : mutedText,
+          side: BorderSide(
+            color: enabled
+                ? const Color(
+                    0xFF777A82,
+                  )
+                : const Color(
+                    0xFF4B4E56,
+                  ),
+          ),
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 10,
+          ),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
 
-    firstNameController.clear();
+  // ============================================================
+  // EMPTY TABLE
+  // ============================================================
 
-    lastNameController.clear();
+  Widget _buildEmptyTable() {
+    final message = todayOnly
+        ? 'No leads found for today'
+        : 'No leads found for this period';
 
-    companyController.clear();
+    return SizedBox(
+      width: double.infinity,
+      height: 150,
+      child: Center(
+        child: Row(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.auto_awesome,
+              color: gold,
+              size: 18,
+            ),
 
-    selectedType = 'Email';
+            const SizedBox(width: 7),
 
-    trackingEnabled = true;
+            Text(
+              message,
+              style:
+                  const TextStyle(
+                color: lightText,
+                fontSize: 13,
+                fontWeight:
+                    FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOADING
+  // ============================================================
+
+  Widget _buildLoadingState() {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      color: tableColor,
+      child: const Center(
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 28,
+              height: 28,
+              child:
+                  CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: gold,
+              ),
+            ),
+
+            SizedBox(height: 12),
+
+            Text(
+              'Loading leads...',
+              style: TextStyle(
+                color: mutedText,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // GOLD BUTTON
+  // ============================================================
+
+  Widget _goldButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      height: 44,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: 17,
+        ),
+        label: Text(
+          label,
+          style:
+              const TextStyle(
+            fontSize: 12,
+            fontWeight:
+                FontWeight.w800,
+          ),
+        ),
+        style:
+            ElevatedButton.styleFrom(
+          backgroundColor: gold,
+          foregroundColor:
+              const Color(0xFF2D2610),
+          disabledBackgroundColor:
+              const Color(0xFFB89B4C),
+          elevation: 0,
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 18,
+          ),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // DARK ACTION BUTTON
+  // ============================================================
+
+  Widget _darkActionButton({
+    required IconData icon,
+    required String text,
+    required VoidCallback? onPressed,
+    bool outlined = false,
+  }) {
+    return SizedBox(
+      height: 40,
+      child: Container(
+        decoration: BoxDecoration(
+          color: outlined
+              ? Colors.transparent
+              : const Color(0xFF41444C),
+          borderRadius:
+              BorderRadius.circular(10),
+          border: outlined
+              ? Border.all(
+                  color:
+                      const Color(0xFF858890),
+                )
+              : null,
+        ),
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            padding:
+                const EdgeInsets.symmetric(
+              horizontal: 10,
+            ),
+            minimumSize: Size.zero,
+            tapTargetSize:
+                MaterialTapTargetSize
+                    .shrinkWrap,
+            shape:
+                RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(10),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+            mainAxisSize:
+                MainAxisSize.max,
+            children: [
+              Icon(
+                icon,
+                color: gold,
+                size: 16,
+              ),
+
+              const SizedBox(width: 6),
+
+              Flexible(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  textAlign:
+                      TextAlign.center,
+                  style:
+                      const TextStyle(
+                    color: gold,
+                    fontSize: 11,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // EDIT DIALOG
+  // ============================================================
+
+  void _showEditLeadDialog(
+    Map<String, dynamic> lead,
+  ) {
+    editEmailController.text =
+        lead['email'].toString();
+
+    editFirstNameController.text =
+        lead['firstName'].toString();
+
+    editLastNameController.text =
+        lead['lastName'].toString();
+
+    editCompanyController.text =
+        lead['company'].toString();
+
+    selectedType =
+        lead['type'].toString();
+
+    trackingEnabled =
+        lead['tracking'] == true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return Dialog(
+              backgroundColor:
+                  Colors.transparent,
+              insetPadding:
+                  const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 20,
+              ),
+              child: _buildLeadDialog(
+                dialogContext:
+                    dialogContext,
+                setDialogState:
+                    setDialogState,
+                isEdit: true,
+                lead: lead,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // LEAD DIALOG
+  // ============================================================
+
+  Widget _buildLeadDialog({
+    required BuildContext dialogContext,
+    required StateSetter setDialogState,
+    required bool isEdit,
+    required Map<String, dynamic>? lead,
+  }) {
+    final saving = isEdit
+        ? isUpdatingLead
+        : false;
+
+    return ConstrainedBox(
+      constraints:
+          const BoxConstraints(
+        maxWidth: 600,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: tableColor,
+          borderRadius:
+              BorderRadius.circular(18),
+        ),
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            _dialogHeader(
+              dialogContext,
+              isEdit
+                  ? Icons.edit_outlined
+                  : Icons.person_add_outlined,
+              isEdit
+                  ? 'Edit Lead'
+                  : 'Add New Lead',
+              isEdit
+                  ? 'Update lead information'
+                  : 'Add a new lead',
+            ),
+
+            Padding(
+              padding:
+                  const EdgeInsets.all(22),
+              child: Column(
+                children: [
+                  _dialogInput(
+                    controller:
+                        editEmailController,
+                    label:
+                        'Email Address',
+                    hint:
+                        'john@example.com',
+                    icon:
+                        Icons.email_outlined,
+                    keyboardType:
+                        TextInputType
+                            .emailAddress,
+                  ),
+
+                  const SizedBox(
+                    height: 14,
+                  ),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child:
+                            _dialogInput(
+                          controller:
+                              editFirstNameController,
+                          label:
+                              'First Name',
+                          hint: 'John',
+                          icon:
+                              Icons.person_outline,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        width: 12,
+                      ),
+
+                      Expanded(
+                        child:
+                            _dialogInput(
+                          controller:
+                              editLastNameController,
+                          label:
+                              'Last Name',
+                          hint: 'Doe',
+                          icon:
+                              Icons.person_outline,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(
+                    height: 14,
+                  ),
+
+                  _dialogInput(
+                    controller:
+                        editCompanyController,
+                    label: 'Company',
+                    hint:
+                        'Company name',
+                    icon:
+                        Icons.business_outlined,
+                  ),
+
+                  const SizedBox(
+                    height: 14,
+                  ),
+
+                  _dialogDropdown(
+                    label: 'Type',
+                    value:
+                        selectedType,
+                    items: const [
+                      'Email',
+                      'WhatsApp',
+                    ],
+                    onChanged:
+                        (value) {
+                      setDialogState(() {
+                        selectedType =
+                            value ?? 'Email';
+                      });
+                    },
+                  ),
+
+                  const SizedBox(
+                    height: 14,
+                  ),
+
+                  Container(
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          const Color(
+                        0xFF161A27,
+                      ),
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                        10,
+                      ),
+                      border:
+                          Border.all(
+                        color:
+                            const Color(
+                          0xFF2A2F40,
+                        ),
+                      ),
+                    ),
+                    child:
+                        SwitchListTile(
+                      title:
+                          const Text(
+                        'Enable Tracking',
+                        style:
+                            TextStyle(
+                          color: white,
+                          fontWeight:
+                              FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      subtitle:
+                          const Text(
+                        'Track email opens and clicks',
+                        style:
+                            TextStyle(
+                          color:
+                              mutedText,
+                          fontSize: 11,
+                        ),
+                      ),
+                      value:
+                          trackingEnabled,
+                      activeColor:
+                          gold,
+                      onChanged:
+                          (value) {
+                        setDialogState(() {
+                          trackingEnabled =
+                              value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Container(
+              padding:
+                  const EdgeInsets.all(
+                16,
+              ),
+              decoration:
+                  const BoxDecoration(
+                color:
+                    Color(0xFF141824),
+                borderRadius:
+                    BorderRadius.only(
+                  bottomLeft:
+                      Radius.circular(18),
+                  bottomRight:
+                      Radius.circular(18),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed:
+                        saving
+                            ? null
+                            : () {
+                                Navigator.pop(
+                                  dialogContext,
+                                );
+                              },
+                    child:
+                        const Text(
+                      'Cancel',
+                      style:
+                          TextStyle(
+                        color:
+                            mutedText,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    width: 8,
+                  ),
+
+                  ElevatedButton.icon(
+                    onPressed:
+                        saving
+                            ? null
+                            : () {
+                                _updateLead(
+                                  dialogContext,
+                                  lead!,
+                                );
+                              },
+                    icon: saving
+                        ? const SizedBox(
+                            width: 15,
+                            height: 15,
+                            child:
+                                CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color:
+                                  Color(
+                                0xFF2D2610,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons
+                                .save_outlined,
+                            size: 17,
+                          ),
+                    label: Text(
+                      saving
+                          ? 'Saving...'
+                          : 'Save Changes',
+                    ),
+                    style:
+                        ElevatedButton
+                            .styleFrom(
+                      backgroundColor:
+                          gold,
+                      foregroundColor:
+                          const Color(
+                        0xFF2D2610,
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // DIALOG HEADER
+  // ============================================================
+
+  Widget _dialogHeader(
+    BuildContext dialogContext,
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
+    return Container(
+      padding:
+          const EdgeInsets.all(18),
+      decoration:
+          const BoxDecoration(
+        color: Color(0xFF080B13),
+        borderRadius:
+            BorderRadius.only(
+          topLeft:
+              Radius.circular(18),
+          topRight:
+              Radius.circular(18),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration:
+                BoxDecoration(
+              color:
+                  gold.withOpacity(0.12),
+              borderRadius:
+                  BorderRadius.circular(
+                10,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: gold,
+              size: 20,
+            ),
+          ),
+
+          const SizedBox(width: 11),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style:
+                      const TextStyle(
+                    color: white,
+                    fontSize: 17,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+
+                const SizedBox(height: 3),
+
+                Text(
+                  subtitle,
+                  style:
+                      const TextStyle(
+                    color: mutedText,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          IconButton(
+            onPressed: () {
+              Navigator.pop(
+                dialogContext,
+              );
+            },
+            icon: const Icon(
+              Icons.close,
+              color: white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // DIALOG INPUT
+  // ============================================================
+
+  Widget _dialogInput({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style:
+              const TextStyle(
+            color: lightText,
+            fontSize: 12,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        TextField(
+          controller: controller,
+          keyboardType:
+              keyboardType,
+          style:
+              const TextStyle(
+            color: white,
+            fontSize: 13,
+          ),
+          decoration:
+              InputDecoration(
+            hintText: hint,
+            hintStyle:
+                const TextStyle(
+              color: Color(
+                0xFF687083,
+              ),
+              fontSize: 12,
+            ),
+            prefixIcon: Icon(
+              icon,
+              color: mutedText,
+              size: 18,
+            ),
+            filled: true,
+            fillColor:
+                const Color(
+              0xFF161A27,
+            ),
+            border:
+                OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                9,
+              ),
+              borderSide:
+                  BorderSide.none,
+            ),
+            enabledBorder:
+                OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                9,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    Color(0xFF292E3D),
+              ),
+            ),
+            focusedBorder:
+                OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                9,
+              ),
+              borderSide:
+                  const BorderSide(
+                color: gold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // DIALOG DROPDOWN
+  // ============================================================
+
+  Widget _dialogDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?>
+        onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style:
+              const TextStyle(
+            color: lightText,
+            fontSize: 12,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        Container(
+          height: 48,
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 12,
+          ),
+          decoration:
+              BoxDecoration(
+            color:
+                const Color(0xFF161A27),
+            borderRadius:
+                BorderRadius.circular(
+              9,
+            ),
+            border: Border.all(
+              color:
+                  const Color(
+                0xFF292E3D,
+              ),
+            ),
+          ),
+          child:
+              DropdownButtonHideUnderline(
+            child:
+                DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              dropdownColor:
+                  const Color(
+                0xFF161A27,
+              ),
+              icon:
+                  const Icon(
+                Icons
+                    .keyboard_arrow_down,
+                color: mutedText,
+              ),
+              style:
+                  const TextStyle(
+                color: white,
+                fontSize: 13,
+              ),
+              items:
+                  items.map(
+                (item) {
+                  return DropdownMenuItem<
+                      String>(
+                    value: item,
+                    child:
+                        Text(item),
+                  );
+                },
+              ).toList(),
+              onChanged:
+                  onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   // ============================================================
@@ -1685,16 +3001,16 @@ class _LeadsScreenState extends State<LeadsScreen> {
     }
 
     final email =
-        emailController.text.trim();
+        editEmailController.text.trim();
 
     final firstName =
-        firstNameController.text.trim();
+        editFirstNameController.text.trim();
 
     final lastName =
-        lastNameController.text.trim();
+        editLastNameController.text.trim();
 
     final company =
-        companyController.text.trim();
+        editCompanyController.text.trim();
 
     if (email.isEmpty) {
       _showMessage(
@@ -1703,14 +3019,11 @@ class _LeadsScreenState extends State<LeadsScreen> {
       return;
     }
 
-    final emailRegex =
-        RegExp(
+    final emailRegex = RegExp(
       r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
     );
 
-    if (!emailRegex.hasMatch(
-      email,
-    )) {
+    if (!emailRegex.hasMatch(email)) {
       _showMessage(
         'Please enter a valid email address.',
       );
@@ -1735,13 +3048,12 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
       if (!mounted) return;
 
-      if (response['success'] ==
-          true) {
+      if (response['success'] == true) {
         Navigator.pop(
           dialogContext,
         );
 
-        _clearForm();
+        _clearEditForm();
 
         _showMessage(
           response['message']
@@ -1762,7 +3074,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
     } catch (_) {
       if (mounted) {
         _showMessage(
-          'Unable to update lead. Please try again.',
+          'Unable to update lead.',
         );
       }
     } finally {
@@ -1775,7 +3087,21 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // DELETE LEAD
+  // CLEAR EDIT FORM
+  // ============================================================
+
+  void _clearEditForm() {
+    editEmailController.clear();
+    editFirstNameController.clear();
+    editLastNameController.clear();
+    editCompanyController.clear();
+
+    selectedType = 'Email';
+    trackingEnabled = true;
+  }
+
+  // ============================================================
+  // DELETE
   // ============================================================
 
   void _deleteLead(
@@ -1783,40 +3109,30 @@ class _LeadsScreenState extends State<LeadsScreen> {
   ) {
     showDialog(
       context: context,
-      builder:
-          (dialogContext) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor:
-              Colors.white,
-
-          title:
-              const Text(
+              const Color(0xFF141824),
+          title: const Text(
             'Delete Lead',
-            style:
-                TextStyle(
-              color:
-                  textColor,
+            style: TextStyle(
+              color: white,
               fontWeight:
                   FontWeight.w700,
             ),
           ),
-
-          content:
-              Text(
+          content: Text(
             'Are you sure you want to delete '
             '${lead['firstName']} '
             '${lead['lastName']}?',
             style:
                 const TextStyle(
-              color:
-                  secondaryTextColor,
+              color: mutedText,
             ),
           ),
-
           actions: [
             TextButton(
-              onPressed:
-                  () {
+              onPressed: () {
                 Navigator.pop(
                   dialogContext,
                 );
@@ -1824,6 +3140,10 @@ class _LeadsScreenState extends State<LeadsScreen> {
               child:
                   const Text(
                 'Cancel',
+                style:
+                    TextStyle(
+                  color: mutedText,
+                ),
               ),
             ),
 
@@ -1841,14 +3161,14 @@ class _LeadsScreenState extends State<LeadsScreen> {
                           );
                         },
               style:
-                  ElevatedButton
-                      .styleFrom(
+                  ElevatedButton.styleFrom(
                 backgroundColor:
-                    Colors.red,
+                    const Color(
+                  0xFFC94141,
+                ),
                 foregroundColor:
-                    Colors.white,
-                elevation:
-                    0,
+                    white,
+                elevation: 0,
               ),
               child:
                   const Text(
@@ -1890,8 +3210,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
       if (!mounted) return;
 
-      if (response['success'] ==
-          true) {
+      if (response['success'] == true) {
         _showMessage(
           response['message']
                   ?.toString() ??
@@ -1924,40 +3243,16 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // TODAY FILTER
-  // ============================================================
-
-  void _toggleTodayFilter() {
-    setState(() {
-      todayOnly =
-          !todayOnly;
-
-      if (todayOnly) {
-        fromDate = null;
-        toDate = null;
-      }
-
-      currentPage = 1;
-    });
-  }
-
-  // ============================================================
   // DATE FILTER
   // ============================================================
 
   Future<void> _showDateFilter() async {
-    DateTime? tempFromDate =
-        fromDate;
-
-    DateTime? tempToDate =
-        toDate;
+    DateTime? tempFrom = fromDate;
+    DateTime? tempTo = toDate;
 
     await showDialog(
       context: context,
-      barrierDismissible:
-          true,
-      builder:
-          (dialogContext) {
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (
             context,
@@ -1966,12 +3261,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
             return Dialog(
               backgroundColor:
                   Colors.transparent,
-              insetPadding:
-                  const EdgeInsets
-                      .symmetric(
-                horizontal: 20,
-                vertical: 24,
-              ),
               child: Container(
                 constraints:
                     const BoxConstraints(
@@ -1979,11 +3268,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 ),
                 decoration:
                     BoxDecoration(
-                  color:
-                      Colors.white,
+                  color: tableColor,
                   borderRadius:
-                      BorderRadius
-                          .circular(
+                      BorderRadius.circular(
                     18,
                   ),
                 ),
@@ -1991,108 +3278,20 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   mainAxisSize:
                       MainAxisSize.min,
                   children: [
-                    Container(
-                      width:
-                          double.infinity,
-                      padding:
-                          const EdgeInsets
-                              .all(
-                        20,
-                      ),
-                      decoration:
-                          const BoxDecoration(
-                        color:
-                            Color(
-                          0xFF101828,
-                        ),
-                        borderRadius:
-                            BorderRadius.only(
-                          topLeft:
-                              Radius.circular(
-                            18,
-                          ),
-                          topRight:
-                              Radius.circular(
-                            18,
-                          ),
-                        ),
-                      ),
-                      child:
-                          Row(
-                        children: [
-                          Container(
-                            width:
-                                42,
-                            height:
-                                42,
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  primaryColor.withOpacity(
-                                0.18,
-                              ),
-                              borderRadius:
-                                  BorderRadius.circular(
-                                10,
-                              ),
-                            ),
-                            child:
-                                const Icon(
-                              Icons
-                                  .date_range_outlined,
-                              color:
-                                  Color(
-                                0xFF7C9AFF,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(
-                            width: 12,
-                          ),
-
-                          const Expanded(
-                            child:
-                                Text(
-                              'Filter by Date',
-                              style:
-                                  TextStyle(
-                                color:
-                                    Colors.white,
-                                fontSize:
-                                    18,
-                                fontWeight:
-                                    FontWeight.w700,
-                              ),
-                            ),
-                          ),
-
-                          IconButton(
-                            onPressed:
-                                () {
-                              Navigator.pop(
-                                dialogContext,
-                              );
-                            },
-                            icon:
-                                const Icon(
-                              Icons.close,
-                              color:
-                                  Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _dialogHeader(
+                      dialogContext,
+                      Icons
+                          .date_range_outlined,
+                      'Filter by Date',
+                      'Select the date range for leads',
                     ),
 
                     Padding(
                       padding:
-                          const EdgeInsets
-                              .all(
-                        22,
+                          const EdgeInsets.all(
+                        20,
                       ),
-                      child:
-                          Row(
+                      child: Row(
                         children: [
                           Expanded(
                             child:
@@ -2100,7 +3299,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                               label:
                                   'From Date',
                               value:
-                                  tempFromDate,
+                                  tempFrom,
                               onTap:
                                   () async {
                                 final picked =
@@ -2116,16 +3315,39 @@ class _LeadsScreenState extends State<LeadsScreen> {
                                     2035,
                                   ),
                                   initialDate:
-                                      tempFromDate ??
-                                          DateTime
-                                              .now(),
+                                      tempFrom ??
+                                          DateTime.now(),
+                                  builder:
+                                      (
+                                    context,
+                                    child,
+                                  ) {
+                                    return Theme(
+                                      data:
+                                          Theme.of(
+                                        context,
+                                      ).copyWith(
+                                        colorScheme:
+                                            const ColorScheme.dark(
+                                          primary:
+                                              gold,
+                                          surface:
+                                              Color(
+                                            0xFF141824,
+                                          ),
+                                        ),
+                                      ),
+                                      child:
+                                          child!,
+                                    );
+                                  },
                                 );
 
                                 if (picked !=
                                     null) {
                                   setDialogState(
                                     () {
-                                      tempFromDate =
+                                      tempFrom =
                                           picked;
                                     },
                                   );
@@ -2144,7 +3366,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                               label:
                                   'To Date',
                               value:
-                                  tempToDate,
+                                  tempTo,
                               onTap:
                                   () async {
                                 final picked =
@@ -2160,16 +3382,39 @@ class _LeadsScreenState extends State<LeadsScreen> {
                                     2035,
                                   ),
                                   initialDate:
-                                      tempToDate ??
-                                          DateTime
-                                              .now(),
+                                      tempTo ??
+                                          DateTime.now(),
+                                  builder:
+                                      (
+                                    context,
+                                    child,
+                                  ) {
+                                    return Theme(
+                                      data:
+                                          Theme.of(
+                                        context,
+                                      ).copyWith(
+                                        colorScheme:
+                                            const ColorScheme.dark(
+                                          primary:
+                                              gold,
+                                          surface:
+                                              Color(
+                                            0xFF141824,
+                                          ),
+                                        ),
+                                      ),
+                                      child:
+                                          child!,
+                                    );
+                                  },
                                 );
 
                                 if (picked !=
                                     null) {
                                   setDialogState(
                                     () {
-                                      tempToDate =
+                                      tempTo =
                                           picked;
                                     },
                                   );
@@ -2183,42 +3428,22 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
                     Container(
                       padding:
-                          const EdgeInsets
-                              .all(
-                        18,
+                          const EdgeInsets.all(
+                        16,
                       ),
-                      decoration:
-                          const BoxDecoration(
-                        color:
-                            Color(
-                          0xFFF9FAFB,
-                        ),
-                        borderRadius:
-                            BorderRadius.only(
-                          bottomLeft:
-                              Radius.circular(
-                            18,
-                          ),
-                          bottomRight:
-                              Radius.circular(
-                            18,
-                          ),
-                        ),
-                      ),
-                      child:
-                          Row(
+                      child: Row(
                         mainAxisAlignment:
                             MainAxisAlignment
                                 .end,
                         children: [
-                          OutlinedButton(
+                          TextButton(
                             onPressed:
                                 () {
                               setDialogState(
                                 () {
-                                  tempFromDate =
+                                  tempFrom =
                                       null;
-                                  tempToDate =
+                                  tempTo =
                                       null;
                                 },
                               );
@@ -2226,11 +3451,16 @@ class _LeadsScreenState extends State<LeadsScreen> {
                             child:
                                 const Text(
                               'Clear',
+                              style:
+                                  TextStyle(
+                                color:
+                                    mutedText,
+                              ),
                             ),
                           ),
 
                           const SizedBox(
-                            width: 10,
+                            width: 8,
                           ),
 
                           ElevatedButton(
@@ -2239,14 +3469,11 @@ class _LeadsScreenState extends State<LeadsScreen> {
                               setState(
                                 () {
                                   fromDate =
-                                      tempFromDate;
-
+                                      tempFrom;
                                   toDate =
-                                      tempToDate;
-
+                                      tempTo;
                                   todayOnly =
                                       false;
-
                                   currentPage =
                                       1;
                                 },
@@ -2260,11 +3487,12 @@ class _LeadsScreenState extends State<LeadsScreen> {
                                 ElevatedButton
                                     .styleFrom(
                               backgroundColor:
-                                  primaryColor,
+                                  gold,
                               foregroundColor:
-                                  Colors.white,
-                              elevation:
-                                  0,
+                                  const Color(
+                                0xFF30270F,
+                              ),
+                              elevation: 0,
                             ),
                             child:
                                 const Text(
@@ -2301,76 +3529,64 @@ class _LeadsScreenState extends State<LeadsScreen> {
           label,
           style:
               const TextStyle(
-            color:
-                secondaryTextColor,
-            fontSize: 12,
+            color: mutedText,
+            fontSize: 11,
             fontWeight:
                 FontWeight.w600,
           ),
         ),
 
-        const SizedBox(
-          height: 7,
-        ),
+        const SizedBox(height: 6),
 
         InkWell(
           onTap: onTap,
           borderRadius:
-              BorderRadius.circular(
-            8,
-          ),
-          child:
-              Container(
-            height: 48,
+              BorderRadius.circular(9),
+          child: Container(
+            height: 46,
             padding:
-                const EdgeInsets
-                    .symmetric(
-              horizontal: 12,
+                const EdgeInsets.symmetric(
+              horizontal: 11,
             ),
             decoration:
                 BoxDecoration(
               color:
-                  Colors.white,
-              border:
-                  Border.all(
-                color:
-                    borderColor,
-              ),
+                  const Color(0xFF161A27),
               borderRadius:
                   BorderRadius.circular(
-                8,
+                9,
+              ),
+              border: Border.all(
+                color:
+                    const Color(
+                  0xFF292E3D,
+                ),
               ),
             ),
-            child:
-                Row(
+            child: Row(
               children: [
                 const Icon(
                   Icons
                       .calendar_today_outlined,
-                  size: 17,
-                  color:
-                      secondaryTextColor,
+                  size: 16,
+                  color: gold,
                 ),
 
                 const SizedBox(
-                  width: 8,
+                  width: 7,
                 ),
 
                 Expanded(
-                  child:
-                      Text(
-                    value ==
-                            null
+                  child: Text(
+                    value == null
                         ? 'Select date'
                         : _formatDate(
                             value,
                           ),
                     style:
                         const TextStyle(
-                      color:
-                          textColor,
-                      fontSize:
-                          13,
+                      color: lightText,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -2383,859 +3599,391 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // ADD LEAD DIALOG
+  // EXCEL UPLOAD
   // ============================================================
 
-  void _showAddLeadDialog() {
-    _clearForm();
+  Future<void> _uploadExcel() async {
+    try {
+      final result =
+          await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'xlsx',
+          'xls',
+        ],
+        withData: true,
+      );
 
-    showDialog(
-      context: context,
-      barrierDismissible:
-          false,
-      builder:
-          (dialogContext) {
-        return StatefulBuilder(
-          builder: (
-            context,
-            setDialogState,
-          ) {
-            return Dialog(
-              backgroundColor:
-                  Colors.transparent,
-              insetPadding:
-                  const EdgeInsets
-                      .symmetric(
-                horizontal: 18,
-                vertical: 20,
-              ),
-              child:
-                  _buildLeadDialog(
-                dialogContext:
-                    dialogContext,
-                setDialogState:
-                    setDialogState,
-                isEdit:
-                    false,
-                lead:
-                    null,
-              ),
-            );
-          },
+      if (result == null) {
+        return;
+      }
+
+      final file =
+          result.files.single;
+
+      final Uint8List? bytes =
+          file.bytes;
+
+      if (bytes == null ||
+          bytes.isEmpty) {
+        _showMessage(
+          'Unable to read the selected Excel file.',
         );
-      },
-    );
-  }
+        return;
+      }
 
-  // ============================================================
-  // EDIT LEAD DIALOG
-  // ============================================================
+      setState(() {
+        isUploadingExcel = true;
+      });
 
-  void _showEditLeadDialog(
-    Map<String, dynamic> lead,
-  ) {
-    emailController.text =
-        lead['email'].toString();
+      final token =
+          await _getToken();
 
-    firstNameController.text =
-        lead['firstName'].toString();
-
-    lastNameController.text =
-        lead['lastName'].toString();
-
-    companyController.text =
-        lead['company'].toString();
-
-    selectedType =
-        lead['type'].toString();
-
-    trackingEnabled =
-        lead['tracking'] == true;
-
-    showDialog(
-      context: context,
-      barrierDismissible:
-          false,
-      builder:
-          (dialogContext) {
-        return StatefulBuilder(
-          builder: (
-            context,
-            setDialogState,
-          ) {
-            return Dialog(
-              backgroundColor:
-                  Colors.transparent,
-              insetPadding:
-                  const EdgeInsets
-                      .symmetric(
-                horizontal: 18,
-                vertical: 20,
-              ),
-              child:
-                  _buildLeadDialog(
-                dialogContext:
-                    dialogContext,
-                setDialogState:
-                    setDialogState,
-                isEdit:
-                    true,
-                lead:
-                    lead,
-              ),
-            );
-          },
+      if (token == null ||
+          token.isEmpty) {
+        _showMessage(
+          'Authentication token not found. Please login again.',
         );
-      },
-    );
-  }
+        return;
+      }
 
-  // ============================================================
-  // LEAD DIALOG
-  // ============================================================
-
-  Widget _buildLeadDialog({
-    required BuildContext dialogContext,
-    required StateSetter setDialogState,
-    required bool isEdit,
-    required Map<String, dynamic>? lead,
-  }) {
-    return ConstrainedBox(
-      constraints:
-          const BoxConstraints(
-        maxWidth: 600,
-      ),
-      child: Container(
-        constraints:
-            BoxConstraints(
-          maxHeight:
-              MediaQuery.of(
-                    context,
-                  ).size.height *
-                  0.90,
+      final request =
+          http.MultipartRequest(
+        'POST',
+        Uri.parse(
+          '$baseUrl/leads/import-excel',
         ),
-        decoration:
-            BoxDecoration(
-          color:
-              Colors.white,
-          borderRadius:
-              BorderRadius.circular(
-            18,
-          ),
+      );
+
+      request.headers[
+              'Authorization'] =
+          'Bearer $token';
+
+      request.files.add(
+        http.MultipartFile
+            .fromBytes(
+          'file',
+          bytes,
+          filename: file.name,
         ),
-        child:
-            Column(
-          mainAxisSize:
-              MainAxisSize.min,
-          children: [
-            isEdit
-                ? _buildEditDialogHeader(
-                    dialogContext,
-                  )
-                : _buildDialogHeader(
-                    dialogContext,
-                  ),
+      );
 
-            Flexible(
-              child:
-                  SingleChildScrollView(
-                padding:
-                    const EdgeInsets
-                        .all(
-                  22,
-                ),
-                child:
-                    Column(
-                  children: [
-                    _formField(
-                      controller:
-                          emailController,
-                      label:
-                          'Email Address',
-                      hint:
-                          'john@example.com',
-                      icon:
-                          Icons
-                              .email_outlined,
-                      keyboardType:
-                          TextInputType
-                              .emailAddress,
-                    ),
+      final streamedResponse =
+          await request.send();
 
-                    const SizedBox(
-                      height: 16,
-                    ),
+      final response =
+          await http.Response
+              .fromStream(
+        streamedResponse,
+      );
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child:
-                              _formField(
-                            controller:
-                                firstNameController,
-                            label:
-                                'First Name',
-                            hint:
-                                'John',
-                            icon:
-                                Icons
-                                    .person_outline,
-                          ),
-                        ),
+      Map<String, dynamic>
+          responseData = {};
 
-                        const SizedBox(
-                          width: 12,
-                        ),
+      try {
+        final decoded =
+            jsonDecode(
+          response.body,
+        );
 
-                        Expanded(
-                          child:
-                              _formField(
-                            controller:
-                                lastNameController,
-                            label:
-                                'Last Name',
-                            hint:
-                                'Doe',
-                            icon:
-                                Icons
-                                    .person_outline,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(
-                      height: 16,
-                    ),
-
-                    _formField(
-                      controller:
-                          companyController,
-                      label:
-                          'Company',
-                      hint:
-                          'Company name',
-                      icon:
-                          Icons
-                              .business_outlined,
-                    ),
-
-                    const SizedBox(
-                      height: 16,
-                    ),
-
-                    _buildDropdownField(
-                      label:
-                          'Type',
-                      value:
-                          selectedType,
-                      items:
-                          const [
-                        'Email',
-                        'WhatsApp',
-                      ],
-                      onChanged:
-                          (value) {
-                        setDialogState(
-                          () {
-                            selectedType =
-                                value!;
-                          },
-                        );
-                      },
-                    ),
-
-                    const SizedBox(
-                      height: 16,
-                    ),
-
-                    _buildTrackingSwitch(
-                      setDialogState,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            _buildDialogFooter(
-              dialogContext,
-              isEdit,
-              lead,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // TRACKING SWITCH
-  // ============================================================
-
-  Widget _buildTrackingSwitch(
-    StateSetter setDialogState,
-  ) {
-    return Container(
-      decoration:
-          BoxDecoration(
-        color:
-            const Color(
-          0xFFF9FAFB,
-        ),
-        borderRadius:
-            BorderRadius.circular(
-          10,
-        ),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
-      ),
-      child:
-          SwitchListTile(
-        contentPadding:
-            const EdgeInsets
-                .symmetric(
-          horizontal: 14,
-          vertical: 4,
-        ),
-        title:
-            const Text(
-          'Enable Tracking',
-          style:
-              TextStyle(
-            color:
-                textColor,
-            fontSize:
-                14,
-            fontWeight:
-                FontWeight.w600,
-          ),
-        ),
-        subtitle:
-            const Text(
-          'Track email opens and clicks',
-          style:
-              TextStyle(
-            color:
-                secondaryTextColor,
-            fontSize:
-                12,
-          ),
-        ),
-        value:
-            trackingEnabled,
-        activeColor:
-            primaryColor,
-        onChanged:
-            (value) {
-          setDialogState(
-            () {
-              trackingEnabled =
-                  value;
-            },
+        if (decoded is Map) {
+          responseData =
+              Map<String, dynamic>.from(
+            decoded,
           );
-        },
-      ),
-    );
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      if (response.statusCode >=
+              200 &&
+          response.statusCode <
+              300 &&
+          responseData['success'] ==
+              true) {
+        final imported =
+            responseData[
+                    'imported'] ??
+                0;
+
+        final skipped =
+            responseData[
+                    'skipped'] ??
+                0;
+
+        _showMessage(
+          'Excel import completed. '
+          'Imported: $imported, Skipped: $skipped.',
+        );
+
+        await _loadLeads(
+          showLoader: false,
+        );
+      } else {
+        _showMessage(
+          responseData['message']
+                  ?.toString() ??
+              'Unable to import Excel file.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Excel upload failed.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploadingExcel = false;
+        });
+      }
+    }
   }
 
   // ============================================================
-  // FORM FIELD
+  // EXCEL DOWNLOAD
   // ============================================================
 
-  Widget _formField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                13,
-            fontWeight:
-                FontWeight.w600,
-          ),
-        ),
+  Future<void> _downloadExcel() async {
+    if (leads.isEmpty) {
+      _showMessage(
+        'There are no leads to download.',
+      );
+      return;
+    }
 
-        const SizedBox(
-          height: 7,
-        ),
+    try {
+      setState(() {
+        isDownloadingExcel = true;
+      });
 
-        TextField(
-          controller:
-              controller,
-          keyboardType:
-              keyboardType,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                14,
-          ),
-          decoration:
-              InputDecoration(
-            hintText:
-                hint,
-            hintStyle:
-                const TextStyle(
-              color:
-                  Color(
-                0xFF98A2B3,
-              ),
-              fontSize:
-                  13,
-            ),
-            prefixIcon:
-                Icon(
-              icon,
-              size:
-                  19,
-              color:
-                  secondaryTextColor,
-            ),
-            filled:
-                true,
-            fillColor:
-                Colors.white,
-            contentPadding:
-                const EdgeInsets
-                    .symmetric(
-              horizontal:
-                  12,
-            ),
-            border:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                8,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    borderColor,
-              ),
-            ),
-            enabledBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                8,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    borderColor,
-              ),
-            ),
-            focusedBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                8,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    primaryColor,
-                width:
-                    1.5,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // DROPDOWN
-  // ============================================================
-
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                13,
-            fontWeight:
-                FontWeight.w600,
-          ),
-        ),
-
-        const SizedBox(
-          height: 7,
-        ),
-
-        Container(
-          width:
-              double.infinity,
-          height:
-              48,
-          padding:
-              const EdgeInsets
-                  .symmetric(
-            horizontal:
-                12,
-          ),
-          decoration:
-              BoxDecoration(
-            color:
-                Colors.white,
-            border:
-                Border.all(
-              color:
-                  borderColor,
-            ),
-            borderRadius:
-                BorderRadius.circular(
-              8,
-            ),
-          ),
-          child:
-              DropdownButtonHideUnderline(
-            child:
-                DropdownButton<String>(
-              value:
-                  value,
-              isExpanded:
-                  true,
-              dropdownColor:
-                  Colors.white,
-              style:
-                  const TextStyle(
-                color:
-                    textColor,
-                fontSize:
-                    14,
-              ),
-              items:
-                  items.map(
-                (
-                  item,
-                ) {
-                  return DropdownMenuItem<
-                      String>(
-                    value:
-                        item,
-                    child:
-                        Text(
-                      item,
-                    ),
-                  );
-                },
-              ).toList(),
-              onChanged:
-                  onChanged,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // DIALOG HEADER
-  // ============================================================
-
-  Widget _buildDialogHeader(
-    BuildContext dialogContext,
-  ) {
-    return _dialogHeader(
-      dialogContext,
-      Icons.person_add_outlined,
-      'Add New Lead',
-      'Add a new lead to your database',
-    );
-  }
-
-  // ============================================================
-  // EDIT HEADER
-  // ============================================================
-
-  Widget _buildEditDialogHeader(
-    BuildContext dialogContext,
-  ) {
-    return _dialogHeader(
-      dialogContext,
-      Icons.edit_outlined,
-      'Edit Lead',
-      'Update lead information',
-    );
-  }
-
-  // ============================================================
-  // COMMON HEADER
-  // ============================================================
-
-  Widget _dialogHeader(
-    BuildContext dialogContext,
-    IconData icon,
-    String title,
-    String subtitle,
-  ) {
-    return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets
-              .all(
-        20,
-      ),
-      decoration:
-          const BoxDecoration(
-        color:
-            Color(
-          0xFF101828,
-        ),
-        borderRadius:
-            BorderRadius.only(
-          topLeft:
-              Radius.circular(
-            18,
-          ),
-          topRight:
-              Radius.circular(
-            18,
-          ),
-        ),
-      ),
-      child:
-          Row(
-        children: [
-          Container(
-            width:
-                42,
-            height:
-                42,
-            decoration:
-                BoxDecoration(
-              color:
-                  primaryColor
-                      .withOpacity(
-                0.18,
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-            ),
-            child:
-                Icon(
-              icon,
-              color:
-                  const Color(
-                0xFF7C9AFF,
-              ),
-            ),
-          ),
-
-          const SizedBox(
-            width: 12,
-          ),
-
-          Expanded(
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
-              children: [
-                Text(
-                  title,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white,
-                    fontSize:
-                        19,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 3,
-                ),
-
-                Text(
-                  subtitle,
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(
-                      0xFF98A2B3,
-                    ),
-                    fontSize:
-                        12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          IconButton(
-            onPressed:
-                () {
-              Navigator.pop(
-                dialogContext,
-              );
-            },
-            icon:
-                const Icon(
-              Icons.close,
-              color:
-                  Colors.white,
-            ),
-          ),
+      final rows =
+          <List<String>>[
+        [
+          'Email',
+          'First Name',
+          'Last Name',
+          'Company',
+          'Type',
+          'Tracking',
+          'Added Date',
         ],
-      ),
-    );
+      ];
+
+      for (final lead in leads) {
+        rows.add([
+          lead['email']?.toString() ??
+              '',
+          lead['firstName']
+                  ?.toString() ??
+              '',
+          lead['lastName']
+                  ?.toString() ??
+              '',
+          lead['company']
+                  ?.toString() ??
+              '',
+          lead['type']?.toString() ??
+              '',
+          lead['tracking'] == true
+              ? 'true'
+              : 'false',
+          _formatDate(
+            lead['addedDate']
+                as DateTime,
+          ),
+        ]);
+      }
+
+      final html =
+          StringBuffer();
+
+      html.write(
+        '<html>'
+        '<head>'
+        '<meta charset="UTF-8">'
+        '</head>'
+        '<body>'
+        '<table border="1">',
+      );
+
+      for (
+        int i = 0;
+        i < rows.length;
+        i++
+      ) {
+        html.write('<tr>');
+
+        for (final value
+            in rows[i]) {
+          final escaped =
+              _escapeHtml(
+            value,
+          );
+
+          if (i == 0) {
+            html.write(
+              '<th>$escaped</th>',
+            );
+          } else {
+            html.write(
+              '<td>$escaped</td>',
+            );
+          }
+        }
+
+        html.write('</tr>');
+      }
+
+      html.write(
+        '</table>'
+        '</body>'
+        '</html>',
+      );
+
+      final bytes =
+          Uint8List.fromList(
+        utf8.encode(
+          html.toString(),
+        ),
+      );
+
+      final fileName =
+          'HighCustomAI_Leads_'
+          '${DateTime.now().millisecondsSinceEpoch}.xls';
+
+      await FilePicker.platform.saveFile(
+        fileName: fileName,
+        bytes: bytes,
+      );
+
+      if (mounted) {
+        _showMessage(
+          'Excel file prepared successfully.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Unable to download Excel file.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isDownloadingExcel =
+              false;
+        });
+      }
+    }
   }
 
   // ============================================================
-  // DIALOG FOOTER
+  // TOKEN
   // ============================================================
 
-  Widget _buildDialogFooter(
-    BuildContext dialogContext,
-    bool isEdit,
-    Map<String, dynamic>? lead,
+  Future<String?> _getToken() async {
+    try {
+      final token =
+          await storage.read(
+        key: 'auth_token',
+      );
+
+      if (token != null &&
+          token.trim().isNotEmpty) {
+        return token.trim();
+      }
+
+      final legacy =
+          await storage.read(
+        key: 'token',
+      );
+
+      if (legacy != null &&
+          legacy.trim().isNotEmpty) {
+        final clean =
+            legacy.trim();
+
+        await storage.write(
+          key: 'auth_token',
+          value: clean,
+        );
+
+        await storage.delete(
+          key: 'token',
+        );
+
+        return clean;
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ============================================================
+  // HTML ESCAPE
+  // ============================================================
+
+  String _escapeHtml(
+    String value,
   ) {
-    final saving =
-        isEdit
-            ? isUpdatingLead
-            : isAddingLead;
+    return value
+        .replaceAll(
+          '&',
+          '&amp;',
+        )
+        .replaceAll(
+          '<',
+          '&lt;',
+        )
+        .replaceAll(
+          '>',
+          '&gt;',
+        )
+        .replaceAll(
+          '"',
+          '&quot;',
+        )
+        .replaceAll(
+          "'",
+          '&#039;',
+        );
+  }
 
-    return Container(
-      padding:
-          const EdgeInsets
-              .all(
-        18,
-      ),
-      decoration:
-          const BoxDecoration(
-        color:
-            Color(
-          0xFFF9FAFB,
-        ),
-        borderRadius:
-            BorderRadius.only(
-          bottomLeft:
-              Radius.circular(
-            18,
-          ),
-          bottomRight:
-              Radius.circular(
-            18,
-          ),
-        ),
-      ),
-      child:
-          Row(
-        mainAxisAlignment:
-            MainAxisAlignment
-                .end,
-        children: [
-          OutlinedButton(
-            onPressed:
-                saving
-                    ? null
-                    : () {
-                        Navigator.pop(
-                          dialogContext,
-                        );
-                      },
-            child:
-                const Text(
-              'Cancel',
-            ),
-          ),
+  // ============================================================
+  // FORMAT DATE
+  // ============================================================
 
-          const SizedBox(
-            width: 10,
-          ),
+  String _formatDate(
+    DateTime date,
+  ) {
+    final day =
+        date.day
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
-          ElevatedButton.icon(
-            onPressed:
-                saving
-                    ? null
-                    : () {
-                        if (isEdit) {
-                          _updateLead(
-                            dialogContext,
-                            lead!,
-                          );
-                        } else {
-                          _addLead(
-                            dialogContext,
-                          );
-                        }
-                      },
-            icon:
-                saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child:
-                            CircularProgressIndicator(
-                          strokeWidth:
-                              2,
-                          color:
-                              Colors.white,
-                        ),
-                      )
-                    : const Icon(
-                        Icons
-                            .save_outlined,
-                        size: 18,
-                      ),
-            label:
-                Text(
-              saving
-                  ? 'Saving...'
-                  : isEdit
-                      ? 'Save Changes'
-                      : 'Save Lead',
-            ),
-            style:
-                ElevatedButton
-                    .styleFrom(
-              backgroundColor:
-                  primaryColor,
-              foregroundColor:
-                  Colors.white,
-              elevation:
-                  0,
-            ),
-          ),
-        ],
-      ),
-    );
+    final month =
+        date.month
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
+
+    return '$day/$month/${date.year}';
+  }
+
+  String _shortDate(
+    DateTime date,
+  ) {
+    return '${date.day}/${date.month}';
   }
 
   // ============================================================
@@ -3247,20 +3995,31 @@ class _LeadsScreenState extends State<LeadsScreen> {
   ) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context)
+        .hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
-        content:
-            Text(message),
+        content: Text(message),
         behavior:
-            SnackBarBehavior
-                .floating,
+            SnackBarBehavior.floating,
+        backgroundColor:
+            const Color(0xFF20242E),
       ),
     );
+  }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
+  @override
+  void dispose() {
+    editEmailController.dispose();
+    editFirstNameController.dispose();
+    editLastNameController.dispose();
+    editCompanyController.dispose();
+    super.dispose();
   }
 }
