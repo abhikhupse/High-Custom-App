@@ -5,7 +5,7 @@ import 'integration_screen.dart';
 import '../profile/profile_screen.dart';
 import 'master/master_list_screen.dart';
 import 'leads/leads_screen.dart';
-
+import '../privacy/privacy_policy_screen.dart';
 import '../auth/login_screen.dart';
 
 import '../../controllers/dashboard_controller.dart';
@@ -530,12 +530,8 @@ class _DashboardScreenState
       // PRIVACY POLICY
       // ========================================================
 
-      case 'Privacy Policy':
-        return _buildOtherContent(
-          title: 'Privacy Policy',
-          icon:
-              Icons.shield_outlined,
-        );
+   case 'Privacy Policy':
+  return const PrivacyPolicyScreen();
 
       // ========================================================
       // TERMS & CONDITIONS
