@@ -10,7 +10,12 @@ const { sendSequenceToLead } = require("../services/sequence.service");
 // BASE URL
 // ============================================================
 
-const BASE_URL = process.env.APP_BASE_URL || "http://localhost:3000";
+const BASE_URL = process.env.APP_BASE_URL;
+
+console.log("========================================");
+console.log("EMAIL TRACKING BASE URL:", BASE_URL);
+console.log("APP_BASE_URL FROM ENV:", process.env.APP_BASE_URL);
+console.log("========================================");
 
 // ============================================================
 // CHECK PREVIOUS STEP

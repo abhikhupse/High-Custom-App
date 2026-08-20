@@ -1,13 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-
+dotenv.config();
 const connectDB = require("./config/db");
 const root = require("./routes/index");
 const path = require("path");
 const { startSequenceJob } = require("./jobs/sequence.job");
-
-dotenv.config();
 
 const app = express();
 
