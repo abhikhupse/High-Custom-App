@@ -149,10 +149,26 @@ const sequenceSchema = new mongoose.Schema(
 
     // ACTION LINKS / CTA
 
+    // ============================================================
+    // ACTION LINKS / CTA
+    // ============================================================
+
     actionLinks: {
       whatsapp: {
         type: String,
         default: null,
+      },
+
+      cta: {
+        text: {
+          type: String,
+          default: null,
+        },
+
+        url: {
+          type: String,
+          default: null,
+        },
       },
     },
 

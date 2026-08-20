@@ -12,7 +12,21 @@ function escapeHtml(value = "") {
 }
 
 // ============================================================
-// TEXT COLOR
+// CHECK IF VALUE IS A REAL URL
+// ============================================================
+
+function isValidUrl(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return false;
+  }
+
+  const url = value.trim();
+
+  return url.startsWith("https://") || url.startsWith("http://");
+}
+
+// ============================================================
+// GET TEXT COLOR
 // ============================================================
 
 function getTextColor(color) {
@@ -42,7 +56,7 @@ function getTextColor(color) {
 }
 
 // ============================================================
-// FONT
+// GET FONT
 // ============================================================
 
 function getFont(font) {
@@ -69,35 +83,6 @@ function getFont(font) {
 }
 
 // ============================================================
-// URL VALIDATION
-// ============================================================
-
-function isValidUrl(value) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return false;
-  }
-
-  const url = value.trim();
-
-  return url.startsWith("https://") || url.startsWith("http://");
-}
-
-// ============================================================
-// CONTENT FORMAT
-// ============================================================
-
-function formatContent(content = "") {
-  let html = escapeHtml(content);
-
-  html = html.replace(/\r\n/g, "\n");
-  html = html.replace(/\r/g, "\n");
-
-  html = html.replace(/\n/g, "<br>");
-
-  return html;
-}
-
-// ============================================================
 // LOGO ALIGNMENT
 // ============================================================
 
@@ -116,6 +101,21 @@ function getLogoAlignment(position) {
 }
 
 // ============================================================
+// FORMAT EMAIL CONTENT
+// ============================================================
+
+function formatContent(content = "") {
+  let html = escapeHtml(content);
+
+  html = html.replace(/\r\n/g, "\n");
+  html = html.replace(/\r/g, "\n");
+
+  html = html.replace(/\n/g, "<br>");
+
+  return html;
+}
+
+// ============================================================
 // MAIN EMAIL TEMPLATE
 // ============================================================
 
@@ -126,7 +126,7 @@ function buildSequenceEmail({
   baseUrl = null,
 }) {
   // ==========================================================
-  // SAFE OBJECTS
+  // SAFE DATA
   // ==========================================================
 
   const brand =
@@ -159,24 +159,13 @@ function buildSequenceEmail({
   const subject = escapeHtml(sequence.subject || "");
 
   // ==========================================================
-  // LOGO
+  // CONTENT
   // ==========================================================
 
-  const logoUrl = typeof brand.logoUrl === "string" ? brand.logoUrl.trim() : "";
-
-  const logoPosition = getLogoAlignment(brand.logoPosition || "Center");
+  const content = formatContent(sequence.content || "");
 
   // ==========================================================
-  // HERO / BANNER
-  // ==========================================================
-
-  const heroUrl = typeof heroImage.url === "string" ? heroImage.url.trim() : "";
-
-  const heroLink =
-    typeof heroImage.link === "string" ? heroImage.link.trim() : "";
-
-  // ==========================================================
-  // EDITOR
+  // EDITOR SETTINGS
   // ==========================================================
 
   const font = getFont(editor.font || "Arial");
@@ -192,16 +181,25 @@ function buildSequenceEmail({
   const textDecoration = editor.underline === true ? "underline" : "none";
 
   // ==========================================================
-  // CONTENT
   // ==========================================================
-
-  const content = formatContent(sequence.content || "");
-
+  // LOGO
   // ==========================================================
-  // OPTIONAL LOGO
   // ==========================================================
 
   let logoHtml = "";
+
+  const logoUrl = typeof brand.logoUrl === "string" ? brand.logoUrl.trim() : "";
+
+  const logoPosition = getLogoAlignment(brand.logoPosition || "Center");
+
+  /*
+   * IMPORTANT:
+   *
+   * If logoUrl is empty/null/undefined,
+   * logoHtml remains empty.
+   *
+   * Therefore NO logo is added to email.
+   */
 
   if (isValidUrl(logoUrl)) {
     logoHtml = `
@@ -230,10 +228,26 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // OPTIONAL HERO / BANNER
+  // ==========================================================
+  // HERO / BANNER / IMAGE
+  // ==========================================================
   // ==========================================================
 
   let heroHtml = "";
+
+  const heroUrl = typeof heroImage.url === "string" ? heroImage.url.trim() : "";
+
+  const heroLink =
+    typeof heroImage.link === "string" ? heroImage.link.trim() : "";
+
+  /*
+   * IMPORTANT:
+   *
+   * If heroUrl is empty/null/undefined,
+   * heroHtml remains empty.
+   *
+   * Therefore NO image/banner is added.
+   */
 
   if (isValidUrl(heroUrl)) {
     const imageHtml = `
@@ -250,6 +264,10 @@ function buildSequenceEmail({
         "
       />
     `;
+
+    // --------------------------------------------------------
+    // IMAGE WITH LINK
+    // --------------------------------------------------------
 
     if (isValidUrl(heroLink)) {
       heroHtml = `
@@ -272,7 +290,12 @@ function buildSequenceEmail({
           </td>
         </tr>
       `;
-    } else {
+    }
+
+    // --------------------------------------------------------
+    // IMAGE WITHOUT LINK
+    // --------------------------------------------------------
+    else {
       heroHtml = `
         <tr>
           <td
@@ -288,62 +311,27 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // OPTIONAL CTA BUTTON
   // ==========================================================
-
-  let ctaHtml = "";
-
-  const cta =
-    actionLinks.cta && typeof actionLinks.cta === "object"
-      ? actionLinks.cta
-      : null;
-
-  const ctaText = cta && typeof cta.text === "string" ? cta.text.trim() : "";
-
-  const ctaUrl = cta && typeof cta.url === "string" ? cta.url.trim() : "";
-
-  if (ctaText !== "" && isValidUrl(ctaUrl)) {
-    ctaHtml = `
-      <tr>
-        <td
-          style="
-            padding:0 20px 20px 20px;
-          "
-        >
-          <a
-            href="${escapeHtml(ctaUrl)}"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="
-              display:block;
-              width:100%;
-              box-sizing:border-box;
-              background:#315BEF;
-              color:#FFFFFF;
-              text-decoration:none;
-              text-align:center;
-              padding:12px 10px;
-              border-radius:6px;
-              font-family:Arial,Helvetica,sans-serif;
-              font-size:13px;
-              font-weight:700;
-            "
-          >
-            ${escapeHtml(ctaText)}
-          </a>
-        </td>
-      </tr>
-    `;
-  }
-
+  // WHATSAPP BUTTON
   // ==========================================================
-  // OPTIONAL WHATSAPP BUTTON
   // ==========================================================
 
   let whatsappHtml = "";
 
   const whatsappUrl =
     typeof actionLinks.whatsapp === "string" ? actionLinks.whatsapp.trim() : "";
+
+  /*
+   * IMPORTANT:
+   *
+   * WhatsApp button is ONLY generated when
+   * a valid WhatsApp URL exists.
+   *
+   * null       -> NO BUTTON
+   * undefined  -> NO BUTTON
+   * ""         -> NO BUTTON
+   * " "        -> NO BUTTON
+   */
 
   if (isValidUrl(whatsappUrl)) {
     whatsappHtml = `
@@ -380,7 +368,9 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // OPTIONAL FILE
+  // ==========================================================
+  // DOCUMENT / FILE
+  // ==========================================================
   // ==========================================================
 
   let attachmentHtml = "";
@@ -390,6 +380,17 @@ function buildSequenceEmail({
 
   const attachmentName =
     typeof attachment.name === "string" ? attachment.name.trim() : "";
+
+  /*
+   * IMPORTANT:
+   *
+   * Document is ONLY generated when BOTH:
+   *
+   * 1. URL exists
+   * 2. File name exists
+   *
+   * Otherwise NOTHING is displayed.
+   */
 
   if (isValidUrl(attachmentUrl) && attachmentName !== "") {
     attachmentHtml = `
@@ -411,6 +412,65 @@ function buildSequenceEmail({
             "
           >
             📎 ${escapeHtml(attachmentName)}
+          </a>
+        </td>
+      </tr>
+    `;
+  }
+
+  // ==========================================================
+  // ==========================================================
+  // CTA BUTTON
+  // ==========================================================
+  // ==========================================================
+
+  let ctaHtml = "";
+
+  const cta =
+    actionLinks.cta && typeof actionLinks.cta === "object"
+      ? actionLinks.cta
+      : null;
+
+  const ctaText = cta && typeof cta.text === "string" ? cta.text.trim() : "";
+
+  const ctaUrl = cta && typeof cta.url === "string" ? cta.url.trim() : "";
+
+  /*
+   * CTA appears ONLY when:
+   *
+   * - CTA text exists
+   * - CTA URL exists
+   * - URL is valid
+   */
+
+  if (ctaText !== "" && isValidUrl(ctaUrl)) {
+    ctaHtml = `
+      <tr>
+        <td
+          style="
+            padding:0 20px 20px 20px;
+          "
+        >
+          <a
+            href="${escapeHtml(ctaUrl)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              width:100%;
+              box-sizing:border-box;
+              background:#315BEF;
+              color:#FFFFFF;
+              text-decoration:none;
+              text-align:center;
+              padding:12px 10px;
+              border-radius:6px;
+              font-family:Arial,Helvetica,sans-serif;
+              font-size:13px;
+              font-weight:700;
+            "
+          >
+            ${escapeHtml(ctaText)}
           </a>
         </td>
       </tr>
@@ -443,17 +503,7 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // FINAL EMAIL HTML
-  //
-  // IMPORTANT:
-  // There is NO hard-coded:
-  // - logo
-  // - banner
-  // - image
-  // - WhatsApp
-  // - CTA
-  // - attachment
-  // - company header
+  // FINAL EMAIL
   // ==========================================================
 
   return `
@@ -463,17 +513,17 @@ function buildSequenceEmail({
 
 <head>
 
-<meta
-  http-equiv="Content-Type"
-  content="text/html; charset=UTF-8"
-/>
+  <meta
+    http-equiv="Content-Type"
+    content="text/html; charset=UTF-8"
+  />
 
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0"
-/>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
-<title>${subject}</title>
+  <title>${subject}</title>
 
 </head>
 
@@ -515,60 +565,60 @@ function buildSequenceEmail({
   "
 >
 
-<!-- ====================================================== -->
-<!-- LOGO - ONLY IF ADDED -->
-<!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- LOGO - ONLY WHEN USER ADDED LOGO -->
+  <!-- ===================================================== -->
 
-${logoHtml}
+  ${logoHtml}
 
-<!-- ====================================================== -->
-<!-- BANNER - ONLY IF ADDED -->
-<!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- BANNER / IMAGE - ONLY WHEN USER ADDED IMAGE -->
+  <!-- ===================================================== -->
 
-${heroHtml}
+  ${heroHtml}
 
-<!-- ====================================================== -->
-<!-- CONTENT -->
-<!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- EMAIL CONTENT -->
+  <!-- ===================================================== -->
 
-<tr>
+  <tr>
 
-<td
-  style="
-    padding:20px;
-    color:${textColor};
-    font-family:${font};
-    font-size:${fontSize};
-    line-height:1.6;
-    font-weight:${fontWeight};
-    font-style:${fontStyle};
-    text-decoration:${textDecoration};
-  "
->
+    <td
+      style="
+        padding:20px;
+        color:${textColor};
+        font-family:${font};
+        font-size:${fontSize};
+        line-height:1.6;
+        font-weight:${fontWeight};
+        font-style:${fontStyle};
+        text-decoration:${textDecoration};
+      "
+    >
 
-${content}
+      ${content}
 
-</td>
+    </td>
 
-</tr>
+  </tr>
 
-<!-- ====================================================== -->
-<!-- CTA - ONLY IF ADDED -->
-<!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- CTA - ONLY WHEN USER ADDED CTA -->
+  <!-- ===================================================== -->
 
-${ctaHtml}
+  ${ctaHtml}
 
-<!-- ====================================================== -->
-<!-- WHATSAPP - ONLY IF ADDED -->
-<!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- WHATSAPP - ONLY WHEN USER ADDED WHATSAPP -->
+  <!-- ===================================================== -->
 
-${whatsappHtml}
+  ${whatsappHtml}
 
-<!-- ====================================================== -->
-<!-- FILE - ONLY IF ADDED -->
-<!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- DOCUMENT - ONLY WHEN USER ADDED DOCUMENT -->
+  <!-- ===================================================== -->
 
-${attachmentHtml}
+  ${attachmentHtml}
 
 </table>
 
