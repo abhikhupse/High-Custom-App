@@ -2,16 +2,12 @@ const mongoose = require("mongoose");
 
 const sequenceSchema = new mongoose.Schema(
   {
-    // USER
-
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
-
-    // BASIC INFORMATION
 
     step: {
       type: Number,
@@ -40,8 +36,6 @@ const sequenceSchema = new mongoose.Schema(
       enum: ["Email", "Follow Up", "Promotion", "Reminder"],
     },
 
-    // EMAIL SUBJECT
-
     subject: {
       type: String,
       required: true,
@@ -49,9 +43,16 @@ const sequenceSchema = new mongoose.Schema(
       maxlength: 500,
     },
 
-    // BRAND IDENTITY
+    // ============================================================
+    // BRAND
+    // ============================================================
 
     brand: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+
       logoUrl: {
         type: String,
         default: null,
@@ -64,9 +65,16 @@ const sequenceSchema = new mongoose.Schema(
       },
     },
 
+    // ============================================================
     // HERO IMAGE
+    // ============================================================
 
     heroImage: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+
       url: {
         type: String,
         default: null,
@@ -78,7 +86,9 @@ const sequenceSchema = new mongoose.Schema(
       },
     },
 
-    // EMAIL CONTENT
+    // ============================================================
+    // CONTENT
+    // ============================================================
 
     content: {
       type: String,
@@ -86,7 +96,9 @@ const sequenceSchema = new mongoose.Schema(
       default: "",
     },
 
-    // EMAIL EDITOR SETTINGS
+    // ============================================================
+    // EDITOR
+    // ============================================================
 
     editor: {
       font: {
@@ -123,9 +135,16 @@ const sequenceSchema = new mongoose.Schema(
       },
     },
 
+    // ============================================================
     // ATTACHMENT
+    // ============================================================
 
     attachment: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+
       name: {
         type: String,
         default: null,
@@ -147,19 +166,29 @@ const sequenceSchema = new mongoose.Schema(
       },
     },
 
-    // ACTION LINKS / CTA
-
     // ============================================================
-    // ACTION LINKS / CTA
+    // ACTION LINKS
     // ============================================================
 
     actionLinks: {
       whatsapp: {
-        type: String,
-        default: null,
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+
+        url: {
+          type: String,
+          default: null,
+        },
       },
 
       cta: {
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+
         text: {
           type: String,
           default: null,
@@ -172,7 +201,9 @@ const sequenceSchema = new mongoose.Schema(
       },
     },
 
-    // EMAIL TRACKING
+    // ============================================================
+    // TRACKING
+    // ============================================================
 
     tracking: {
       enabled: {
@@ -199,7 +230,7 @@ const sequenceSchema = new mongoose.Schema(
     },
 
     // ============================================================
-    // SCHEDULING
+    // SCHEDULE
     // ============================================================
 
     scheduledAt: {
@@ -257,19 +288,16 @@ const sequenceSchema = new mongoose.Schema(
 // INDEXES
 // ============================================================
 
-// Quickly find all sequence steps belonging to a user.
 sequenceSchema.index({
   userId: 1,
   step: 1,
 });
 
-// Quickly find active sequences.
 sequenceSchema.index({
   userId: 1,
   status: 1,
 });
 
-// Prevent duplicate step + variant for the same user.
 sequenceSchema.index(
   {
     userId: 1,

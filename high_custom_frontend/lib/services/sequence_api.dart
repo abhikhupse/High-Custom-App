@@ -104,6 +104,42 @@ class SequenceApi {
         };
       }
 
+      // ========================================================
+      // CLEAN OPTIONAL VALUES
+      // ========================================================
+
+      final cleanLogoUrl =
+          logoUrl?.trim() ?? '';
+
+      final cleanHeroImageUrl =
+          heroImageUrl?.trim() ?? '';
+
+      final cleanHeroImageLink =
+          heroImageLink?.trim() ?? '';
+
+      final cleanAttachmentName =
+          attachmentName?.trim() ?? '';
+
+      final cleanAttachmentUrl =
+          attachmentUrl?.trim() ?? '';
+
+      final cleanAttachmentMimeType =
+          attachmentMimeType?.trim() ?? '';
+
+      final cleanWhatsapp =
+          whatsapp?.trim() ?? '';
+
+      // ========================================================
+      // REQUEST BODY
+      //
+      // IMPORTANT:
+      //
+      // Do NOT send empty logo/image/pdf/whatsapp objects.
+      //
+      // Only add them when the user actually selected/provided
+      // them.
+      // ========================================================
+
       final Map<String, dynamic> requestBody = {
         'step': step,
         'gapDays': gapDays,
@@ -111,18 +147,11 @@ class SequenceApi {
         'type': type,
         'subject': subject.trim(),
 
-        'brand': {
-          'logoUrl': logoUrl,
-          'logoPosition':
-              logoPosition ?? 'Center',
-        },
-
-        'heroImage': {
-          'url': heroImageUrl,
-          'link': heroImageLink,
-        },
-
         'content': content,
+
+        // ------------------------------------------------------
+        // EDITOR
+        // ------------------------------------------------------
 
         'editor': {
           'font': font ?? 'Arial',
@@ -133,40 +162,116 @@ class SequenceApi {
           'underline': underline,
         },
 
-        'attachment': {
-          'name': attachmentName,
-          'url': attachmentUrl,
-          'mimeType': attachmentMimeType,
-          'size': attachmentSize,
-        },
-
-        'actionLinks': {
-          'whatsapp': whatsapp,
-        },
+        // ------------------------------------------------------
+        // TRACKING
+        // ------------------------------------------------------
 
         'tracking': {
           'enabled': trackingEnabled,
         },
 
         'status': status,
-
-        'scheduledAt': scheduledAt,
-
-        'statistics': {
-          'sent': 0,
-          'delivered': 0,
-          'opened': 0,
-          'clicked': 0,
-          'failed': 0,
-          'interested': 0,
-          'notInterested': 0,
-        },
       };
 
+      // ========================================================
+      // LOGO
+      //
+      // ONLY SEND IF ACTUALLY PROVIDED
+      // ========================================================
+
+      if (cleanLogoUrl.isNotEmpty) {
+        requestBody['brand'] = {
+          'logoUrl': cleanLogoUrl,
+          'logoPosition': logoPosition ?? 'Center',
+        };
+      }
+
+      // ========================================================
+      // HERO IMAGE
+      //
+      // ONLY SEND IF ACTUALLY PROVIDED
+      // ========================================================
+
+      if (cleanHeroImageUrl.isNotEmpty) {
+        requestBody['heroImage'] = {
+          'url': cleanHeroImageUrl,
+          'link': cleanHeroImageLink.isNotEmpty
+              ? cleanHeroImageLink
+              : null,
+        };
+      }
+
+      // ========================================================
+      // ATTACHMENT / PDF
+      //
+      // ONLY SEND IF ACTUALLY PROVIDED
+      // ========================================================
+
+      final bool hasAttachment =
+          cleanAttachmentUrl.isNotEmpty ||
+          cleanAttachmentName.isNotEmpty;
+
+      if (hasAttachment) {
+        requestBody['attachment'] = {
+          'name': cleanAttachmentName.isNotEmpty
+              ? cleanAttachmentName
+              : null,
+          'url': cleanAttachmentUrl.isNotEmpty
+              ? cleanAttachmentUrl
+              : null,
+          'mimeType': cleanAttachmentMimeType.isNotEmpty
+              ? cleanAttachmentMimeType
+              : null,
+          'size': attachmentSize,
+        };
+      }
+
+      // ========================================================
+      // WHATSAPP
+      //
+      // ONLY SEND IF ACTUALLY PROVIDED
+      // ========================================================
+
+      if (cleanWhatsapp.isNotEmpty) {
+        requestBody['actionLinks'] = {
+          'whatsapp': cleanWhatsapp,
+        };
+      }
+
+      // ========================================================
+      // SCHEDULED AT
+      // ========================================================
+
+      if (scheduledAt != null &&
+          scheduledAt.trim().isNotEmpty) {
+        requestBody['scheduledAt'] =
+            scheduledAt.trim();
+      }
+
+      // ========================================================
+      // DEBUG
+      // ========================================================
+
       debugPrint(
-        'CREATE SEQUENCE BODY: '
-        '${jsonEncode(requestBody)}',
+        '================================================',
       );
+
+      debugPrint(
+        'CREATE SEQUENCE REQUEST',
+      );
+
+      debugPrint(
+        const JsonEncoder.withIndent('  ')
+            .convert(requestBody),
+      );
+
+      debugPrint(
+        '================================================',
+      );
+
+      // ========================================================
+      // REQUEST
+      // ========================================================
 
       final response = await http
           .post(
@@ -183,141 +288,23 @@ class SequenceApi {
             const Duration(seconds: 20),
           );
 
-      debugPrint(
-        'CREATE STATUS: ${response.statusCode}',
-      );
-
-      debugPrint(
-        'CREATE RESPONSE: ${response.body}',
-      );
-
-      final data = _decodeResponse(
-        response.body,
-      );
-
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
-      }
-
-      if (response.statusCode == 401) {
-        await _clearToken();
-
-        return {
-          'success': false,
-          'message':
-              data['message'] ??
-                  'Session expired. Please login again.',
-          'sessionExpired': true,
-        };
-      }
-
-      return {
-        'success': false,
-        'message':
-            data['message'] ??
-                'Unable to create sequence.',
-        'errors': data['errors'],
-      };
-    } catch (e) {
-      debugPrint(
-        'CREATE SEQUENCE ERROR: $e',
-      );
-
-      return {
-        'success': false,
-        'message':
-            'Unable to connect to the server.',
-        'error': e.toString(),
-      };
-    }
-  }
-
-  // ============================================================
-  // GET TRACKING SUMMARY
-  //
-  // Supports:
-  //
-  // /tracking-summary
-  //
-  // /tracking-summary?startDate=...&endDate=...
-  //
-  // ============================================================
-
-  static Future<Map<String, dynamic>> getTrackingSummary({
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    try {
-      final activeToken = await _getToken();
-
-      if (activeToken == null) {
-        return {
-          'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
-          'sessionExpired': true,
-        };
-      }
-
       // ========================================================
-      // QUERY PARAMETERS
+      // RESPONSE DEBUG
       // ========================================================
 
-      final queryParameters = <String, String>{};
-
-      if (startDate != null) {
-        queryParameters['startDate'] =
-            _formatDateForApi(startDate);
-      }
-
-      if (endDate != null) {
-        queryParameters['endDate'] =
-            _formatDateForApi(endDate);
-      }
-
-      final uri = Uri.parse(
-        '$baseUrl/tracking-summary',
-      ).replace(
-        queryParameters:
-            queryParameters.isEmpty
-                ? null
-                : queryParameters,
-      );
-
       debugPrint(
-        'GET TRACKING SUMMARY URL: $uri',
-      );
-
-      // ========================================================
-      // GET REQUEST
-      // ========================================================
-
-      final response = await http
-          .get(
-            uri,
-            headers: {
-              'Accept': 'application/json',
-              'Authorization':
-                  'Bearer $activeToken',
-            },
-          )
-          .timeout(
-            const Duration(seconds: 20),
-          );
-
-      debugPrint(
-        'TRACKING SUMMARY STATUS: '
+        'CREATE SEQUENCE STATUS: '
         '${response.statusCode}',
       );
 
       debugPrint(
-        'TRACKING SUMMARY RESPONSE: '
+        'CREATE SEQUENCE RESPONSE: '
         '${response.body}',
       );
+
+      // ========================================================
+      // DECODE
+      // ========================================================
 
       final data = _decodeResponse(
         response.body,
@@ -354,6 +341,116 @@ class SequenceApi {
       // ========================================================
       // ERROR
       // ========================================================
+
+      return {
+        'success': false,
+        'message':
+            data['message'] ??
+                'Unable to create sequence.',
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      debugPrint(
+        'CREATE SEQUENCE ERROR: $e',
+      );
+
+      return {
+        'success': false,
+        'message':
+            'Unable to connect to the server.',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // GET TRACKING SUMMARY
+  // ============================================================
+
+  static Future<Map<String, dynamic>> getTrackingSummary({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final activeToken = await _getToken();
+
+      if (activeToken == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      final queryParameters =
+          <String, String>{};
+
+      if (startDate != null) {
+        queryParameters['startDate'] =
+            _formatDateForApi(startDate);
+      }
+
+      if (endDate != null) {
+        queryParameters['endDate'] =
+            _formatDateForApi(endDate);
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/tracking-summary',
+      ).replace(
+        queryParameters:
+            queryParameters.isEmpty
+                ? null
+                : queryParameters,
+      );
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Authorization':
+                  'Bearer $activeToken',
+            },
+          )
+          .timeout(
+            const Duration(seconds: 20),
+          );
+
+      debugPrint(
+        'TRACKING SUMMARY STATUS: '
+        '${response.statusCode}',
+      );
+
+      debugPrint(
+        'TRACKING SUMMARY RESPONSE: '
+        '${response.body}',
+      );
+
+      final data = _decodeResponse(
+        response.body,
+      );
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300) {
+        return {
+          'success': true,
+          ...data,
+        };
+      }
+
+      if (response.statusCode == 401) {
+        await _clearToken();
+
+        return {
+          'success': false,
+          'message':
+              data['message'] ??
+                  'Session expired. Please login again.',
+          'sessionExpired': true,
+        };
+      }
 
       return {
         'success': false,
@@ -416,8 +513,7 @@ class SequenceApi {
       final uri = Uri.parse(
         baseUrl,
       ).replace(
-        queryParameters:
-            queryParameters,
+        queryParameters: queryParameters,
       );
 
       debugPrint(
@@ -625,7 +721,8 @@ class SequenceApi {
       final decoded =
           jsonDecode(body);
 
-      if (decoded is Map<String, dynamic>) {
+      if (decoded
+          is Map<String, dynamic>) {
         return decoded;
       }
 

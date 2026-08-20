@@ -19,10 +19,6 @@ const { processSequencesForUser } = require("../jobs/sequence.job");
 
 exports.createSequence = async (req, res) => {
   try {
-    // ==========================================================
-    // USER
-    // ==========================================================
-
     const userId = req.user?.id;
 
     if (!userId) {
@@ -31,10 +27,6 @@ exports.createSequence = async (req, res) => {
         message: "User authentication required",
       });
     }
-
-    // ==========================================================
-    // BODY
-    // ==========================================================
 
     const {
       step,
@@ -65,7 +57,7 @@ exports.createSequence = async (req, res) => {
     const attachmentFile = req.files?.attachment?.[0] || null;
 
     // ==========================================================
-    // STEP
+    // VALIDATION
     // ==========================================================
 
     if (step === undefined || step === null || step === "") {
@@ -84,10 +76,6 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // GAP DAYS
-    // ==========================================================
-
     const gapDaysNumber = Number(gapDays || 0);
 
     if (!Number.isInteger(gapDaysNumber) || gapDaysNumber < 0) {
@@ -96,10 +84,6 @@ exports.createSequence = async (req, res) => {
         message: "Gap days must be a valid number greater than or equal to 0",
       });
     }
-
-    // ==========================================================
-    // VARIANT
-    // ==========================================================
 
     if (!variant || typeof variant !== "string") {
       return res.status(400).json({
@@ -110,20 +94,12 @@ exports.createSequence = async (req, res) => {
 
     const formattedVariant = variant.trim().toUpperCase();
 
-    // ==========================================================
-    // TYPE
-    // ==========================================================
-
     if (!type || type === "Select Type") {
       return res.status(400).json({
         success: false,
         message: "Sequence type is required",
       });
     }
-
-    // ==========================================================
-    // SUBJECT
-    // ==========================================================
 
     if (!subject || typeof subject !== "string" || subject.trim() === "") {
       return res.status(400).json({
@@ -134,10 +110,6 @@ exports.createSequence = async (req, res) => {
 
     const formattedSubject = subject.trim();
 
-    // ==========================================================
-    // CONTENT
-    // ==========================================================
-
     if (content === undefined || content === null) {
       return res.status(400).json({
         success: false,
@@ -146,7 +118,7 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // DUPLICATE CHECK
+    // DUPLICATE
     // ==========================================================
 
     const existingSequence = await SEQUENCE_COLLECTION.findOne({
@@ -170,8 +142,6 @@ exports.createSequence = async (req, res) => {
 
     // ==========================================================
     // LOGO
-    //
-    // ONLY save logo when a NEW FILE was uploaded.
     // ==========================================================
 
     let logoUrl = null;
@@ -180,10 +150,10 @@ exports.createSequence = async (req, res) => {
       logoUrl = `${baseUrl}/uploads/brand/${brandLogoFile.filename}`;
     }
 
+    const logoEnabled = Boolean(brandLogoFile);
+
     // ==========================================================
-    // HERO / BANNER
-    //
-    // ONLY save hero when a NEW FILE was uploaded.
+    // HERO
     // ==========================================================
 
     let heroUrl = null;
@@ -192,13 +162,14 @@ exports.createSequence = async (req, res) => {
       heroUrl = `${baseUrl}/uploads/hero/${heroImageFile.filename}`;
     }
 
+    const heroEnabled = Boolean(heroImageFile);
+
     // ==========================================================
     // ATTACHMENT
-    //
-    // ONLY save attachment when a NEW FILE was uploaded.
     // ==========================================================
 
     let attachmentData = {
+      enabled: false,
       name: null,
       url: null,
       mimeType: null,
@@ -206,12 +177,12 @@ exports.createSequence = async (req, res) => {
     };
 
     if (attachmentFile) {
-      const attachmentUrl = `${baseUrl}/uploads/attachments/${attachmentFile.filename}`;
-
       attachmentData = {
+        enabled: true,
+
         name: attachmentFile.originalname,
 
-        url: attachmentUrl,
+        url: `${baseUrl}/uploads/attachments/${attachmentFile.filename}`,
 
         mimeType: attachmentFile.mimetype,
 
@@ -221,8 +192,6 @@ exports.createSequence = async (req, res) => {
 
     // ==========================================================
     // WHATSAPP
-    //
-    // ONLY save when the user actually supplied a URL.
     // ==========================================================
 
     let whatsappUrl = null;
@@ -239,13 +208,17 @@ exports.createSequence = async (req, res) => {
       }
     }
 
+    const whatsappEnabled = Boolean(whatsappUrl);
+
     // ==========================================================
     // CTA
-    //
-    // ONLY save CTA when text AND URL exist.
     // ==========================================================
 
-    let ctaData = null;
+    let ctaData = {
+      enabled: false,
+      text: null,
+      url: null,
+    };
 
     if (actionLinks?.cta && typeof actionLinks.cta === "object") {
       const ctaText =
@@ -263,6 +236,7 @@ exports.createSequence = async (req, res) => {
         (ctaUrl.startsWith("https://") || ctaUrl.startsWith("http://"))
       ) {
         ctaData = {
+          enabled: true,
           text: ctaText,
           url: ctaUrl,
         };
@@ -270,26 +244,7 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // ACTION LINKS
-    // ==========================================================
-
-    const actionLinksData = {
-      whatsapp: whatsappUrl,
-      cta: ctaData,
-    };
-
-    // ==========================================================
-    // TRACKING
-    // ==========================================================
-
-    const trackingData = {
-      enabled: tracking?.enabled ?? true,
-
-      trackingId: tracking?.trackingId || crypto.randomUUID(),
-    };
-
-    // ==========================================================
-    // CREATE SEQUENCE
+    // CREATE
     // ==========================================================
 
     const sequence = await SEQUENCE_COLLECTION.create({
@@ -310,19 +265,23 @@ exports.createSequence = async (req, res) => {
       // ======================================================
 
       brand: {
-        logoUrl: logoUrl,
+        enabled: logoEnabled,
+
+        logoUrl,
 
         logoPosition: brand?.logoPosition || "Center",
       },
 
       // ======================================================
-      // HERO IMAGE
+      // HERO
       // ======================================================
 
       heroImage: {
+        enabled: heroEnabled,
+
         url: heroUrl,
 
-        link: heroImage?.link || null,
+        link: heroEnabled && heroImage?.link ? heroImage.link : null,
       },
 
       // ======================================================
@@ -359,29 +318,29 @@ exports.createSequence = async (req, res) => {
       // ACTION LINKS
       // ======================================================
 
-      actionLinks: actionLinksData,
+      actionLinks: {
+        whatsapp: {
+          enabled: whatsappEnabled,
+
+          url: whatsappUrl,
+        },
+
+        cta: ctaData,
+      },
 
       // ======================================================
       // TRACKING
       // ======================================================
 
-      tracking: trackingData,
+      tracking: {
+        enabled: tracking?.enabled ?? true,
 
-      // ======================================================
-      // STATUS
-      // ======================================================
+        trackingId: tracking?.trackingId || crypto.randomUUID(),
+      },
 
       status: status || "draft",
 
-      // ======================================================
-      // SCHEDULED AT
-      // ======================================================
-
       scheduledAt: scheduledAt || null,
-
-      // ======================================================
-      // STATISTICS
-      // ======================================================
 
       statistics: {
         sent: statistics?.sent || 0,
@@ -400,10 +359,6 @@ exports.createSequence = async (req, res) => {
       },
     });
 
-    // ==========================================================
-    // RESPONSE
-    // ==========================================================
-
     return res.status(201).json({
       success: true,
 
@@ -412,15 +367,7 @@ exports.createSequence = async (req, res) => {
       data: sequence,
     });
   } catch (error) {
-    // ==========================================================
-    // ERROR
-    // ==========================================================
-
     console.error("Error while creating Sequence:", error);
-
-    // ==========================================================
-    // FILE SIZE
-    // ==========================================================
 
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
@@ -429,20 +376,12 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // FILE COUNT
-    // ==========================================================
-
     if (error.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
         success: false,
         message: "Too many files uploaded",
       });
     }
-
-    // ==========================================================
-    // UNEXPECTED FILE
-    // ==========================================================
 
     if (error.code === "LIMIT_UNEXPECTED_FILE") {
       return res.status(400).json({
@@ -451,20 +390,12 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // DUPLICATE
-    // ==========================================================
-
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: "A sequence with this step and variant already exists",
       });
     }
-
-    // ==========================================================
-    // MONGOOSE VALIDATION
-    // ==========================================================
 
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors || {}).map(
@@ -478,10 +409,6 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // CAST ERROR
-    // ==========================================================
-
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
@@ -489,14 +416,9 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // DEFAULT
-    // ==========================================================
-
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-
       error: error.message,
     });
   }

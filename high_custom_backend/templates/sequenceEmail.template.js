@@ -12,7 +12,7 @@ function escapeHtml(value = "") {
 }
 
 // ============================================================
-// CHECK IF VALUE IS A REAL URL
+// VALID URL
 // ============================================================
 
 function isValidUrl(value) {
@@ -26,7 +26,7 @@ function isValidUrl(value) {
 }
 
 // ============================================================
-// GET TEXT COLOR
+// TEXT COLOR
 // ============================================================
 
 function getTextColor(color) {
@@ -56,7 +56,7 @@ function getTextColor(color) {
 }
 
 // ============================================================
-// GET FONT
+// FONT
 // ============================================================
 
 function getFont(font) {
@@ -83,7 +83,7 @@ function getFont(font) {
 }
 
 // ============================================================
-// LOGO ALIGNMENT
+// LOGO POSITION
 // ============================================================
 
 function getLogoAlignment(position) {
@@ -101,7 +101,7 @@ function getLogoAlignment(position) {
 }
 
 // ============================================================
-// FORMAT EMAIL CONTENT
+// CONTENT
 // ============================================================
 
 function formatContent(content = "") {
@@ -109,14 +109,13 @@ function formatContent(content = "") {
 
   html = html.replace(/\r\n/g, "\n");
   html = html.replace(/\r/g, "\n");
-
   html = html.replace(/\n/g, "<br>");
 
   return html;
 }
 
 // ============================================================
-// MAIN EMAIL TEMPLATE
+// MAIN
 // ============================================================
 
 function buildSequenceEmail({
@@ -125,10 +124,6 @@ function buildSequenceEmail({
   trackingUrl = null,
   baseUrl = null,
 }) {
-  // ==========================================================
-  // SAFE DATA
-  // ==========================================================
-
   const brand =
     sequence.brand && typeof sequence.brand === "object" ? sequence.brand : {};
 
@@ -165,7 +160,7 @@ function buildSequenceEmail({
   const content = formatContent(sequence.content || "");
 
   // ==========================================================
-  // EDITOR SETTINGS
+  // EDITOR
   // ==========================================================
 
   const font = getFont(editor.font || "Arial");
@@ -181,9 +176,7 @@ function buildSequenceEmail({
   const textDecoration = editor.underline === true ? "underline" : "none";
 
   // ==========================================================
-  // ==========================================================
   // LOGO
-  // ==========================================================
   // ==========================================================
 
   let logoHtml = "";
@@ -192,16 +185,7 @@ function buildSequenceEmail({
 
   const logoPosition = getLogoAlignment(brand.logoPosition || "Center");
 
-  /*
-   * IMPORTANT:
-   *
-   * If logoUrl is empty/null/undefined,
-   * logoHtml remains empty.
-   *
-   * Therefore NO logo is added to email.
-   */
-
-  if (isValidUrl(logoUrl)) {
+  if (brand.enabled === true && isValidUrl(logoUrl)) {
     logoHtml = `
       <tr>
         <td
@@ -228,9 +212,7 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // ==========================================================
-  // HERO / BANNER / IMAGE
-  // ==========================================================
+  // HERO
   // ==========================================================
 
   let heroHtml = "";
@@ -240,16 +222,7 @@ function buildSequenceEmail({
   const heroLink =
     typeof heroImage.link === "string" ? heroImage.link.trim() : "";
 
-  /*
-   * IMPORTANT:
-   *
-   * If heroUrl is empty/null/undefined,
-   * heroHtml remains empty.
-   *
-   * Therefore NO image/banner is added.
-   */
-
-  if (isValidUrl(heroUrl)) {
+  if (heroImage.enabled === true && isValidUrl(heroUrl)) {
     const imageHtml = `
       <img
         src="${escapeHtml(heroUrl)}"
@@ -265,10 +238,6 @@ function buildSequenceEmail({
       />
     `;
 
-    // --------------------------------------------------------
-    // IMAGE WITH LINK
-    // --------------------------------------------------------
-
     if (isValidUrl(heroLink)) {
       heroHtml = `
         <tr>
@@ -280,7 +249,6 @@ function buildSequenceEmail({
             <a
               href="${escapeHtml(heroLink)}"
               target="_blank"
-              rel="noopener noreferrer"
               style="
                 text-decoration:none;
               "
@@ -290,12 +258,7 @@ function buildSequenceEmail({
           </td>
         </tr>
       `;
-    }
-
-    // --------------------------------------------------------
-    // IMAGE WITHOUT LINK
-    // --------------------------------------------------------
-    else {
+    } else {
       heroHtml = `
         <tr>
           <td
@@ -311,29 +274,20 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // ==========================================================
-  // WHATSAPP BUTTON
-  // ==========================================================
+  // WHATSAPP
   // ==========================================================
 
   let whatsappHtml = "";
 
+  const whatsapp =
+    actionLinks.whatsapp && typeof actionLinks.whatsapp === "object"
+      ? actionLinks.whatsapp
+      : {};
+
   const whatsappUrl =
-    typeof actionLinks.whatsapp === "string" ? actionLinks.whatsapp.trim() : "";
+    typeof whatsapp.url === "string" ? whatsapp.url.trim() : "";
 
-  /*
-   * IMPORTANT:
-   *
-   * WhatsApp button is ONLY generated when
-   * a valid WhatsApp URL exists.
-   *
-   * null       -> NO BUTTON
-   * undefined  -> NO BUTTON
-   * ""         -> NO BUTTON
-   * " "        -> NO BUTTON
-   */
-
-  if (isValidUrl(whatsappUrl)) {
+  if (whatsapp.enabled === true && isValidUrl(whatsappUrl)) {
     whatsappHtml = `
       <tr>
         <td
@@ -344,7 +298,6 @@ function buildSequenceEmail({
           <a
             href="${escapeHtml(whatsappUrl)}"
             target="_blank"
-            rel="noopener noreferrer"
             style="
               display:block;
               width:100%;
@@ -368,9 +321,7 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // ==========================================================
-  // DOCUMENT / FILE
-  // ==========================================================
+  // DOCUMENT
   // ==========================================================
 
   let attachmentHtml = "";
@@ -381,18 +332,11 @@ function buildSequenceEmail({
   const attachmentName =
     typeof attachment.name === "string" ? attachment.name.trim() : "";
 
-  /*
-   * IMPORTANT:
-   *
-   * Document is ONLY generated when BOTH:
-   *
-   * 1. URL exists
-   * 2. File name exists
-   *
-   * Otherwise NOTHING is displayed.
-   */
-
-  if (isValidUrl(attachmentUrl) && attachmentName !== "") {
+  if (
+    attachment.enabled === true &&
+    isValidUrl(attachmentUrl) &&
+    attachmentName !== ""
+  ) {
     attachmentHtml = `
       <tr>
         <td
@@ -405,7 +349,6 @@ function buildSequenceEmail({
           <a
             href="${escapeHtml(attachmentUrl)}"
             target="_blank"
-            rel="noopener noreferrer"
             style="
               color:#315BEF;
               text-decoration:none;
@@ -419,9 +362,7 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // ==========================================================
-  // CTA BUTTON
-  // ==========================================================
+  // CTA
   // ==========================================================
 
   let ctaHtml = "";
@@ -429,21 +370,13 @@ function buildSequenceEmail({
   const cta =
     actionLinks.cta && typeof actionLinks.cta === "object"
       ? actionLinks.cta
-      : null;
+      : {};
 
-  const ctaText = cta && typeof cta.text === "string" ? cta.text.trim() : "";
+  const ctaText = typeof cta.text === "string" ? cta.text.trim() : "";
 
-  const ctaUrl = cta && typeof cta.url === "string" ? cta.url.trim() : "";
+  const ctaUrl = typeof cta.url === "string" ? cta.url.trim() : "";
 
-  /*
-   * CTA appears ONLY when:
-   *
-   * - CTA text exists
-   * - CTA URL exists
-   * - URL is valid
-   */
-
-  if (ctaText !== "" && isValidUrl(ctaUrl)) {
+  if (cta.enabled === true && ctaText !== "" && isValidUrl(ctaUrl)) {
     ctaHtml = `
       <tr>
         <td
@@ -454,7 +387,6 @@ function buildSequenceEmail({
           <a
             href="${escapeHtml(ctaUrl)}"
             target="_blank"
-            rel="noopener noreferrer"
             style="
               display:block;
               width:100%;
@@ -478,7 +410,7 @@ function buildSequenceEmail({
   }
 
   // ==========================================================
-  // TRACKING PIXEL
+  // TRACKING
   // ==========================================================
 
   let trackingPixel = "";
@@ -513,17 +445,17 @@ function buildSequenceEmail({
 
 <head>
 
-  <meta
-    http-equiv="Content-Type"
-    content="text/html; charset=UTF-8"
-  />
+<meta
+  http-equiv="Content-Type"
+  content="text/html; charset=UTF-8"
+/>
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+/>
 
-  <title>${subject}</title>
+<title>${subject}</title>
 
 </head>
 
@@ -542,8 +474,6 @@ function buildSequenceEmail({
   border="0"
   style="
     width:100%;
-    margin:0;
-    padding:0;
     background:#FFFFFF;
   "
 >
@@ -565,60 +495,36 @@ function buildSequenceEmail({
   "
 >
 
-  <!-- ===================================================== -->
-  <!-- LOGO - ONLY WHEN USER ADDED LOGO -->
-  <!-- ===================================================== -->
+${logoHtml}
 
-  ${logoHtml}
+${heroHtml}
 
-  <!-- ===================================================== -->
-  <!-- BANNER / IMAGE - ONLY WHEN USER ADDED IMAGE -->
-  <!-- ===================================================== -->
+<tr>
 
-  ${heroHtml}
+<td
+  style="
+    padding:20px;
+    color:${textColor};
+    font-family:${font};
+    font-size:${fontSize};
+    line-height:1.6;
+    font-weight:${fontWeight};
+    font-style:${fontStyle};
+    text-decoration:${textDecoration};
+  "
+>
 
-  <!-- ===================================================== -->
-  <!-- EMAIL CONTENT -->
-  <!-- ===================================================== -->
+${content}
 
-  <tr>
+</td>
 
-    <td
-      style="
-        padding:20px;
-        color:${textColor};
-        font-family:${font};
-        font-size:${fontSize};
-        line-height:1.6;
-        font-weight:${fontWeight};
-        font-style:${fontStyle};
-        text-decoration:${textDecoration};
-      "
-    >
+</tr>
 
-      ${content}
+${ctaHtml}
 
-    </td>
+${whatsappHtml}
 
-  </tr>
-
-  <!-- ===================================================== -->
-  <!-- CTA - ONLY WHEN USER ADDED CTA -->
-  <!-- ===================================================== -->
-
-  ${ctaHtml}
-
-  <!-- ===================================================== -->
-  <!-- WHATSAPP - ONLY WHEN USER ADDED WHATSAPP -->
-  <!-- ===================================================== -->
-
-  ${whatsappHtml}
-
-  <!-- ===================================================== -->
-  <!-- DOCUMENT - ONLY WHEN USER ADDED DOCUMENT -->
-  <!-- ===================================================== -->
-
-  ${attachmentHtml}
+${attachmentHtml}
 
 </table>
 
@@ -635,10 +541,6 @@ ${trackingPixel}
 </html>
 `;
 }
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 module.exports = {
   buildSequenceEmail,
