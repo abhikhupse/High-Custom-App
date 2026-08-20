@@ -9,10 +9,18 @@ const { processSequencesForUser } = require("../jobs/sequence.job");
 // CREATE SEQUENCE
 // ============================================================
 
+// ============================================================
+// CREATE SEQUENCE
+// ============================================================
+
+// ============================================================
+// CREATE SEQUENCE
+// ============================================================
+
 exports.createSequence = async (req, res) => {
   try {
     // ==========================================================
-    // GET AUTHENTICATED USER
+    // USER
     // ==========================================================
 
     const userId = req.user?.id;
@@ -25,7 +33,7 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // GET BODY DATA
+    // BODY
     // ==========================================================
 
     const {
@@ -47,7 +55,7 @@ exports.createSequence = async (req, res) => {
     } = req.body;
 
     // ==========================================================
-    // GET MULTER FILES
+    // FILES
     // ==========================================================
 
     const brandLogoFile = req.files?.brandLogo?.[0] || null;
@@ -57,7 +65,7 @@ exports.createSequence = async (req, res) => {
     const attachmentFile = req.files?.attachment?.[0] || null;
 
     // ==========================================================
-    // BASIC VALIDATION
+    // STEP
     // ==========================================================
 
     if (step === undefined || step === null || step === "") {
@@ -80,14 +88,7 @@ exports.createSequence = async (req, res) => {
     // GAP DAYS
     // ==========================================================
 
-    if (gapDays === undefined || gapDays === null || gapDays === "") {
-      return res.status(400).json({
-        success: false,
-        message: "Gap days is required",
-      });
-    }
-
-    const gapDaysNumber = Number(gapDays);
+    const gapDaysNumber = Number(gapDays || 0);
 
     if (!Number.isInteger(gapDaysNumber) || gapDaysNumber < 0) {
       return res.status(400).json({
@@ -100,7 +101,7 @@ exports.createSequence = async (req, res) => {
     // VARIANT
     // ==========================================================
 
-    if (!variant || typeof variant !== "string" || variant.trim() === "") {
+    if (!variant || typeof variant !== "string") {
       return res.status(400).json({
         success: false,
         message: "Variant is required",
@@ -145,7 +146,7 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // CHECK DUPLICATE SEQUENCE
+    // DUPLICATE CHECK
     // ==========================================================
 
     const existingSequence = await SEQUENCE_COLLECTION.findOne({
@@ -168,7 +169,9 @@ exports.createSequence = async (req, res) => {
     const baseUrl = `${req.protocol}://${req.get("host")}`;
 
     // ==========================================================
-    // BRAND LOGO URL
+    // LOGO
+    //
+    // ONLY save logo when a NEW FILE was uploaded.
     // ==========================================================
 
     let logoUrl = null;
@@ -178,7 +181,9 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // HERO IMAGE URL
+    // HERO / BANNER
+    //
+    // ONLY save hero when a NEW FILE was uploaded.
     // ==========================================================
 
     let heroUrl = null;
@@ -188,14 +193,90 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // ATTACHMENT URL
+    // ATTACHMENT
+    //
+    // ONLY save attachment when a NEW FILE was uploaded.
     // ==========================================================
 
-    let attachmentUrl = null;
+    let attachmentData = {
+      name: null,
+      url: null,
+      mimeType: null,
+      size: 0,
+    };
 
     if (attachmentFile) {
-      attachmentUrl = `${baseUrl}/uploads/attachments/${attachmentFile.filename}`;
+      const attachmentUrl = `${baseUrl}/uploads/attachments/${attachmentFile.filename}`;
+
+      attachmentData = {
+        name: attachmentFile.originalname,
+
+        url: attachmentUrl,
+
+        mimeType: attachmentFile.mimetype,
+
+        size: attachmentFile.size,
+      };
     }
+
+    // ==========================================================
+    // WHATSAPP
+    //
+    // ONLY save when the user actually supplied a URL.
+    // ==========================================================
+
+    let whatsappUrl = null;
+
+    if (typeof actionLinks?.whatsapp === "string") {
+      const cleanedWhatsapp = actionLinks.whatsapp.trim();
+
+      if (
+        cleanedWhatsapp !== "" &&
+        (cleanedWhatsapp.startsWith("https://") ||
+          cleanedWhatsapp.startsWith("http://"))
+      ) {
+        whatsappUrl = cleanedWhatsapp;
+      }
+    }
+
+    // ==========================================================
+    // CTA
+    //
+    // ONLY save CTA when text AND URL exist.
+    // ==========================================================
+
+    let ctaData = null;
+
+    if (actionLinks?.cta && typeof actionLinks.cta === "object") {
+      const ctaText =
+        typeof actionLinks.cta.text === "string"
+          ? actionLinks.cta.text.trim()
+          : "";
+
+      const ctaUrl =
+        typeof actionLinks.cta.url === "string"
+          ? actionLinks.cta.url.trim()
+          : "";
+
+      if (
+        ctaText !== "" &&
+        (ctaUrl.startsWith("https://") || ctaUrl.startsWith("http://"))
+      ) {
+        ctaData = {
+          text: ctaText,
+          url: ctaUrl,
+        };
+      }
+    }
+
+    // ==========================================================
+    // ACTION LINKS
+    // ==========================================================
+
+    const actionLinksData = {
+      whatsapp: whatsappUrl,
+      cta: ctaData,
+    };
 
     // ==========================================================
     // TRACKING
@@ -203,6 +284,7 @@ exports.createSequence = async (req, res) => {
 
     const trackingData = {
       enabled: tracking?.enabled ?? true,
+
       trackingId: tracking?.trackingId || crypto.randomUUID(),
     };
 
@@ -223,69 +305,122 @@ exports.createSequence = async (req, res) => {
 
       subject: formattedSubject,
 
+      // ======================================================
+      // BRAND
+      // ======================================================
+
       brand: {
-        logoUrl: logoUrl || brand?.logoUrl || null,
+        logoUrl: logoUrl,
+
         logoPosition: brand?.logoPosition || "Center",
       },
 
+      // ======================================================
+      // HERO IMAGE
+      // ======================================================
+
       heroImage: {
-        url: heroUrl || heroImage?.url || null,
+        url: heroUrl,
+
         link: heroImage?.link || null,
       },
 
+      // ======================================================
+      // CONTENT
+      // ======================================================
+
       content,
+
+      // ======================================================
+      // EDITOR
+      // ======================================================
 
       editor: {
         font: editor?.font || "Arial",
+
         fontSize: editor?.fontSize || "16px",
+
         textColor: editor?.textColor || "Black",
+
         bold: editor?.bold ?? false,
+
         italic: editor?.italic ?? false,
+
         underline: editor?.underline ?? false,
       },
 
-      attachment: {
-        name: attachmentFile
-          ? attachmentFile.originalname
-          : attachment?.name || null,
+      // ======================================================
+      // ATTACHMENT
+      // ======================================================
 
-        url: attachmentUrl || attachment?.url || null,
+      attachment: attachmentData,
 
-        mimeType: attachmentFile
-          ? attachmentFile.mimetype
-          : attachment?.mimeType || null,
+      // ======================================================
+      // ACTION LINKS
+      // ======================================================
 
-        size: attachmentFile ? attachmentFile.size : attachment?.size || 0,
-      },
+      actionLinks: actionLinksData,
 
-      actionLinks: {
-        whatsapp: actionLinks?.whatsapp || null,
-      },
+      // ======================================================
+      // TRACKING
+      // ======================================================
 
       tracking: trackingData,
 
+      // ======================================================
+      // STATUS
+      // ======================================================
+
       status: status || "draft",
+
+      // ======================================================
+      // SCHEDULED AT
+      // ======================================================
 
       scheduledAt: scheduledAt || null,
 
+      // ======================================================
+      // STATISTICS
+      // ======================================================
+
       statistics: {
         sent: statistics?.sent || 0,
+
         delivered: statistics?.delivered || 0,
+
         opened: statistics?.opened || 0,
+
         clicked: statistics?.clicked || 0,
+
         failed: statistics?.failed || 0,
+
         interested: statistics?.interested || 0,
+
         notInterested: statistics?.notInterested || 0,
       },
     });
 
+    // ==========================================================
+    // RESPONSE
+    // ==========================================================
+
     return res.status(201).json({
       success: true,
+
       message: "Sequence Created Successfully",
+
       data: sequence,
     });
   } catch (error) {
+    // ==========================================================
+    // ERROR
+    // ==========================================================
+
     console.error("Error while creating Sequence:", error);
+
+    // ==========================================================
+    // FILE SIZE
+    // ==========================================================
 
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
@@ -294,12 +429,20 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // FILE COUNT
+    // ==========================================================
+
     if (error.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
         success: false,
         message: "Too many files uploaded",
       });
     }
+
+    // ==========================================================
+    // UNEXPECTED FILE
+    // ==========================================================
 
     if (error.code === "LIMIT_UNEXPECTED_FILE") {
       return res.status(400).json({
@@ -308,18 +451,9 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    if (
-      error.message &&
-      (error.message.includes("Brand logo") ||
-        error.message.includes("Hero image") ||
-        error.message.includes("attachment") ||
-        error.message.includes("Unexpected file"))
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    // ==========================================================
+    // DUPLICATE
+    // ==========================================================
 
     if (error.code === 11000) {
       return res.status(409).json({
@@ -328,8 +462,14 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // MONGOOSE VALIDATION
+    // ==========================================================
+
     if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err) => err.message);
+      const errors = Object.values(error.errors || {}).map(
+        (err) => err.message,
+      );
 
       return res.status(400).json({
         success: false,
@@ -338,6 +478,10 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // CAST ERROR
+    // ==========================================================
+
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
@@ -345,9 +489,14 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // DEFAULT
+    // ==========================================================
+
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+
       error: error.message,
     });
   }

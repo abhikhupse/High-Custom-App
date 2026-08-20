@@ -69,6 +69,35 @@ function getFont(font) {
 }
 
 // ============================================================
+// URL VALIDATION
+// ============================================================
+
+function isValidUrl(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return false;
+  }
+
+  const url = value.trim();
+
+  return url.startsWith("https://") || url.startsWith("http://");
+}
+
+// ============================================================
+// CONTENT FORMAT
+// ============================================================
+
+function formatContent(content = "") {
+  let html = escapeHtml(content);
+
+  html = html.replace(/\r\n/g, "\n");
+  html = html.replace(/\r/g, "\n");
+
+  html = html.replace(/\n/g, "<br>");
+
+  return html;
+}
+
+// ============================================================
 // LOGO ALIGNMENT
 // ============================================================
 
@@ -87,39 +116,68 @@ function getLogoAlignment(position) {
 }
 
 // ============================================================
-// CONTENT FORMAT
+// MAIN EMAIL TEMPLATE
 // ============================================================
 
-function formatContent(content = "") {
-  let html = escapeHtml(content);
+function buildSequenceEmail({
+  sequence = {},
+  lead = {},
+  trackingUrl = null,
+  baseUrl = null,
+}) {
+  // ==========================================================
+  // SAFE OBJECTS
+  // ==========================================================
 
-  /*
-   * Preserve line breaks from Flutter text editor.
-   */
-  html = html.replace(/\r\n/g, "\n");
-  html = html.replace(/\r/g, "\n");
-  html = html.replace(/\n/g, "<br>");
+  const brand =
+    sequence.brand && typeof sequence.brand === "object" ? sequence.brand : {};
 
-  return html;
-}
+  const heroImage =
+    sequence.heroImage && typeof sequence.heroImage === "object"
+      ? sequence.heroImage
+      : {};
 
-// ============================================================
-// MAIN TEMPLATE
-// ============================================================
+  const editor =
+    sequence.editor && typeof sequence.editor === "object"
+      ? sequence.editor
+      : {};
 
-function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
-  const brand = sequence.brand || {};
-  const heroImage = sequence.heroImage || {};
-  const editor = sequence.editor || {};
-  const attachment = sequence.attachment || {};
-  const actionLinks = sequence.actionLinks || {};
+  const attachment =
+    sequence.attachment && typeof sequence.attachment === "object"
+      ? sequence.attachment
+      : {};
+
+  const actionLinks =
+    sequence.actionLinks && typeof sequence.actionLinks === "object"
+      ? sequence.actionLinks
+      : {};
+
+  // ==========================================================
+  // SUBJECT
+  // ==========================================================
 
   const subject = escapeHtml(sequence.subject || "");
 
-  const logoUrl = brand.logoUrl || "";
+  // ==========================================================
+  // LOGO
+  // ==========================================================
+
+  const logoUrl = typeof brand.logoUrl === "string" ? brand.logoUrl.trim() : "";
+
   const logoPosition = getLogoAlignment(brand.logoPosition || "Center");
 
-  const heroUrl = heroImage.url || "";
+  // ==========================================================
+  // HERO / BANNER
+  // ==========================================================
+
+  const heroUrl = typeof heroImage.url === "string" ? heroImage.url.trim() : "";
+
+  const heroLink =
+    typeof heroImage.link === "string" ? heroImage.link.trim() : "";
+
+  // ==========================================================
+  // EDITOR
+  // ==========================================================
 
   const font = getFont(editor.font || "Arial");
 
@@ -127,154 +185,61 @@ function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
 
   const textColor = getTextColor(editor.textColor || "Black");
 
-  const fontWeight = editor.bold ? "700" : "400";
+  const fontWeight = editor.bold === true ? "700" : "400";
 
-  const fontStyle = editor.italic ? "italic" : "normal";
+  const fontStyle = editor.italic === true ? "italic" : "normal";
 
-  const textDecoration = editor.underline ? "underline" : "none";
+  const textDecoration = editor.underline === true ? "underline" : "none";
+
+  // ==========================================================
+  // CONTENT
+  // ==========================================================
 
   const content = formatContent(sequence.content || "");
 
   // ==========================================================
-  // CTA
-  // ==========================================================
-
-  let ctaHtml = "";
-
-  if (actionLinks.cta && actionLinks.cta.text && actionLinks.cta.url) {
-    ctaHtml = `
-      <div style="
-        padding: 6px 20px;
-      ">
-        <a
-          href="${escapeHtml(actionLinks.cta.url)}"
-          target="_blank"
-          style="
-            display:block;
-            width:100%;
-            box-sizing:border-box;
-            background:#315BEF;
-            color:#FFFFFF;
-            text-decoration:none;
-            text-align:center;
-            padding:11px 10px;
-            border-radius:6px;
-            font-family:Arial,Helvetica,sans-serif;
-            font-size:13px;
-            font-weight:700;
-          "
-        >
-          ${escapeHtml(actionLinks.cta.text)}
-        </a>
-      </div>
-    `;
-  }
-
-  // ==========================================================
-  // WHATSAPP
-  // ==========================================================
-
-  let whatsappHtml = "";
-
-  if (actionLinks.whatsapp) {
-    whatsappHtml = `
-      <div style="
-        padding:5px 20px;
-      ">
-        <a
-          href="${escapeHtml(actionLinks.whatsapp)}"
-          target="_blank"
-          style="
-            display:block;
-            width:100%;
-            box-sizing:border-box;
-            background:#25D366;
-            color:#FFFFFF;
-            text-decoration:none;
-            text-align:center;
-            padding:11px 10px;
-            border-radius:6px;
-            font-family:Arial,Helvetica,sans-serif;
-            font-size:13px;
-            font-weight:700;
-          "
-        >
-          WhatsApp
-        </a>
-      </div>
-    `;
-  }
-
-  // ==========================================================
-  // ATTACHMENT
-  // ==========================================================
-
-  let attachmentHtml = "";
-
-  if (attachment.url && attachment.name) {
-    attachmentHtml = `
-      <div style="
-        padding:10px 20px;
-        font-family:Arial,Helvetica,sans-serif;
-        font-size:12px;
-      ">
-        <a
-          href="${escapeHtml(attachment.url)}"
-          target="_blank"
-          style="
-            color:#315BEF;
-            text-decoration:none;
-          "
-        >
-          📎 ${escapeHtml(attachment.name)}
-        </a>
-      </div>
-    `;
-  }
-
-  // ==========================================================
-  // LOGO
+  // OPTIONAL LOGO
   // ==========================================================
 
   let logoHtml = "";
 
-  if (logoUrl) {
+  if (isValidUrl(logoUrl)) {
     logoHtml = `
-      <div style="
-        width:100%;
-        box-sizing:border-box;
-        padding:8px 20px;
-        text-align:${logoPosition};
-      ">
-        <img
-          src="${escapeHtml(logoUrl)}"
-          alt="Company Logo"
+      <tr>
+        <td
           style="
-            max-width:170px;
-            max-height:68px;
-            width:auto;
-            height:auto;
-            display:inline-block;
-            border:0;
+            padding:20px;
+            text-align:${logoPosition};
           "
-        />
-      </div>
+        >
+          <img
+            src="${escapeHtml(logoUrl)}"
+            alt=""
+            style="
+              display:inline-block;
+              max-width:180px;
+              max-height:80px;
+              width:auto;
+              height:auto;
+              border:0;
+            "
+          />
+        </td>
+      </tr>
     `;
   }
 
   // ==========================================================
-  // HERO
+  // OPTIONAL HERO / BANNER
   // ==========================================================
 
   let heroHtml = "";
 
-  if (heroUrl) {
-    const heroLink = heroImage.link || "";
-
-    const heroImageHtml = `
+  if (isValidUrl(heroUrl)) {
+    const imageHtml = `
       <img
         src="${escapeHtml(heroUrl)}"
-        alt="Hero Image"
+        alt=""
         style="
           display:block;
           width:100%;
@@ -286,37 +251,180 @@ function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
       />
     `;
 
-    if (heroLink) {
+    if (isValidUrl(heroLink)) {
       heroHtml = `
-        <div style="
-          padding:0 18px;
-        ">
-          <a
-            href="${escapeHtml(heroLink)}"
-            target="_blank"
-            style="text-decoration:none;"
+        <tr>
+          <td
+            style="
+              padding:0 20px 20px 20px;
+            "
           >
-            ${heroImageHtml}
-          </a>
-        </div>
+            <a
+              href="${escapeHtml(heroLink)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="
+                text-decoration:none;
+              "
+            >
+              ${imageHtml}
+            </a>
+          </td>
+        </tr>
       `;
     } else {
       heroHtml = `
-        <div style="
-          padding:0 18px;
-        ">
-          ${heroImageHtml}
-        </div>
+        <tr>
+          <td
+            style="
+              padding:0 20px 20px 20px;
+            "
+          >
+            ${imageHtml}
+          </td>
+        </tr>
       `;
     }
+  }
+
+  // ==========================================================
+  // OPTIONAL CTA BUTTON
+  // ==========================================================
+
+  let ctaHtml = "";
+
+  const cta =
+    actionLinks.cta && typeof actionLinks.cta === "object"
+      ? actionLinks.cta
+      : null;
+
+  const ctaText = cta && typeof cta.text === "string" ? cta.text.trim() : "";
+
+  const ctaUrl = cta && typeof cta.url === "string" ? cta.url.trim() : "";
+
+  if (ctaText !== "" && isValidUrl(ctaUrl)) {
+    ctaHtml = `
+      <tr>
+        <td
+          style="
+            padding:0 20px 20px 20px;
+          "
+        >
+          <a
+            href="${escapeHtml(ctaUrl)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              width:100%;
+              box-sizing:border-box;
+              background:#315BEF;
+              color:#FFFFFF;
+              text-decoration:none;
+              text-align:center;
+              padding:12px 10px;
+              border-radius:6px;
+              font-family:Arial,Helvetica,sans-serif;
+              font-size:13px;
+              font-weight:700;
+            "
+          >
+            ${escapeHtml(ctaText)}
+          </a>
+        </td>
+      </tr>
+    `;
+  }
+
+  // ==========================================================
+  // OPTIONAL WHATSAPP BUTTON
+  // ==========================================================
+
+  let whatsappHtml = "";
+
+  const whatsappUrl =
+    typeof actionLinks.whatsapp === "string" ? actionLinks.whatsapp.trim() : "";
+
+  if (isValidUrl(whatsappUrl)) {
+    whatsappHtml = `
+      <tr>
+        <td
+          style="
+            padding:0 20px 20px 20px;
+          "
+        >
+          <a
+            href="${escapeHtml(whatsappUrl)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              width:100%;
+              box-sizing:border-box;
+              background:#25D366;
+              color:#FFFFFF;
+              text-decoration:none;
+              text-align:center;
+              padding:12px 10px;
+              border-radius:6px;
+              font-family:Arial,Helvetica,sans-serif;
+              font-size:13px;
+              font-weight:700;
+            "
+          >
+            WhatsApp
+          </a>
+        </td>
+      </tr>
+    `;
+  }
+
+  // ==========================================================
+  // OPTIONAL FILE
+  // ==========================================================
+
+  let attachmentHtml = "";
+
+  const attachmentUrl =
+    typeof attachment.url === "string" ? attachment.url.trim() : "";
+
+  const attachmentName =
+    typeof attachment.name === "string" ? attachment.name.trim() : "";
+
+  if (isValidUrl(attachmentUrl) && attachmentName !== "") {
+    attachmentHtml = `
+      <tr>
+        <td
+          style="
+            padding:0 20px 20px 20px;
+            font-family:Arial,Helvetica,sans-serif;
+            font-size:13px;
+          "
+        >
+          <a
+            href="${escapeHtml(attachmentUrl)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              color:#315BEF;
+              text-decoration:none;
+            "
+          >
+            📎 ${escapeHtml(attachmentName)}
+          </a>
+        </td>
+      </tr>
+    `;
   }
 
   // ==========================================================
   // TRACKING PIXEL
   // ==========================================================
 
-  const trackingPixel = trackingUrl
-    ? `
+  let trackingPixel = "";
+
+  if (isValidUrl(trackingUrl)) {
+    trackingPixel = `
       <img
         src="${escapeHtml(trackingUrl)}"
         width="1"
@@ -331,11 +439,21 @@ function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
           padding:0;
         "
       />
-    `
-    : "";
+    `;
+  }
 
   // ==========================================================
-  // FINAL HTML
+  // FINAL EMAIL HTML
+  //
+  // IMPORTANT:
+  // There is NO hard-coded:
+  // - logo
+  // - banner
+  // - image
+  // - WhatsApp
+  // - CTA
+  // - attachment
+  // - company header
   // ==========================================================
 
   return `
@@ -363,8 +481,7 @@ function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
   style="
     margin:0;
     padding:0;
-    background:#F2F4F7;
-    font-family:${font};
+    background:#FFFFFF;
   "
 >
 
@@ -374,17 +491,16 @@ function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
   cellspacing="0"
   border="0"
   style="
-    background:#F2F4F7;
+    width:100%;
     margin:0;
-    padding:20px 0;
+    padding:0;
+    background:#FFFFFF;
   "
 >
 
 <tr>
 
-<td
-  align="center"
->
+<td align="center">
 
 <table
   width="680"
@@ -394,115 +510,19 @@ function buildSequenceEmail({ sequence, lead, trackingUrl, baseUrl }) {
   style="
     width:100%;
     max-width:680px;
-    background:#FFFFFF;
-    border:1px solid #E4E7EC;
-    border-radius:10px;
-    overflow:hidden;
-  "
->
-
-<!-- ====================================================== -->
-<!-- BRAND HEADER -->
-<!-- ====================================================== -->
-
-<tr>
-
-<td
-  style="
-    padding:14px 20px;
-    border-bottom:1px solid #E4E7EC;
+    margin:0 auto;
     background:#FFFFFF;
   "
 >
 
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
->
-
-<tr>
-
-<td
-  width="36"
-  valign="middle"
->
-
-<div
-  style="
-    width:36px;
-    height:36px;
-    background:#F0F3FF;
-    border-radius:8px;
-    text-align:center;
-    line-height:36px;
-    font-family:Arial,Helvetica,sans-serif;
-    color:#315BEF;
-  "
->
-  ✉
-</div>
-
-</td>
-
-<td
-  style="
-    padding-left:9px;
-  "
->
-
-<div
-  style="
-    color:#101828;
-    font-size:12px;
-    font-weight:800;
-    line-height:18px;
-  "
->
-  Your Company
-</div>
-
-<div
-  style="
-    color:#667085;
-    font-size:9px;
-    line-height:13px;
-  "
->
-  Email communication
-</div>
-
-</td>
-
-<td
-  width="20"
-  align="right"
-  valign="middle"
-  style="
-    color:#667085;
-    font-size:18px;
-  "
->
-  ⋯
-</td>
-
-</tr>
-
-</table>
-
-</td>
-
-</tr>
-
 <!-- ====================================================== -->
-<!-- LOGO -->
+<!-- LOGO - ONLY IF ADDED -->
 <!-- ====================================================== -->
 
 ${logoHtml}
 
 <!-- ====================================================== -->
-<!-- HERO -->
+<!-- BANNER - ONLY IF ADDED -->
 <!-- ====================================================== -->
 
 ${heroHtml}
@@ -515,11 +535,11 @@ ${heroHtml}
 
 <td
   style="
-    padding:18px 20px 10px 20px;
+    padding:20px;
     color:${textColor};
     font-family:${font};
     font-size:${fontSize};
-    line-height:1.5;
+    line-height:1.6;
     font-weight:${fontWeight};
     font-style:${fontStyle};
     text-decoration:${textDecoration};
@@ -533,72 +553,22 @@ ${content}
 </tr>
 
 <!-- ====================================================== -->
-<!-- CTA -->
+<!-- CTA - ONLY IF ADDED -->
 <!-- ====================================================== -->
-
-<tr>
-
-<td>
 
 ${ctaHtml}
 
-</td>
-
-</tr>
-
 <!-- ====================================================== -->
-<!-- WHATSAPP -->
+<!-- WHATSAPP - ONLY IF ADDED -->
 <!-- ====================================================== -->
-
-<tr>
-
-<td>
 
 ${whatsappHtml}
 
-</td>
-
-</tr>
-
 <!-- ====================================================== -->
-<!-- ATTACHMENT -->
+<!-- FILE - ONLY IF ADDED -->
 <!-- ====================================================== -->
-
-<tr>
-
-<td>
 
 ${attachmentHtml}
-
-</td>
-
-</tr>
-
-<!-- ====================================================== -->
-<!-- FOOTER -->
-<!-- ====================================================== -->
-
-<tr>
-
-<td
-  style="
-    padding:11px 10px;
-    background:#F8FAFC;
-    border-top:1px solid #E4E7EC;
-    text-align:center;
-    color:#667085;
-    font-family:Arial,Helvetica,sans-serif;
-    font-size:8px;
-    line-height:1.3;
-  "
->
-
-You are receiving this email because you subscribed
-to our updates.
-
-</td>
-
-</tr>
 
 </table>
 
@@ -615,6 +585,10 @@ ${trackingPixel}
 </html>
 `;
 }
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = {
   buildSequenceEmail,
