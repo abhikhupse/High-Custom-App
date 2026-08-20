@@ -1,12 +1,180 @@
 const LEADS_COLLECTION = require("../model/leads.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const XLSX = require("xlsx");
+
+const { predictLeadFromEmail } = require("../utils/emailLeadPredictor");
+
 // ============================================================
 // GET LOGGED-IN USER ID
 // ============================================================
 
 const getUserId = (req) => {
   return req.user?.id || req.user?._id;
+};
+
+// ============================================================
+// EMAIL VALIDATION
+// ============================================================
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ============================================================
+// NORMALIZE TEXT
+// ============================================================
+
+const normalizeText = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value).trim();
+};
+
+// ============================================================
+// GET VALUE FROM EXCEL ROW
+// ============================================================
+
+const getValue = (row, names) => {
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(row, name)) {
+      return row[name];
+    }
+  }
+
+  return "";
+};
+
+// ============================================================
+// NORMALIZE PREDICTOR RESULT
+//
+// This allows the controller to work with slightly different
+// return formats from emailLeadPredictor.js.
+//
+// Supported examples:
+//
+// {
+//   firstName: "John",
+//   lastName: "Doe",
+//   company: ""
+// }
+//
+// or
+//
+// {
+//   fullName: "John Doe",
+//   company: ""
+// }
+//
+// or
+//
+// {
+//   firstName: "-",
+//   lastName: "-",
+//   company: ""
+// }
+// ============================================================
+
+const normalizePrediction = (prediction) => {
+  if (!prediction || typeof prediction !== "object") {
+    return {
+      firstName: "",
+      lastName: "",
+      company: "",
+    };
+  }
+
+  let firstName = normalizeText(
+    prediction.firstName || prediction.first_name || "",
+  );
+
+  let lastName = normalizeText(
+    prediction.lastName || prediction.last_name || "",
+  );
+
+  let company = normalizeText(
+    prediction.company ||
+      prediction.companyName ||
+      prediction.company_name ||
+      "",
+  );
+
+  // ==========================================================
+  // FULL NAME SUPPORT
+  // ==========================================================
+
+  const fullName = normalizeText(
+    prediction.fullName || prediction.full_name || prediction.name || "",
+  );
+
+  if (!firstName && !lastName && fullName) {
+    const parts = fullName
+      .split(/\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length === 1) {
+      firstName = parts[0];
+    } else if (parts.length > 1) {
+      firstName = parts[0];
+      lastName = parts.slice(1).join(" ");
+    }
+  }
+
+  return {
+    firstName,
+    lastName,
+    company,
+  };
+};
+
+// ============================================================
+// PREDICT LEAD FROM EMAIL
+//
+// IMPORTANT:
+// This function is used ONLY when Excel does not already
+// contain first name and last name.
+//
+// It never replaces user-provided Excel data.
+// ============================================================
+
+const predictMissingLeadDetails = async (email) => {
+  try {
+    if (!email) {
+      return {
+        firstName: "",
+        lastName: "",
+        company: "",
+      };
+    }
+
+    if (typeof predictLeadFromEmail !== "function") {
+      console.warn(
+        "predictLeadFromEmail is not available. Skipping prediction.",
+      );
+
+      return {
+        firstName: "",
+        lastName: "",
+        company: "",
+      };
+    }
+
+    const prediction = await predictLeadFromEmail(email);
+
+    return normalizePrediction(prediction);
+  } catch (error) {
+    console.error(
+      `Unable to predict lead details for ${email}:`,
+      error.message,
+    );
+
+    // Prediction failure must NOT stop Excel import.
+    return {
+      firstName: "",
+      lastName: "",
+      company: "",
+    };
+  }
 };
 
 // ============================================================
@@ -52,7 +220,6 @@ exports.getLeads = async (req, res) => {
         });
       }
 
-      // Start of selected day
       start.setHours(0, 0, 0, 0);
 
       query.createdAt = {
@@ -75,7 +242,6 @@ exports.getLeads = async (req, res) => {
         });
       }
 
-      // End of selected day
       end.setHours(23, 59, 59, 999);
 
       query.createdAt = {
@@ -95,34 +261,83 @@ exports.getLeads = async (req, res) => {
       .lean();
 
     const leadIds = leads.map((lead) => lead._id);
+
+    // ========================================================
+    // GET SEQUENCE DELIVERIES
+    // ========================================================
+
     const deliveries = leadIds.length
       ? await SEQUENCE_DELIVERY.find({
           userId,
           leadId: { $in: leadIds },
         })
-          .sort({ createdAt: -1 })
+          .sort({
+            createdAt: -1,
+          })
           .lean()
       : [];
+
+    // ========================================================
+    // TRACKING BY LEAD
+    // ========================================================
 
     const trackingByLead = new Map();
 
     for (const delivery of deliveries) {
+      if (!delivery.leadId) {
+        continue;
+      }
+
       const leadId = delivery.leadId.toString();
 
       if (trackingByLead.has(leadId)) {
         continue;
       }
 
-      trackingByLead.set(
-        leadId,
-        delivery.openedAt
-          ? "Seen"
-          : delivery.status === "failed"
-            ? "Failed"
-            : delivery.status === "pending"
-              ? "Pending"
-              : "Sent",
-      );
+      let trackingStatus = "Sent";
+
+      // ======================================================
+      // OPENED
+      // ======================================================
+
+      if (delivery.openedAt) {
+        trackingStatus = "Opened";
+      }
+
+      // ======================================================
+      // FAILED
+      // ======================================================
+      else if (delivery.status === "failed") {
+        trackingStatus = "Failed";
+      }
+
+      // ======================================================
+      // CLICKED
+      // ======================================================
+      else if (
+        delivery.clickedAt ||
+        delivery.clickAt ||
+        delivery.clickCount > 0 ||
+        delivery.clickedCount > 0
+      ) {
+        trackingStatus = "Clicked";
+      }
+
+      // ======================================================
+      // PENDING
+      // ======================================================
+      else if (delivery.status === "pending") {
+        trackingStatus = "Pending";
+      }
+
+      // ======================================================
+      // SENT
+      // ======================================================
+      else {
+        trackingStatus = "Sent";
+      }
+
+      trackingByLead.set(leadId, trackingStatus);
     }
 
     // ========================================================
@@ -131,12 +346,10 @@ exports.getLeads = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-
       message: "Leads fetched successfully.",
 
       leads: leads.map((lead) => ({
         id: lead._id,
-
         _id: lead._id,
 
         email: lead.email || "",
@@ -210,9 +423,7 @@ exports.createLead = async (req, res) => {
     // EMAIL VALIDATION
     // ========================================================
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(normalizedEmail)) {
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address.",
@@ -267,12 +478,10 @@ exports.createLead = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-
       message: "Lead created successfully.",
 
       lead: {
         id: newLead._id,
-
         _id: newLead._id,
 
         email: newLead.email,
@@ -401,9 +610,7 @@ exports.editLead = async (req, res) => {
     // EMAIL FORMAT
     // ========================================================
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(newEmail)) {
+    if (!EMAIL_REGEX.test(newEmail)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address.",
@@ -477,14 +684,12 @@ exports.editLead = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-
       changed: true,
 
       message: "Lead updated successfully.",
 
       lead: {
         id: existingLead._id,
-
         _id: existingLead._id,
 
         email: existingLead.email,
@@ -591,9 +796,7 @@ exports.deleteLead = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-
       message: "Lead deleted successfully.",
-
       leadId: lead._id,
     });
   } catch (error) {
@@ -621,6 +824,10 @@ exports.importLeadsFromExcel = async (req, res) => {
         message: "User authentication required.",
       });
     }
+
+    // ========================================================
+    // FILE REQUIRED
+    // ========================================================
 
     if (!req.file) {
       return res.status(400).json({
@@ -661,26 +868,6 @@ exports.importLeadsFromExcel = async (req, res) => {
     }
 
     // ========================================================
-    // HELPER
-    // ========================================================
-
-    const getValue = (row, names) => {
-      for (const name of names) {
-        if (Object.prototype.hasOwnProperty.call(row, name)) {
-          return row[name];
-        }
-      }
-
-      return "";
-    };
-
-    // ========================================================
-    // EMAIL VALIDATION
-    // ========================================================
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    // ========================================================
     // GET EXISTING EMAILS
     // ========================================================
 
@@ -694,37 +881,53 @@ exports.importLeadsFromExcel = async (req, res) => {
     ).lean();
 
     const existingEmails = new Set(
-      existingLeads.map((lead) => lead.email.trim().toLowerCase()),
+      existingLeads
+        .map((lead) => normalizeText(lead.email).toLowerCase())
+        .filter(Boolean),
     );
 
     // ========================================================
-    // PROCESS EXCEL ROWS
+    // PROCESS ROWS
     // ========================================================
 
     const validLeads = [];
+
     const errors = [];
+
     const importedEmails = new Set();
 
-    rows.forEach((row, index) => {
+    // ========================================================
+    // PROCESS EACH ROW
+    // ========================================================
+
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index];
+
       const excelRowNumber = index + 2;
 
-      const firstName = String(
-        getValue(row, ["First Name", "firstName", "FirstName"]),
-      ).trim();
+      // ======================================================
+      // READ EXCEL DATA
+      // ======================================================
 
-      const lastName = String(
-        getValue(row, ["Last Name", "lastName", "LastName"]),
-      ).trim();
+      let firstName = normalizeText(
+        getValue(row, ["First Name", "firstName", "FirstName", "FIRST NAME"]),
+      );
 
-      const email = String(getValue(row, ["Email", "email"]))
-        .trim()
-        .toLowerCase();
+      let lastName = normalizeText(
+        getValue(row, ["Last Name", "lastName", "LastName", "LAST NAME"]),
+      );
 
-      const company = String(getValue(row, ["Company", "company"])).trim();
+      const email = normalizeText(
+        getValue(row, ["Email", "email", "EMAIL", "E-mail", "E-Mail"]),
+      ).toLowerCase();
 
-      const typeValue = String(getValue(row, ["Type", "type"]))
-        .trim()
-        .toLowerCase();
+      let company = normalizeText(
+        getValue(row, ["Company", "company", "COMPANY"]),
+      );
+
+      const typeValue = normalizeText(
+        getValue(row, ["Type", "type", "TYPE"]),
+      ).toLowerCase();
 
       // ======================================================
       // EMAIL REQUIRED
@@ -737,25 +940,25 @@ exports.importLeadsFromExcel = async (req, res) => {
           message: "Email is required.",
         });
 
-        return;
+        continue;
       }
 
       // ======================================================
       // EMAIL FORMAT
       // ======================================================
 
-      if (!emailRegex.test(email)) {
+      if (!EMAIL_REGEX.test(email)) {
         errors.push({
           row: excelRowNumber,
           email,
           message: "Invalid email address.",
         });
 
-        return;
+        continue;
       }
 
       // ======================================================
-      // DUPLICATE DATABASE CHECK
+      // DATABASE DUPLICATE
       // ======================================================
 
       if (existingEmails.has(email)) {
@@ -765,11 +968,11 @@ exports.importLeadsFromExcel = async (req, res) => {
           message: "Email already exists in your leads.",
         });
 
-        return;
+        continue;
       }
 
       // ======================================================
-      // DUPLICATE EXCEL CHECK
+      // EXCEL DUPLICATE
       // ======================================================
 
       if (importedEmails.has(email)) {
@@ -779,10 +982,76 @@ exports.importLeadsFromExcel = async (req, res) => {
           message: "Duplicate email found in Excel file.",
         });
 
-        return;
+        continue;
       }
 
       importedEmails.add(email);
+
+      // ======================================================
+      // IMPORTANT:
+      //
+      // ONLY PREDICT WHEN THERE ARE NO NAME DETAILS.
+      //
+      // If Excel already has:
+      //
+      // First Name = John
+      // Last Name  = Doe
+      //
+      // prediction is NOT executed.
+      // ======================================================
+
+      const hasNameDetails = firstName.length > 0 || lastName.length > 0;
+
+      if (!hasNameDetails) {
+        const prediction = await predictMissingLeadDetails(email);
+
+        // ====================================================
+        // USE PREDICTED FIRST NAME
+        // ====================================================
+
+        if (!firstName && prediction.firstName) {
+          firstName = prediction.firstName;
+        }
+
+        // ====================================================
+        // USE PREDICTED LAST NAME
+        // ====================================================
+
+        if (!lastName && prediction.lastName) {
+          lastName = prediction.lastName;
+        }
+
+        // ====================================================
+        // USE PREDICTED COMPANY
+        //
+        // Existing Excel company always has priority.
+        // ====================================================
+
+        if (!company && prediction.company) {
+          company = prediction.company;
+        }
+
+        // ====================================================
+        // UNKNOWN PERSON
+        //
+        // If predictor identifies the email as unknown,
+        // use "-" instead of leaving the name empty.
+        // ====================================================
+
+        if (!firstName && !lastName && !company) {
+          firstName = "-";
+          lastName = "-";
+        }
+      }
+
+      // ======================================================
+      // FINAL NAME FALLBACK
+      // ======================================================
+
+      if (!firstName && !lastName) {
+        firstName = "-";
+        lastName = "-";
+      }
 
       // ======================================================
       // TYPE
@@ -794,7 +1063,7 @@ exports.importLeadsFromExcel = async (req, res) => {
       // CREATE LEAD
       //
       // TRACKING IS NOT TAKEN FROM EXCEL.
-      // Default = true.
+      // DEFAULT = TRUE.
       // ======================================================
 
       validLeads.push({
@@ -812,7 +1081,7 @@ exports.importLeadsFromExcel = async (req, res) => {
 
         tracking: true,
       });
-    });
+    }
 
     // ========================================================
     // INSERT
@@ -827,7 +1096,7 @@ exports.importLeadsFromExcel = async (req, res) => {
     }
 
     // ========================================================
-    // RESPONSE
+    // SUCCESS RESPONSE
     // ========================================================
 
     return res.status(200).json({
@@ -848,7 +1117,9 @@ exports.importLeadsFromExcel = async (req, res) => {
 
     return res.status(500).json({
       success: false,
+
       message: "Unable to import leads from Excel.",
+
       error: error.message,
     });
   }
@@ -918,7 +1189,7 @@ exports.exportLeadsToExcel = async (req, res) => {
         wch: 35,
       },
       {
-        wch: 25,
+        wch: 30,
       },
       {
         wch: 15,
@@ -943,7 +1214,7 @@ exports.exportLeadsToExcel = async (req, res) => {
     });
 
     // ========================================================
-    // RESPONSE
+    // RESPONSE HEADERS
     // ========================================================
 
     res.setHeader(
@@ -953,13 +1224,19 @@ exports.exportLeadsToExcel = async (req, res) => {
 
     res.setHeader("Content-Disposition", 'attachment; filename="leads.xlsx"');
 
+    // ========================================================
+    // SEND FILE
+    // ========================================================
+
     return res.status(200).send(buffer);
   } catch (error) {
     console.error("Error exporting leads to Excel:", error);
 
     return res.status(500).json({
       success: false,
+
       message: "Unable to download leads Excel file.",
+
       error: error.message,
     });
   }
