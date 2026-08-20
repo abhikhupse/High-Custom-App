@@ -13,171 +13,6 @@ const getUserId = (req) => {
 };
 
 // ============================================================
-// EMAIL VALIDATION
-// ============================================================
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// ============================================================
-// NORMALIZE TEXT
-// ============================================================
-
-const normalizeText = (value) => {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value).trim();
-};
-
-// ============================================================
-// GET VALUE FROM EXCEL ROW
-// ============================================================
-
-const getValue = (row, names) => {
-  for (const name of names) {
-    if (Object.prototype.hasOwnProperty.call(row, name)) {
-      return row[name];
-    }
-  }
-
-  return "";
-};
-
-// ============================================================
-// NORMALIZE PREDICTOR RESULT
-//
-// This allows the controller to work with slightly different
-// return formats from emailLeadPredictor.js.
-//
-// Supported examples:
-//
-// {
-//   firstName: "John",
-//   lastName: "Doe",
-//   company: ""
-// }
-//
-// or
-//
-// {
-//   fullName: "John Doe",
-//   company: ""
-// }
-//
-// or
-//
-// {
-//   firstName: "-",
-//   lastName: "-",
-//   company: ""
-// }
-// ============================================================
-
-const normalizePrediction = (prediction) => {
-  if (!prediction || typeof prediction !== "object") {
-    return {
-      firstName: "",
-      lastName: "",
-      company: "",
-    };
-  }
-
-  let firstName = normalizeText(
-    prediction.firstName || prediction.first_name || "",
-  );
-
-  let lastName = normalizeText(
-    prediction.lastName || prediction.last_name || "",
-  );
-
-  let company = normalizeText(
-    prediction.company ||
-      prediction.companyName ||
-      prediction.company_name ||
-      "",
-  );
-
-  // ==========================================================
-  // FULL NAME SUPPORT
-  // ==========================================================
-
-  const fullName = normalizeText(
-    prediction.fullName || prediction.full_name || prediction.name || "",
-  );
-
-  if (!firstName && !lastName && fullName) {
-    const parts = fullName
-      .split(/\s+/)
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    if (parts.length === 1) {
-      firstName = parts[0];
-    } else if (parts.length > 1) {
-      firstName = parts[0];
-      lastName = parts.slice(1).join(" ");
-    }
-  }
-
-  return {
-    firstName,
-    lastName,
-    company,
-  };
-};
-
-// ============================================================
-// PREDICT LEAD FROM EMAIL
-//
-// IMPORTANT:
-// This function is used ONLY when Excel does not already
-// contain first name and last name.
-//
-// It never replaces user-provided Excel data.
-// ============================================================
-
-const predictMissingLeadDetails = async (email) => {
-  try {
-    if (!email) {
-      return {
-        firstName: "",
-        lastName: "",
-        company: "",
-      };
-    }
-
-    if (typeof predictLeadFromEmail !== "function") {
-      console.warn(
-        "predictLeadFromEmail is not available. Skipping prediction.",
-      );
-
-      return {
-        firstName: "",
-        lastName: "",
-        company: "",
-      };
-    }
-
-    const prediction = await predictLeadFromEmail(email);
-
-    return normalizePrediction(prediction);
-  } catch (error) {
-    console.error(
-      `Unable to predict lead details for ${email}:`,
-      error.message,
-    );
-
-    // Prediction failure must NOT stop Excel import.
-    return {
-      firstName: "",
-      lastName: "",
-      company: "",
-    };
-  }
-};
-
-// ============================================================
 // GET ALL LEADS
 // ============================================================
 
@@ -198,12 +33,8 @@ exports.getLeads = async (req, res) => {
 
     const { startDate, endDate } = req.query;
 
-    // ========================================================
-    // BUILD QUERY
-    // ========================================================
-
     const query = {
-      userId: userId,
+      userId,
     };
 
     // ========================================================
@@ -251,7 +82,7 @@ exports.getLeads = async (req, res) => {
     }
 
     // ========================================================
-    // FIND USER LEADS
+    // FIND LEADS
     // ========================================================
 
     const leads = await LEADS_COLLECTION.find(query)
@@ -260,16 +91,22 @@ exports.getLeads = async (req, res) => {
       })
       .lean();
 
+    // ========================================================
+    // GET LEAD IDS
+    // ========================================================
+
     const leadIds = leads.map((lead) => lead._id);
 
     // ========================================================
-    // GET SEQUENCE DELIVERIES
+    // GET DELIVERY DATA
     // ========================================================
 
     const deliveries = leadIds.length
       ? await SEQUENCE_DELIVERY.find({
           userId,
-          leadId: { $in: leadIds },
+          leadId: {
+            $in: leadIds,
+          },
         })
           .sort({
             createdAt: -1,
@@ -278,66 +115,61 @@ exports.getLeads = async (req, res) => {
       : [];
 
     // ========================================================
-    // TRACKING BY LEAD
+    // TRACKING STATUS
     // ========================================================
 
     const trackingByLead = new Map();
 
     for (const delivery of deliveries) {
-      if (!delivery.leadId) {
-        continue;
-      }
-
       const leadId = delivery.leadId.toString();
 
       if (trackingByLead.has(leadId)) {
         continue;
       }
 
-      let trackingStatus = "Sent";
+      let status = "Pending";
 
-      // ======================================================
-      // OPENED
-      // ======================================================
-
-      if (delivery.openedAt) {
-        trackingStatus = "Opened";
-      }
-
-      // ======================================================
+      // ------------------------------------------------------
       // FAILED
-      // ======================================================
-      else if (delivery.status === "failed") {
-        trackingStatus = "Failed";
+      // ------------------------------------------------------
+
+      if (delivery.status === "failed" || delivery.status === "Failed") {
+        status = "Failed";
       }
 
-      // ======================================================
+      // ------------------------------------------------------
+      // OPENED
+      // ------------------------------------------------------
+      else if (delivery.openedAt) {
+        status = "Opened";
+      }
+
+      // ------------------------------------------------------
       // CLICKED
-      // ======================================================
+      // ------------------------------------------------------
       else if (
         delivery.clickedAt ||
-        delivery.clickAt ||
         delivery.clickCount > 0 ||
-        delivery.clickedCount > 0
+        delivery.clicked === true
       ) {
-        trackingStatus = "Clicked";
+        status = "Clicked";
       }
 
-      // ======================================================
-      // PENDING
-      // ======================================================
-      else if (delivery.status === "pending") {
-        trackingStatus = "Pending";
-      }
-
-      // ======================================================
+      // ------------------------------------------------------
       // SENT
-      // ======================================================
-      else {
-        trackingStatus = "Sent";
+      // ------------------------------------------------------
+      else if (delivery.status === "sent" || delivery.status === "Sent") {
+        status = "Sent";
       }
 
-      trackingByLead.set(leadId, trackingStatus);
+      // ------------------------------------------------------
+      // PENDING
+      // ------------------------------------------------------
+      else if (delivery.status === "pending" || delivery.status === "Pending") {
+        status = "Pending";
+      }
+
+      trackingByLead.set(leadId, status);
     }
 
     // ========================================================
@@ -355,7 +187,6 @@ exports.getLeads = async (req, res) => {
         email: lead.email || "",
 
         firstName: lead.firstName || "",
-
         lastName: lead.lastName || "",
 
         company: lead.company || "",
@@ -370,7 +201,6 @@ exports.getLeads = async (req, res) => {
             : trackingByLead.get(lead._id.toString()) || "Pending",
 
         addedDate: lead.createdAt,
-
         updatedDate: lead.updatedAt,
       })),
     });
@@ -423,7 +253,9 @@ exports.createLead = async (req, res) => {
     // EMAIL VALIDATION
     // ========================================================
 
-    if (!EMAIL_REGEX.test(normalizedEmail)) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address.",
@@ -435,7 +267,7 @@ exports.createLead = async (req, res) => {
     // ========================================================
 
     const existingLead = await LEADS_COLLECTION.findOne({
-      userId: userId,
+      userId,
       email: normalizedEmail,
     });
 
@@ -447,25 +279,48 @@ exports.createLead = async (req, res) => {
     }
 
     // ========================================================
+    // ORIGINAL DATA
+    // ========================================================
+
+    let newFirstName = firstName?.trim() || "";
+    let newLastName = lastName?.trim() || "";
+    let newCompany = company?.trim() || "";
+
+    // ========================================================
+    // AUTOMATIC PREDICTION
+    //
+    // IMPORTANT:
+    // Prediction only happens when the corresponding field
+    // is empty.
+    // ========================================================
+
+    if (!newFirstName && !newLastName && !newCompany) {
+      const prediction = predictLeadFromEmail(normalizedEmail);
+
+      newFirstName = prediction.firstName || "";
+      newLastName = prediction.lastName || "";
+      newCompany = prediction.company || "";
+    }
+
+    // ========================================================
     // TYPE
     // ========================================================
 
     const leadType = type === "WhatsApp" ? "WhatsApp" : "Email";
 
     // ========================================================
-    // CREATE
+    // CREATE LEAD
     // ========================================================
 
     const newLead = await LEADS_COLLECTION.create({
-      userId: userId,
+      userId,
 
-      firstName: firstName?.trim() || "",
-
-      lastName: lastName?.trim() || "",
+      firstName: newFirstName,
+      lastName: newLastName,
 
       email: normalizedEmail,
 
-      company: company?.trim() || "",
+      company: newCompany,
 
       type: leadType,
 
@@ -473,7 +328,7 @@ exports.createLead = async (req, res) => {
     });
 
     // ========================================================
-    // SUCCESS
+    // RESPONSE
     // ========================================================
 
     return res.status(201).json({
@@ -487,7 +342,6 @@ exports.createLead = async (req, res) => {
         email: newLead.email,
 
         firstName: newLead.firstName,
-
         lastName: newLead.lastName,
 
         company: newLead.company,
@@ -499,16 +353,11 @@ exports.createLead = async (req, res) => {
         trackingStatus: newLead.tracking ? "Pending" : "Skip",
 
         addedDate: newLead.createdAt,
-
         updatedDate: newLead.updatedAt,
       },
     });
   } catch (error) {
     console.error("Error while adding a lead:", error);
-
-    // ========================================================
-    // DUPLICATE KEY
-    // ========================================================
 
     if (error.code === 11000) {
       return res.status(400).json({
@@ -516,10 +365,6 @@ exports.createLead = async (req, res) => {
         message: "Email already exists in your leads.",
       });
     }
-
-    // ========================================================
-    // SERVER ERROR
-    // ========================================================
 
     return res.status(500).json({
       success: false,
@@ -544,10 +389,6 @@ exports.editLead = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // LEAD ID
-    // ========================================================
-
     const { leadId } = req.params;
 
     if (!leadId) {
@@ -557,10 +398,6 @@ exports.editLead = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // REQUEST DATA
-    // ========================================================
-
     const { firstName, lastName, email, company, type, tracking } = req.body;
 
     // ========================================================
@@ -569,7 +406,7 @@ exports.editLead = async (req, res) => {
 
     const existingLead = await LEADS_COLLECTION.findOne({
       _id: leadId,
-      userId: userId,
+      userId,
     });
 
     if (!existingLead) {
@@ -584,11 +421,8 @@ exports.editLead = async (req, res) => {
     // ========================================================
 
     const newFirstName = firstName?.trim() || "";
-
     const newLastName = lastName?.trim() || "";
-
     const newEmail = email?.trim().toLowerCase() || "";
-
     const newCompany = company?.trim() || "";
 
     const newType = type === "WhatsApp" ? "WhatsApp" : "Email";
@@ -610,7 +444,9 @@ exports.editLead = async (req, res) => {
     // EMAIL FORMAT
     // ========================================================
 
-    if (!EMAIL_REGEX.test(newEmail)) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(newEmail)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address.",
@@ -643,10 +479,8 @@ exports.editLead = async (req, res) => {
 
     if (newEmail !== existingLead.email) {
       const duplicateLead = await LEADS_COLLECTION.findOne({
-        userId: userId,
-
+        userId,
         email: newEmail,
-
         _id: {
           $ne: leadId,
         },
@@ -665,15 +499,10 @@ exports.editLead = async (req, res) => {
     // ========================================================
 
     existingLead.firstName = newFirstName;
-
     existingLead.lastName = newLastName;
-
     existingLead.email = newEmail;
-
     existingLead.company = newCompany;
-
     existingLead.type = newType;
-
     existingLead.tracking = newTracking;
 
     await existingLead.save();
@@ -685,7 +514,6 @@ exports.editLead = async (req, res) => {
     return res.status(200).json({
       success: true,
       changed: true,
-
       message: "Lead updated successfully.",
 
       lead: {
@@ -695,7 +523,6 @@ exports.editLead = async (req, res) => {
         email: existingLead.email,
 
         firstName: existingLead.firstName,
-
         lastName: existingLead.lastName,
 
         company: existingLead.company,
@@ -704,19 +531,14 @@ exports.editLead = async (req, res) => {
 
         tracking: existingLead.tracking,
 
-        trackingStatus: existingLead.tracking ? "Sent" : "Skip",
+        trackingStatus: existingLead.tracking ? "Pending" : "Skip",
 
         addedDate: existingLead.createdAt,
-
         updatedDate: existingLead.updatedAt,
       },
     });
   } catch (error) {
     console.error("Error while editing lead:", error);
-
-    // ========================================================
-    // DUPLICATE KEY
-    // ========================================================
 
     if (error.code === 11000) {
       return res.status(400).json({
@@ -724,10 +546,6 @@ exports.editLead = async (req, res) => {
         message: "Email already exists in your leads.",
       });
     }
-
-    // ========================================================
-    // SERVER ERROR
-    // ========================================================
 
     return res.status(500).json({
       success: false,
@@ -752,10 +570,6 @@ exports.deleteLead = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // LEAD ID
-    // ========================================================
-
     const { leadId } = req.params;
 
     if (!leadId) {
@@ -765,13 +579,9 @@ exports.deleteLead = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // FIND LEAD
-    // ========================================================
-
     const lead = await LEADS_COLLECTION.findOne({
       _id: leadId,
-      userId: userId,
+      userId,
     });
 
     if (!lead) {
@@ -781,18 +591,10 @@ exports.deleteLead = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // DELETE
-    // ========================================================
-
     await LEADS_COLLECTION.deleteOne({
       _id: leadId,
-      userId: userId,
+      userId,
     });
-
-    // ========================================================
-    // SUCCESS
-    // ========================================================
 
     return res.status(200).json({
       success: true,
@@ -826,7 +628,7 @@ exports.importLeadsFromExcel = async (req, res) => {
     }
 
     // ========================================================
-    // FILE REQUIRED
+    // FILE CHECK
     // ========================================================
 
     if (!req.file) {
@@ -868,6 +670,26 @@ exports.importLeadsFromExcel = async (req, res) => {
     }
 
     // ========================================================
+    // HELPER
+    // ========================================================
+
+    const getValue = (row, names) => {
+      for (const name of names) {
+        if (Object.prototype.hasOwnProperty.call(row, name)) {
+          return row[name];
+        }
+      }
+
+      return "";
+    };
+
+    // ========================================================
+    // EMAIL VALIDATION
+    // ========================================================
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // ========================================================
     // GET EXISTING EMAILS
     // ========================================================
 
@@ -882,7 +704,11 @@ exports.importLeadsFromExcel = async (req, res) => {
 
     const existingEmails = new Set(
       existingLeads
-        .map((lead) => normalizeText(lead.email).toLowerCase())
+        .map((lead) =>
+          String(lead.email || "")
+            .trim()
+            .toLowerCase(),
+        )
         .filter(Boolean),
     );
 
@@ -896,38 +722,32 @@ exports.importLeadsFromExcel = async (req, res) => {
 
     const importedEmails = new Set();
 
-    // ========================================================
-    // PROCESS EACH ROW
-    // ========================================================
-
-    for (let index = 0; index < rows.length; index++) {
-      const row = rows[index];
-
+    rows.forEach((row, index) => {
       const excelRowNumber = index + 2;
 
       // ======================================================
-      // READ EXCEL DATA
+      // GET EXCEL VALUES
       // ======================================================
 
-      let firstName = normalizeText(
+      let firstName = String(
         getValue(row, ["First Name", "firstName", "FirstName", "FIRST NAME"]),
-      );
+      ).trim();
 
-      let lastName = normalizeText(
+      let lastName = String(
         getValue(row, ["Last Name", "lastName", "LastName", "LAST NAME"]),
-      );
+      ).trim();
 
-      const email = normalizeText(
-        getValue(row, ["Email", "email", "EMAIL", "E-mail", "E-Mail"]),
-      ).toLowerCase();
+      const email = String(getValue(row, ["Email", "email", "EMAIL"]))
+        .trim()
+        .toLowerCase();
 
-      let company = normalizeText(
+      let company = String(
         getValue(row, ["Company", "company", "COMPANY"]),
-      );
+      ).trim();
 
-      const typeValue = normalizeText(
-        getValue(row, ["Type", "type", "TYPE"]),
-      ).toLowerCase();
+      const typeValue = String(getValue(row, ["Type", "type", "TYPE"]))
+        .trim()
+        .toLowerCase();
 
       // ======================================================
       // EMAIL REQUIRED
@@ -940,21 +760,21 @@ exports.importLeadsFromExcel = async (req, res) => {
           message: "Email is required.",
         });
 
-        continue;
+        return;
       }
 
       // ======================================================
       // EMAIL FORMAT
       // ======================================================
 
-      if (!EMAIL_REGEX.test(email)) {
+      if (!emailRegex.test(email)) {
         errors.push({
           row: excelRowNumber,
           email,
           message: "Invalid email address.",
         });
 
-        continue;
+        return;
       }
 
       // ======================================================
@@ -968,7 +788,7 @@ exports.importLeadsFromExcel = async (req, res) => {
           message: "Email already exists in your leads.",
         });
 
-        continue;
+        return;
       }
 
       // ======================================================
@@ -982,75 +802,32 @@ exports.importLeadsFromExcel = async (req, res) => {
           message: "Duplicate email found in Excel file.",
         });
 
-        continue;
+        return;
       }
 
       importedEmails.add(email);
 
       // ======================================================
-      // IMPORTANT:
+      // AUTOMATIC EMAIL PREDICTION
+      // ======================================================
       //
-      // ONLY PREDICT WHEN THERE ARE NO NAME DETAILS.
+      // VERY IMPORTANT:
       //
-      // If Excel already has:
+      // Prediction is performed ONLY when the Excel row
+      // does not already contain name/company information.
       //
-      // First Name = John
-      // Last Name  = Doe
+      // Existing Excel data is NEVER overwritten.
       //
-      // prediction is NOT executed.
       // ======================================================
 
-      const hasNameDetails = firstName.length > 0 || lastName.length > 0;
+      if (!firstName && !lastName && !company) {
+        const prediction = predictLeadFromEmail(email);
 
-      if (!hasNameDetails) {
-        const prediction = await predictMissingLeadDetails(email);
+        firstName = prediction.firstName || "";
 
-        // ====================================================
-        // USE PREDICTED FIRST NAME
-        // ====================================================
+        lastName = prediction.lastName || "";
 
-        if (!firstName && prediction.firstName) {
-          firstName = prediction.firstName;
-        }
-
-        // ====================================================
-        // USE PREDICTED LAST NAME
-        // ====================================================
-
-        if (!lastName && prediction.lastName) {
-          lastName = prediction.lastName;
-        }
-
-        // ====================================================
-        // USE PREDICTED COMPANY
-        //
-        // Existing Excel company always has priority.
-        // ====================================================
-
-        if (!company && prediction.company) {
-          company = prediction.company;
-        }
-
-        // ====================================================
-        // UNKNOWN PERSON
-        //
-        // If predictor identifies the email as unknown,
-        // use "-" instead of leaving the name empty.
-        // ====================================================
-
-        if (!firstName && !lastName && !company) {
-          firstName = "-";
-          lastName = "-";
-        }
-      }
-
-      // ======================================================
-      // FINAL NAME FALLBACK
-      // ======================================================
-
-      if (!firstName && !lastName) {
-        firstName = "-";
-        lastName = "-";
+        company = prediction.company || "";
       }
 
       // ======================================================
@@ -1060,17 +837,13 @@ exports.importLeadsFromExcel = async (req, res) => {
       const type = typeValue === "whatsapp" ? "WhatsApp" : "Email";
 
       // ======================================================
-      // CREATE LEAD
-      //
-      // TRACKING IS NOT TAKEN FROM EXCEL.
-      // DEFAULT = TRUE.
+      // CREATE LEAD OBJECT
       // ======================================================
 
       validLeads.push({
         userId,
 
         firstName,
-
         lastName,
 
         email,
@@ -1081,10 +854,10 @@ exports.importLeadsFromExcel = async (req, res) => {
 
         tracking: true,
       });
-    }
+    });
 
     // ========================================================
-    // INSERT
+    // INSERT INTO DATABASE
     // ========================================================
 
     let insertedLeads = [];
@@ -1096,7 +869,7 @@ exports.importLeadsFromExcel = async (req, res) => {
     }
 
     // ========================================================
-    // SUCCESS RESPONSE
+    // RESPONSE
     // ========================================================
 
     return res.status(200).json({
@@ -1158,13 +931,9 @@ exports.exportLeadsToExcel = async (req, res) => {
 
     const rows = leads.map((lead) => ({
       "First Name": lead.firstName || "",
-
       "Last Name": lead.lastName || "",
-
       Email: lead.email || "",
-
       Company: lead.company || "",
-
       Type: lead.type || "Email",
     }));
 
@@ -1224,19 +993,13 @@ exports.exportLeadsToExcel = async (req, res) => {
 
     res.setHeader("Content-Disposition", 'attachment; filename="leads.xlsx"');
 
-    // ========================================================
-    // SEND FILE
-    // ========================================================
-
     return res.status(200).send(buffer);
   } catch (error) {
     console.error("Error exporting leads to Excel:", error);
 
     return res.status(500).json({
       success: false,
-
       message: "Unable to download leads Excel file.",
-
       error: error.message,
     });
   }

@@ -2,351 +2,456 @@
 // EMAIL LEAD PREDICTOR
 // ============================================================
 //
-// Purpose:
-// Predict First Name / Last Name / Company from an email.
-//
-// IMPORTANT:
-// This function should ONLY be used when the lead does not
-// already contain name/company information.
-//
 // Examples:
 //
-// john.doe@gmail.com
-// => John Doe
+// abhikhupse@gmail.com
+// -> Abhi / Khupse
+//
+// abhiikhupse@gmail.com
+// -> Abhii / Khupse
 //
 // rajverma@gmail.com
-// => Raj Verma
+// -> Raj / Verma
+//
+// rajeshverma@gmail.com
+// -> Rajesh / Verma
+//
+// john.doe@gmail.com
+// -> John / Doe
+//
+// john_doe@gmail.com
+// -> John / Doe
+//
+// john-doe@gmail.com
+// -> John / Doe
 //
 // sales@company.com
-// => Company
+// -> - / - / Company
 //
 // info@company.com
-// => Company
-//
-// it02.highcustomjewellers@gmail.com
-// => High Custom Jewellers
+// -> - / - / Company
 //
 // ak47.myself@gmail.com
-// => -
+// -> - / - / -
 //
 // ============================================================
 
-const GENERIC_LOCAL_PARTS = new Set([
-  "info",
-  "information",
+const { COMMON_FIRST_NAMES } = require("./nameDictionary");
+
+// ============================================================
+// GENERIC EMAIL USERNAMES
+// ============================================================
+
+const GENERIC_EMAIL_NAMES = new Set([
   "sales",
-  "sale",
+  "info",
   "support",
-  "contact",
   "admin",
-  "administrator",
+  "contact",
   "hello",
-  "help",
   "office",
   "marketing",
+  "hr",
+  "careers",
+  "career",
+  "team",
   "enquiry",
   "inquiry",
+  "billing",
   "accounts",
   "accounting",
-  "billing",
   "finance",
-  "hr",
   "jobs",
-  "career",
-  "careers",
-  "recruitment",
-  "team",
+  "job",
   "service",
   "services",
-  "customerservice",
-  "customer",
-  "orders",
-  "order",
-  "booking",
-  "bookings",
-  "reception",
-  "mail",
-  "email",
-  "webmaster",
+  "help",
   "noreply",
   "no-reply",
+  "notifications",
+  "notification",
   "newsletter",
-]);
-
-const FREE_EMAIL_DOMAINS = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "yahoo.co.in",
-  "hotmail.com",
-  "outlook.com",
-  "live.com",
-  "icloud.com",
-  "me.com",
-  "aol.com",
-  "proton.me",
-  "protonmail.com",
+  "customerservice",
+  "customer",
+  "customers",
+  "webmaster",
+  "reception",
 ]);
 
 // ============================================================
-// MAIN FUNCTION
+// NUMBER PATTERN
 // ============================================================
 
-function predictLeadFromEmail(email) {
-  const cleanEmail = String(email || "")
+const NUMBER_PATTERN = /\d/;
+
+// ============================================================
+// CLEAN WORD
+// ============================================================
+
+function cleanWord(word) {
+  return String(word || "")
+    .replace(/[^a-zA-Z]/g, "")
     .trim()
     .toLowerCase();
-
-  if (!cleanEmail || !cleanEmail.includes("@")) {
-    return {
-      firstName: "-",
-      lastName: "-",
-      company: "-",
-      confidence: 0,
-      source: "invalid",
-    };
-  }
-
-  const parts = cleanEmail.split("@");
-
-  if (parts.length !== 2) {
-    return {
-      firstName: "-",
-      lastName: "-",
-      company: "-",
-      confidence: 0,
-      source: "invalid",
-    };
-  }
-
-  const username = parts[0];
-  const domain = parts[1];
-
-  // ----------------------------------------------------------
-  // COMPANY DOMAIN
-  // ----------------------------------------------------------
-
-  const domainWithoutTld = getCompanyNameFromDomain(domain);
-
-  // ----------------------------------------------------------
-  // GENERIC COMPANY EMAIL
-  // ----------------------------------------------------------
-
-  if (isGenericLocalPart(username)) {
-    return {
-      firstName: "-",
-      lastName: "-",
-      company: domainWithoutTld || "-",
-      confidence: domainWithoutTld === "-" ? 0 : 0.9,
-      source: "company-email",
-    };
-  }
-
-  // ----------------------------------------------------------
-  // PERSON NAME
-  // ----------------------------------------------------------
-
-  const namePrediction = predictPersonName(username);
-
-  if (namePrediction) {
-    return {
-      firstName: namePrediction.firstName,
-      lastName: namePrediction.lastName,
-      company: "-",
-      confidence: namePrediction.confidence,
-      source: "person-email",
-    };
-  }
-
-  // ----------------------------------------------------------
-  // UNKNOWN
-  // ----------------------------------------------------------
-
-  return {
-    firstName: "-",
-    lastName: "-",
-    company: "-",
-    confidence: 0,
-    source: "unknown",
-  };
-}
-
-// ============================================================
-// GENERIC EMAIL DETECTION
-// ============================================================
-
-function isGenericLocalPart(username) {
-  const clean = username.replace(/[._-]/g, "").toLowerCase();
-
-  return GENERIC_LOCAL_PARTS.has(username) || GENERIC_LOCAL_PARTS.has(clean);
-}
-
-// ============================================================
-// PERSON NAME PREDICTION
-// ============================================================
-
-function predictPersonName(username) {
-  let clean = username.toLowerCase().trim();
-
-  // ----------------------------------------------------------
-  // Remove obvious numeric-heavy usernames
-  // ----------------------------------------------------------
-
-  const digits = (clean.match(/\d/g) || []).length;
-
-  if (digits > 0) {
-    return null;
-  }
-
-  // ----------------------------------------------------------
-  // Only allow reasonable name characters
-  // ----------------------------------------------------------
-
-  if (!/^[a-z]+([._-][a-z]+)+$/.test(clean)) {
-    return null;
-  }
-
-  // ----------------------------------------------------------
-  // Split separators
-  // ----------------------------------------------------------
-
-  const pieces = clean.split(/[._-]+/).filter(Boolean);
-
-  // Need at least two parts
-  if (pieces.length < 2) {
-    return null;
-  }
-
-  // Too many pieces becomes unreliable
-  if (pieces.length > 3) {
-    return null;
-  }
-
-  // ----------------------------------------------------------
-  // Reject very short / suspicious pieces
-  // ----------------------------------------------------------
-
-  if (pieces.some((part) => part.length < 2)) {
-    return null;
-  }
-
-  // ----------------------------------------------------------
-  // Check generic words
-  // ----------------------------------------------------------
-
-  if (pieces.some((part) => GENERIC_LOCAL_PARTS.has(part))) {
-    return null;
-  }
-
-  // ----------------------------------------------------------
-  // First two words
-  // ----------------------------------------------------------
-
-  const firstName = capitalizeWord(pieces[0]);
-
-  const lastName = capitalizeWord(pieces[1]);
-
-  // ----------------------------------------------------------
-  // Confidence
-  // ----------------------------------------------------------
-
-  let confidence = 0.8;
-
-  if (pieces.length === 2) {
-    confidence = 0.9;
-  }
-
-  // Underscore / dot / hyphen names are strong signals
-  if (/[._-]/.test(clean)) {
-    confidence = Math.max(confidence, 0.9);
-  }
-
-  return {
-    firstName,
-    lastName,
-    confidence,
-  };
-}
-
-// ============================================================
-// COMPANY NAME FROM DOMAIN
-// ============================================================
-
-function getCompanyNameFromDomain(domain) {
-  if (!domain) {
-    return "-";
-  }
-
-  const cleanDomain = domain.toLowerCase().trim();
-
-  // ----------------------------------------------------------
-  // Free email providers
-  // ----------------------------------------------------------
-
-  if (FREE_EMAIL_DOMAINS.has(cleanDomain)) {
-    return "-";
-  }
-
-  // ----------------------------------------------------------
-  // Split domain
-  // ----------------------------------------------------------
-
-  const domainParts = cleanDomain.split(".");
-
-  if (domainParts.length < 2) {
-    return "-";
-  }
-
-  // Remove TLD
-  domainParts.pop();
-
-  // Remove country code when applicable
-  if (
-    domainParts.length > 1 &&
-    domainParts[domainParts.length - 1].length <= 3
-  ) {
-    domainParts.pop();
-  }
-
-  if (domainParts.length === 0) {
-    return "-";
-  }
-
-  // Take actual company domain
-  const companyPart = domainParts[domainParts.length - 1];
-
-  if (!companyPart) {
-    return "-";
-  }
-
-  // ----------------------------------------------------------
-  // Convert company slug to readable text
-  // ----------------------------------------------------------
-
-  const readable = companyPart
-    .replace(/[-_]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\d+/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!readable) {
-    return "-";
-  }
-
-  return readable.split(" ").map(capitalizeWord).join(" ");
 }
 
 // ============================================================
 // CAPITALIZE
 // ============================================================
 
-function capitalizeWord(value) {
-  if (!value) {
+function capitalize(word) {
+  if (!word) {
     return "";
   }
 
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+// ============================================================
+// FORMAT NAME
+// ============================================================
+
+function formatName(name) {
+  return String(name || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(capitalize)
+    .join(" ");
+}
+
+// ============================================================
+// PERSON USERNAME CHECK
+// ============================================================
+
+function looksLikePersonUsername(username) {
+  if (!username) {
+    return false;
+  }
+
+  // Any number means we treat the username as uncertain.
+  if (NUMBER_PATTERN.test(username)) {
+    return false;
+  }
+
+  const lettersOnly = username.replace(/[^a-zA-Z]/g, "");
+
+  if (lettersOnly.length < 5) {
+    return false;
+  }
+
+  return true;
+}
+
+// ============================================================
+// SEPARATOR SPLIT
+// ============================================================
+//
+// john.doe
+// john_doe
+// john-doe
+//
+// ============================================================
+
+function splitBySeparator(username) {
+  const parts = username
+    .split(/[._-]+/)
+    .map(cleanWord)
+    .filter(Boolean);
+
+  if (parts.length < 2) {
+    return null;
+  }
+
+  const first = parts[0];
+
+  const last = parts.slice(1).join(" ");
+
+  if (!first || !last) {
+    return null;
+  }
+
+  return {
+    firstName: formatName(first),
+    lastName: formatName(last),
+    confidence: "high",
+  };
+}
+
+// ============================================================
+// FIND FIRST NAME PREFIX
+// ============================================================
+//
+// IMPORTANT:
+//
+// We sort by longest name first.
+//
+// Example:
+//
+// rajeshverma
+//
+// Possible matches:
+//
+// raj
+// rajesh
+//
+// "rajesh" wins because it is longer.
+//
+// ============================================================
+
+function findFirstNamePrefix(username) {
+  const normalized = username.toLowerCase();
+
+  const matches = COMMON_FIRST_NAMES.filter((name) =>
+    normalized.startsWith(name),
+  ).sort((a, b) => {
+    // Longest name first
+    if (b.length !== a.length) {
+      return b.length - a.length;
+    }
+
+    // Stable alphabetical fallback
+    return a.localeCompare(b);
+  });
+
+  if (!matches.length) {
+    return null;
+  }
+
+  for (const firstName of matches) {
+    const remaining = normalized.slice(firstName.length);
+
+    if (!remaining) {
+      continue;
+    }
+
+    // Avoid extremely short surname fragments.
+    if (remaining.length < 3) {
+      continue;
+    }
+
+    return {
+      firstName,
+      lastName: remaining,
+      confidence: "high",
+    };
+  }
+
+  return null;
+}
+
+// ============================================================
+// FIND BEST PERSON NAME
+// ============================================================
+
+function predictPersonName(username) {
+  // ==========================================================
+  // 1. Separator
+  // ==========================================================
+
+  const separated = splitBySeparator(username);
+
+  if (separated) {
+    return separated;
+  }
+
+  // ==========================================================
+  // 2. Combined firstName + lastName
+  // ==========================================================
+
+  const prefixMatch = findFirstNamePrefix(username);
+
+  if (prefixMatch) {
+    return {
+      firstName: formatName(prefixMatch.firstName),
+      lastName: formatName(prefixMatch.lastName),
+      confidence: prefixMatch.confidence,
+    };
+  }
+
+  // ==========================================================
+  // 3. Unknown
+  // ==========================================================
+
+  return {
+    firstName: "-",
+    lastName: "-",
+    confidence: "low",
+  };
+}
+
+// ============================================================
+// COMPANY NAME FROM DOMAIN
+// ============================================================
+//
+// Example:
+//
+// company.com
+// -> Company
+//
+// highcustomjewellers.com
+// -> High Custom Jewellers
+//
+// it02.highcustomjewellers.com
+// -> High Custom Jewellers
+//
+// ============================================================
+
+function predictCompanyFromDomain(domain) {
+  if (!domain) {
+    return "-";
+  }
+
+  const domainParts = domain.toLowerCase().split(".").filter(Boolean);
+
+  if (!domainParts.length) {
+    return "-";
+  }
+
+  let companyPart;
+
+  // For subdomains:
+  //
+  // it02.highcustomjewellers.com
+  //
+  // choose highcustomjewellers
+  if (domainParts.length >= 3) {
+    companyPart = domainParts[domainParts.length - 2];
+  } else {
+    companyPart = domainParts[0];
+  }
+
+  companyPart = companyPart.replace(/[-_]+/g, " ").trim();
+
+  if (!companyPart) {
+    return "-";
+  }
+
+  // ==========================================================
+  // Known company mappings
+  // ==========================================================
+
+  const companyMappings = {
+    highcustomjewellers: "High Custom Jewellers",
+    highcustomjewellers: "High Custom Jewellers",
+    google: "Google",
+    microsoft: "Microsoft",
+    apple: "Apple",
+    amazon: "Amazon",
+    facebook: "Facebook",
+    meta: "Meta",
+    linkedin: "LinkedIn",
+  };
+
+  const normalized = companyPart.replace(/\s+/g, "").toLowerCase();
+
+  if (companyMappings[normalized]) {
+    return companyMappings[normalized];
+  }
+
+  return companyPart.split(/\s+/).filter(Boolean).map(capitalize).join(" ");
+}
+
+// ============================================================
+// MAIN PREDICTOR
+// ============================================================
+
+function predictLeadFromEmail(email) {
+  // ==========================================================
+  // INVALID INPUT
+  // ==========================================================
+
+  if (!email || typeof email !== "string") {
+    return {
+      firstName: "-",
+      lastName: "-",
+      company: "-",
+      confidence: "low",
+    };
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const atIndex = normalizedEmail.indexOf("@");
+
+  if (atIndex === -1) {
+    return {
+      firstName: "-",
+      lastName: "-",
+      company: "-",
+      confidence: "low",
+    };
+  }
+
+  const username = normalizedEmail.slice(0, atIndex).trim();
+
+  const domain = normalizedEmail.slice(atIndex + 1).trim();
+
+  if (!username || !domain) {
+    return {
+      firstName: "-",
+      lastName: "-",
+      company: "-",
+      confidence: "low",
+    };
+  }
+
+  // ==========================================================
+  // GENERIC COMPANY EMAIL
+  // ==========================================================
+
+  if (GENERIC_EMAIL_NAMES.has(username)) {
+    return {
+      firstName: "-",
+      lastName: "-",
+      company: predictCompanyFromDomain(domain),
+      confidence: "high",
+    };
+  }
+
+  // ==========================================================
+  // NUMBER-BASED USERNAME
+  // ==========================================================
+  //
+  // ak47.myself@gmail.com
+  //
+  // We don't guess a person's identity.
+  //
+  // ==========================================================
+
+  if (NUMBER_PATTERN.test(username)) {
+    return {
+      firstName: "-",
+      lastName: "-",
+      company: "-",
+      confidence: "low",
+    };
+  }
+
+  // ==========================================================
+  // PERSON EMAIL
+  // ==========================================================
+
+  if (looksLikePersonUsername(username)) {
+    const person = predictPersonName(username);
+
+    return {
+      firstName: person.firstName || "-",
+      lastName: person.lastName || "-",
+      company: "-",
+      confidence: person.confidence || "low",
+    };
+  }
+
+  // ==========================================================
+  // UNKNOWN
+  // ==========================================================
+
+  return {
+    firstName: "-",
+    lastName: "-",
+    company: "-",
+    confidence: "low",
+  };
 }
 
 // ============================================================
@@ -355,4 +460,5 @@ function capitalizeWord(value) {
 
 module.exports = {
   predictLeadFromEmail,
+  predictCompanyFromDomain,
 };
