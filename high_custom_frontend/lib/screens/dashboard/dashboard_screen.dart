@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:high_custom_frontend/services/auth_api.dart';
+
 import 'tracking_report_screen.dart';
 import 'integration_screen.dart';
 import '../profile/profile_screen.dart';
@@ -28,8 +29,17 @@ class DashboardScreen extends StatefulWidget {
       _DashboardScreenState();
 }
 
-class _DashboardScreenState
-    extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> {
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color background = Color(0xFF020507);
+
+  static const Color sidebarBackground = Color(0xFF07090C);
+
+  static const Color gold = Color(0xFFF2C45F);
+
   // ============================================================
   // CONTROLLER
   // ============================================================
@@ -57,11 +67,9 @@ class _DashboardScreenState
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        dashboardController
-            .fetchUserDetails();
+        dashboardController.fetchUserDetails();
       }
     });
   }
@@ -83,36 +91,41 @@ class _DashboardScreenState
 
   void _handleProfileMenu(String menu) {
     switch (menu) {
-      // ========================================================
-      // PROFILE
-      // ========================================================
-
       case 'Profile':
         setState(() {
           selectedMenu = 'Profile';
+
           isSidebarOpen = false;
         });
-        break;
 
-      // ========================================================
-      // INTEGRATION
-      // ========================================================
+        break;
 
       case 'Integration':
         setState(() {
           selectedMenu = 'Integration';
+
           isSidebarOpen = false;
         });
-        break;
 
-      // ========================================================
-      // LOGOUT
-      // ========================================================
+        break;
 
       case 'Logout':
         _showLogoutDialog();
+
         break;
     }
+  }
+
+  // ============================================================
+  // SIDEBAR MENU
+  // ============================================================
+
+  void _handleSidebarMenu(String menu) {
+    setState(() {
+      selectedMenu = menu;
+
+      isSidebarOpen = false;
+    });
   }
 
   // ============================================================
@@ -124,75 +137,84 @@ class _DashboardScreenState
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Logout',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight:
-                  FontWeight.w700,
-              color:
-                  Color(0xFF101828),
+          backgroundColor: const Color(0xFF0B0E12),
+
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+
+            side: BorderSide(
+              color: gold.withOpacity(0.35),
             ),
           ),
+
+          title: const Row(
+            children: [
+              Icon(
+                Icons.logout_rounded,
+                color: gold,
+              ),
+
+              SizedBox(
+                width: 12,
+              ),
+
+              Text(
+                'Logout',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+
           content: const Text(
             'Are you sure you want to logout?',
             style: TextStyle(
+              color: Color(0xFFAEB4BF),
               fontSize: 15,
-              color:
-                  Color(0xFF667085),
             ),
           ),
+
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
               },
+
               child: const Text(
                 'Cancel',
                 style: TextStyle(
-                  color:
-                      Color(0xFF667085),
-                  fontWeight:
-                      FontWeight.w600,
+                  color: Color(0xFFAEB4BF),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
 
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
 
                 _logout();
               },
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.red,
-                foregroundColor:
-                    Colors.white,
+
+              style: ElevatedButton.styleFrom(
+                backgroundColor: gold,
+
+                foregroundColor: Colors.black,
+
                 elevation: 0,
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    8,
-                  ),
+
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
                 ),
               ),
+
               child: const Text(
                 'Logout',
                 style: TextStyle(
-                  fontWeight:
-                      FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -207,8 +229,7 @@ class _DashboardScreenState
   // ============================================================
 
   Future<void> _logout() async {
-    final result =
-        await AuthApi.logout();
+    final result = await AuthApi.logout();
 
     if (!mounted) {
       return;
@@ -217,26 +238,25 @@ class _DashboardScreenState
     if (result['success'] == true) {
       Navigator.pushAndRemoveUntil(
         context,
+
         MaterialPageRoute(
-          builder: (_) =>
-              const LoginScreen(),
+          builder: (_) => const LoginScreen(),
         ),
+
         (route) => false,
       );
 
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        behavior:
-            SnackBarBehavior.floating,
-        backgroundColor:
-            const Color(0xFF241414),
+        behavior: SnackBarBehavior.floating,
+
+        backgroundColor: const Color(0xFF35191C),
+
         content: Text(
-          result['message']
-                  ?.toString() ??
+          result['message']?.toString() ??
               'Logout failed. Please try again.',
         ),
       ),
@@ -249,22 +269,18 @@ class _DashboardScreenState
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth =
-        MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
-    final bool isMobile =
-        screenWidth < 800;
+    final bool isMobile = screenWidth < 800;
 
     return AnimatedBuilder(
-      animation:
-          dashboardController,
+      animation: dashboardController,
+
       builder: (context, _) {
         return Scaffold(
-          backgroundColor:
-              const Color(0xFFF5F7FA),
+          backgroundColor: background,
 
-          resizeToAvoidBottomInset:
-              true,
+          resizeToAvoidBottomInset: true,
 
           body: SafeArea(
             child: Column(
@@ -274,21 +290,17 @@ class _DashboardScreenState
                 // ==================================================
 
                 DashboardHeader(
-                  isSidebarOpen:
-                      isSidebarOpen,
+                  isSidebarOpen: isSidebarOpen,
 
-                  user:
-                      dashboardController.user,
+                  user: dashboardController.user,
 
                   onMenuPressed: () {
                     setState(() {
-                      isSidebarOpen =
-                          !isSidebarOpen;
+                      isSidebarOpen = !isSidebarOpen;
                     });
                   },
 
-                  onProfileMenuSelected:
-                      _handleProfileMenu,
+                  onProfileMenuSelected: _handleProfileMenu,
                 ),
 
                 // ==================================================
@@ -299,78 +311,54 @@ class _DashboardScreenState
                   child: Stack(
                     children: [
                       // ============================================
-                      // MAIN CONTENT
+                      // CONTENT
                       // ============================================
 
                       Positioned.fill(
-                        child:
-                            _buildSelectedContent(),
+                        child: _buildSelectedContent(),
                       ),
 
                       // ============================================
                       // MOBILE SIDEBAR
                       // ============================================
 
-                      if (isMobile &&
-                          isSidebarOpen) ...[
-                        // ------------------------------------------
-                        // BACKGROUND OVERLAY
-                        // ------------------------------------------
-
+                      if (isMobile && isSidebarOpen) ...[
                         Positioned.fill(
-                          child:
-                              GestureDetector(
+                          child: GestureDetector(
                             onTap: () {
                               setState(() {
-                                isSidebarOpen =
-                                    false;
+                                isSidebarOpen = false;
                               });
                             },
-                            child:
-                                Container(
-                              color: Colors
-                                  .black
-                                  .withOpacity(
-                                0.45,
+
+                            child: Container(
+                              color: Colors.black.withOpacity(
+                                0.75,
                               ),
                             ),
                           ),
                         ),
 
-                        // ------------------------------------------
-                        // MOBILE SIDEBAR
-                        // ------------------------------------------
-
                         Positioned(
                           left: 0,
+
                           top: 0,
+
                           bottom: 0,
+
                           width: 285,
-                          child:
-                              Material(
-                            elevation: 12,
-                            color:
-                                const Color(
-                              0xFF111111,
-                            ),
-                            child:
-                                DashboardSidebar(
-                              isOpen:
-                                  true,
 
-                              selectedMenu:
-                                  selectedMenu,
+                          child: Material(
+                            elevation: 20,
 
-                              onMenuSelected:
-                                  (menu) {
-                                setState(() {
-                                  selectedMenu =
-                                      menu;
+                            color: sidebarBackground,
 
-                                  isSidebarOpen =
-                                      false;
-                                });
-                              },
+                            child: DashboardSidebar(
+                              isOpen: true,
+
+                              selectedMenu: selectedMenu,
+
+                              onMenuSelected: _handleSidebarMenu,
                             ),
                           ),
                         ),
@@ -383,62 +371,40 @@ class _DashboardScreenState
                       if (!isMobile)
                         Positioned(
                           left: 0,
+
                           top: 0,
+
                           bottom: 0,
-                          child:
-                              AnimatedContainer(
-                            duration:
-                                const Duration(
-                              milliseconds:
-                                  250,
+
+                          child: AnimatedContainer(
+                            duration: const Duration(
+                              milliseconds: 250,
                             ),
 
-                            curve:
-                                Curves.easeInOut,
+                            curve: Curves.easeInOut,
 
-                            width:
-                                isSidebarOpen
-                                    ? 250
-                                    : 0,
+                            width: isSidebarOpen ? 270 : 0,
 
-                            child:
-                                ClipRect(
-                              child:
-                                  SizedBox(
-                                width: 250,
+                            child: ClipRect(
+                              child: SizedBox(
+                                width: 270,
 
-                                child:
-                                    isSidebarOpen
-                                        ? Material(
-                                            color:
-                                                const Color(
-                                              0xFF111111,
-                                            ),
+                                child: isSidebarOpen
+                                    ? Material(
+                                        elevation: 20,
 
-                                            elevation:
-                                                8,
+                                        color: sidebarBackground,
 
-                                            child:
-                                                DashboardSidebar(
-                                              isOpen:
-                                                  true,
+                                        child: DashboardSidebar(
+                                          isOpen: true,
 
-                                              selectedMenu:
-                                                  selectedMenu,
+                                          selectedMenu: selectedMenu,
 
-                                              onMenuSelected:
-                                                  (menu) {
-                                                setState(() {
-                                                  selectedMenu =
-                                                      menu;
-
-                                                  isSidebarOpen =
-                                                      false;
-                                                });
-                                              },
-                                            ),
-                                          )
-                                        : null,
+                                          onMenuSelected:
+                                              _handleSidebarMenu,
+                                        ),
+                                      )
+                                    : null,
                               ),
                             ),
                           ),
@@ -466,8 +432,7 @@ class _DashboardScreenState
 
       case 'Dashboard':
         return DashboardContent(
-          user:
-              dashboardController.user,
+          user: dashboardController.user,
         );
 
       // ========================================================
@@ -485,32 +450,11 @@ class _DashboardScreenState
         return const LeadsScreen();
 
       // ========================================================
-      // LINK
-      // ========================================================
-
-      case 'Link':
-        return _buildOtherContent(
-          title: 'Link',
-          icon: Icons.link,
-        );
-
-      // ========================================================
       // TRACKING REPORT
       // ========================================================
 
       case 'Tracking Report':
-          return const TrackingReportScreen();
-
-      // ========================================================
-      // SOCIAL LINKS
-      // ========================================================
-
-      case 'Social Links':
-        return _buildOtherContent(
-          title: 'Social Links',
-          icon:
-              Icons.share_outlined,
-        );
+        return const TrackingReportScreen();
 
       // ========================================================
       // PROFILE
@@ -530,18 +474,57 @@ class _DashboardScreenState
       // PRIVACY POLICY
       // ========================================================
 
-   case 'Privacy Policy':
-  return const PrivacyPolicyScreen();
+      case 'Privacy Policy':
+        return const PrivacyPolicyScreen();
 
       // ========================================================
-      // TERMS & CONDITIONS
+      // LINK
+      // ========================================================
+
+      case 'Link':
+        return _buildOtherContent(
+          title: 'Link',
+          icon: Icons.link_rounded,
+        );
+
+      // ========================================================
+      // CAMPAIGNS
+      // ========================================================
+
+      case 'Campaigns':
+        return _buildOtherContent(
+          title: 'Campaigns',
+          icon: Icons.campaign_outlined,
+        );
+
+      // ========================================================
+      // TEMPLATES
+      // ========================================================
+
+      case 'Templates':
+        return _buildOtherContent(
+          title: 'Templates',
+          icon: Icons.description_outlined,
+        );
+
+      // ========================================================
+      // SOCIAL LINKS
+      // ========================================================
+
+      case 'Social Links':
+        return _buildOtherContent(
+          title: 'Social Links',
+          icon: Icons.share_outlined,
+        );
+
+      // ========================================================
+      // TERMS
       // ========================================================
 
       case 'Terms & Conditions':
         return _buildOtherContent(
           title: 'Terms & Conditions',
-          icon:
-              Icons.description_outlined,
+          icon: Icons.description_outlined,
         );
 
       // ========================================================
@@ -551,8 +534,17 @@ class _DashboardScreenState
       case 'Landing Page':
         return _buildOtherContent(
           title: 'Landing Page',
-          icon:
-              Icons.home_outlined,
+          icon: Icons.web_outlined,
+        );
+
+      // ========================================================
+      // CONTACT
+      // ========================================================
+
+      case 'Contact Us':
+        return _buildOtherContent(
+          title: 'Contact Us',
+          icon: Icons.contact_mail_outlined,
         );
 
       // ========================================================
@@ -561,8 +553,7 @@ class _DashboardScreenState
 
       default:
         return DashboardContent(
-          user:
-              dashboardController.user,
+          user: dashboardController.user,
         );
     }
   }
@@ -577,44 +568,38 @@ class _DashboardScreenState
   }) {
     return Container(
       width: double.infinity,
-      height: double.infinity,
-      color:
-          const Color(0xFFF5F7FA),
-      child:
-          SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            // ==================================================
-            // TITLE
-            // ==================================================
 
+      height: double.infinity,
+
+      color: background,
+
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+
+          children: [
             Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        const Color(
-                      0xFFEFF4FF,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
+                  width: 50,
+
+                  height: 50,
+
+                  decoration: BoxDecoration(
+                    color: gold.withOpacity(0.10),
+
+                    borderRadius: BorderRadius.circular(13),
+
+                    border: Border.all(
+                      color: gold.withOpacity(0.35),
                     ),
                   ),
+
                   child: Icon(
                     icon,
-                    color:
-                        const Color(
-                      0xFF315BEF,
-                    ),
-                    size: 25,
+                    color: gold,
                   ),
                 ),
 
@@ -625,13 +610,13 @@ class _DashboardScreenState
                 Expanded(
                   child: Text(
                     title,
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF101828),
+
+                    style: const TextStyle(
+                      color: Colors.white,
+
                       fontSize: 28,
-                      fontWeight:
-                          FontWeight.w800,
+
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -639,69 +624,32 @@ class _DashboardScreenState
             ),
 
             const SizedBox(
-              height: 25,
+              height: 24,
             ),
-
-            // ==================================================
-            // CONTENT CARD
-            // ==================================================
 
             Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.all(24),
-              decoration:
-                  BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(
-                  16,
+
+              padding: const EdgeInsets.all(24),
+
+              decoration: BoxDecoration(
+                color: const Color(0xD90A0D11),
+
+                borderRadius: BorderRadius.circular(16),
+
+                border: Border.all(
+                  color: gold.withOpacity(0.35),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black
-                        .withOpacity(
-                      0.04,
-                    ),
-                    blurRadius: 15,
-                    offset:
-                        const Offset(
-                      0,
-                      5,
-                    ),
-                  ),
-                ],
               ),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$title Content',
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF101828),
-                      fontSize: 20,
-                      fontWeight:
-                          FontWeight.w700,
-                    ),
-                  ),
 
-                  const SizedBox(
-                    height: 10,
-                  ),
+              child: Text(
+                'This section is ready for the $title module.',
 
-                  Text(
-                    'This section is ready for the $title module.',
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF667085),
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+                style: const TextStyle(
+                  color: Color(0xFFB8BDC6),
+
+                  fontSize: 15,
+                ),
               ),
             ),
           ],

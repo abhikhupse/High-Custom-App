@@ -6,68 +6,300 @@ import 'login_controller.dart';
 import 'login_form.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({
+    super.key,
+  });
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreen> createState() =>
+      _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState
+    extends State<LoginScreen> {
+  // ============================================================
+  // FORM
+  // ============================================================
+
   final GlobalKey<FormState> _formKey =
       GlobalKey<FormState>();
 
-  final LoginController _controller = LoginController();
+  // ============================================================
+  // CONTROLLER
+  // ============================================================
+
+  final LoginController _controller =
+      LoginController();
+
+  // ============================================================
+  // PREVENT DOUBLE LOGIN
+  // ============================================================
+
+  bool _isNavigating = false;
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
 
   @override
   void dispose() {
     _controller.dispose();
+
     super.dispose();
   }
 
+  // ============================================================
+  // LOGIN
+  // ============================================================
+
   Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_controller.isLoading ||
+        _isNavigating) {
       return;
     }
 
-    final success = await _controller.login();
+    debugPrint(
+      '======================================',
+    );
+
+    debugPrint(
+      'LOGIN BUTTON CLICKED',
+    );
+
+    // ==========================================================
+    // READ VALUES
+    // ==========================================================
+
+    final email =
+        _controller.emailController.text
+            .trim();
+
+    final password =
+        _controller.passwordController.text;
+
+    debugPrint(
+      'EMAIL: "$email"',
+    );
+
+    debugPrint(
+      'PASSWORD LENGTH: ${password.length}',
+    );
+
+    // ==========================================================
+    // CHECK INDIVIDUAL VALIDATORS
+    // ==========================================================
+
+    final emailError =
+        _controller.validateEmail(
+      email,
+    );
+
+    final passwordError =
+        _controller.validatePassword(
+      password,
+    );
+
+    debugPrint(
+      'EMAIL ERROR: $emailError',
+    );
+
+    debugPrint(
+      'PASSWORD ERROR: $passwordError',
+    );
+
+    // ==========================================================
+    // FORM STATE
+    // ==========================================================
+
+    final formState =
+        _formKey.currentState;
+
+    if (formState == null) {
+      debugPrint(
+        'LOGIN FORM STATE IS NULL',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+          .hideCurrentSnackBar();
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          behavior:
+              SnackBarBehavior.floating,
+          backgroundColor:
+              Color(0xFF33191C),
+          content: Text(
+            'Login form is not ready. Please try again.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    // ==========================================================
+    // VALIDATE FORM
+    // ==========================================================
+
+    final bool isValid =
+        formState.validate();
+
+    debugPrint(
+      'FORM VALID: $isValid',
+    );
+
+    if (!isValid) {
+      debugPrint(
+        'LOGIN FORM VALIDATION FAILED',
+      );
+
+      return;
+    }
+
+    debugPrint(
+      'LOGIN FORM VALIDATION SUCCESS',
+    );
+
+    // ==========================================================
+    // CLOSE KEYBOARD
+    // ==========================================================
+
+    FocusManager.instance.primaryFocus
+        ?.unfocus();
+
+    // ==========================================================
+    // LOGIN
+    // ==========================================================
+
+    debugPrint(
+      'CALLING LOGIN CONTROLLER...',
+    );
+
+    final success =
+        await _controller.login();
+
+    debugPrint(
+      'LOGIN CONTROLLER FINISHED',
+    );
+
+    debugPrint(
+      'LOGIN SUCCESS VALUE: $success',
+    );
 
     if (!mounted) {
       return;
     }
 
+    // ==========================================================
+    // FAILED
+    // ==========================================================
+
     if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFF241414),
+      ScaffoldMessenger.of(context)
+          .hideCurrentSnackBar();
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          behavior:
+              SnackBarBehavior.floating,
+          backgroundColor:
+              const Color(
+            0xFF33191C,
+          ),
           content: Text(
-            'Login failed. Please try again.',
+            _controller.errorMessage ??
+                'Login failed. Please try again.',
           ),
         ),
       );
+
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
+    // ==========================================================
+    // SUCCESS
+    // ==========================================================
+
+    _isNavigating = true;
+
+    debugPrint(
+      '======================================',
+    );
+
+    debugPrint(
+      'LOGIN SUCCESS - OPENING DASHBOARD',
+    );
+
+    debugPrint(
+      '======================================',
+    );
+
+    // ==========================================================
+    // NAVIGATE
+    // ==========================================================
+
+    Navigator.of(context)
+        .pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => const DashboardScreen(),
+        builder: (
+          context,
+        ) {
+          return const DashboardScreen();
+        },
       ),
+      (
+        route,
+      ) =>
+          false,
     );
   }
+
+  // ============================================================
+  // SIGN UP
+  // ============================================================
 
   void _handleSignup() {
-    Navigator.pushReplacement(
-      context,
+    FocusManager.instance.primaryFocus
+        ?.unfocus();
+
+    Navigator.of(context)
+        .pushReplacement(
       MaterialPageRoute(
-        builder: (_) => const SignupScreen(),
+        builder: (
+          context,
+        ) {
+          return const SignupScreen();
+        },
       ),
     );
   }
 
+  // ============================================================
+  // FORGOT PASSWORD
+  // ============================================================
+
   void _handleForgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
+    FocusManager.instance.primaryFocus
+        ?.unfocus();
+
+    ScaffoldMessenger.of(context)
+        .hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       const SnackBar(
+        behavior:
+            SnackBarBehavior.floating,
+        backgroundColor:
+            Color(
+          0xFF20242E,
+        ),
         content: Text(
           'Forgot password feature is not connected yet.',
         ),
@@ -75,19 +307,65 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
+      animation:
+          _controller,
+
+      builder:
+          (
+        context,
+        child,
+      ) {
         return Scaffold(
-          backgroundColor: const Color(0xFF050505),
-          body: LoginForm(
-            formKey: _formKey,
-            controller: _controller,
-            onSubmit: _handleSubmit,
-            onSignup: _handleSignup,
-            onForgotPassword: _handleForgotPassword,
+          resizeToAvoidBottomInset:
+              true,
+
+          backgroundColor:
+              const Color(
+            0xFF080D14,
+          ),
+
+          body:
+              GestureDetector(
+            behavior:
+                HitTestBehavior.translucent,
+
+            // ==================================================
+            // CLOSE KEYBOARD
+            // ==================================================
+
+            onTap: () {
+              FocusManager
+                  .instance
+                  .primaryFocus
+                  ?.unfocus();
+            },
+
+            child:
+                LoginForm(
+              formKey:
+                  _formKey,
+
+              controller:
+                  _controller,
+
+              onSubmit:
+                  _handleSubmit,
+
+              onSignup:
+                  _handleSignup,
+
+              onForgotPassword:
+                  _handleForgotPassword,
+            ),
           ),
         );
       },

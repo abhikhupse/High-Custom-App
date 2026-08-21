@@ -1,7 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../models/user_model.dart';
 import '../../services/sequence_api.dart';
+
+// ============================================================
+// DASHBOARD CONTENT
+// ============================================================
 
 class DashboardContent extends StatefulWidget {
   final UserModel? user;
@@ -17,6 +23,19 @@ class DashboardContent extends StatefulWidget {
 }
 
 class _DashboardContentState extends State<DashboardContent> {
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color background = Color(0xFF020507);
+  static const Color panelColor2 = Color(0xFF0D1116);
+
+  static const Color gold = Color(0xFFF2C45F);
+
+  static const Color white = Colors.white;
+
+  static const Color mutedText = Color(0xFFADB2BB);
+
   // ============================================================
   // DATE FILTER
   // ============================================================
@@ -69,7 +88,9 @@ class _DashboardContentState extends State<DashboardContent> {
   Future<void> _loadTrackingSummary({
     bool showLoading = true,
   }) async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (showLoading) {
       setState(() {
@@ -84,16 +105,19 @@ class _DashboardContentState extends State<DashboardContent> {
     }
 
     try {
-      final result = await SequenceApi.getTrackingSummary(
+      final result =
+          await SequenceApi.getTrackingSummary(
         startDate: fromDate,
         endDate: toDate,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      // ==========================================================
+      // ========================================================
       // API ERROR
-      // ==========================================================
+      // ========================================================
 
       if (result['success'] == false) {
         setState(() {
@@ -105,23 +129,9 @@ class _DashboardContentState extends State<DashboardContent> {
         return;
       }
 
-      // ==========================================================
+      // ========================================================
       // GET DATA
-      //
-      // Supports:
-      //
-      // {
-      //   success: true,
-      //   data: {...}
-      // }
-      //
-      // OR
-      //
-      // {
-      //   success: true,
-      //   totalMails: 10
-      // }
-      // ==========================================================
+      // ========================================================
 
       dynamic rawData = result['data'];
 
@@ -137,43 +147,33 @@ class _DashboardContentState extends State<DashboardContent> {
             'totalMails': _toInt(
               data['totalMails'],
             ),
-
             'sent': _toInt(
               data['sent'],
             ),
-
             'failed': _toInt(
               data['failed'],
             ),
-
             'opened': _toInt(
               data['opened'],
             ),
-
             'clicked': _toInt(
               data['clicked'],
             ),
-
             'pending': _toInt(
               data['pending'],
             ),
-
             'interested': _toInt(
               data['interested'],
             ),
-
             'notInterested': _toInt(
               data['notInterested'],
             ),
-
             'totalLeads': _toInt(
               data['totalLeads'],
             ),
-
             'todayLeads': _toInt(
               data['todayLeads'],
             ),
-
             'qrScans': _toInt(
               data['qrScans'],
             ),
@@ -188,7 +188,9 @@ class _DashboardContentState extends State<DashboardContent> {
         });
       }
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _summaryError =
@@ -199,7 +201,9 @@ class _DashboardContentState extends State<DashboardContent> {
         'Dashboard summary error: $error',
       );
     } finally {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _isLoadingSummary = false;
@@ -264,7 +268,9 @@ class _DashboardContentState extends State<DashboardContent> {
   // DATE FORMAT
   // ============================================================
 
-  String _formatDateLabel(DateTime date) {
+  String _formatDateLabel(
+    DateTime date,
+  ) {
     return '${date.day.toString().padLeft(2, '0')}/'
         '${date.month.toString().padLeft(2, '0')}/'
         '${date.year}';
@@ -310,39 +316,64 @@ class _DashboardContentState extends State<DashboardContent> {
     await showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (dialogContext) {
+      builder: (
+        dialogContext,
+      ) {
         return StatefulBuilder(
           builder: (
             context,
             setDialogState,
           ) {
             return Dialog(
-              backgroundColor: Colors.transparent,
-
+              backgroundColor:
+                  Colors.transparent,
               insetPadding:
                   const EdgeInsets.symmetric(
                 horizontal: 20,
                 vertical: 24,
               ),
-
               child: ConstrainedBox(
                 constraints:
                     const BoxConstraints(
                   maxWidth: 520,
                 ),
-
                 child: Container(
                   decoration:
                       BoxDecoration(
-                    color: Colors.white,
+                    color:
+                        const Color(
+                      0xFF080B0F,
+                    ),
                     borderRadius:
-                        BorderRadius.circular(18),
+                        BorderRadius.circular(
+                      18,
+                    ),
+                    border:
+                        Border.all(
+                      color:
+                          gold.withOpacity(
+                        0.35,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            Colors.black.withOpacity(
+                          0.55,
+                        ),
+                        blurRadius:
+                            30,
+                        offset:
+                            const Offset(
+                          0,
+                          15,
+                        ),
+                      ),
+                    ],
                   ),
-
                   child: Column(
                     mainAxisSize:
                         MainAxisSize.min,
-
                     children: [
                       // ==================================================
                       // HEADER
@@ -350,48 +381,68 @@ class _DashboardContentState extends State<DashboardContent> {
 
                       Container(
                         padding:
-                            const EdgeInsets.all(20),
-
+                            const EdgeInsets.all(
+                          20,
+                        ),
                         decoration:
-                            const BoxDecoration(
+                            BoxDecoration(
                           color:
-                              Color(0xFF101828),
-
+                              const Color(
+                            0xFF05070A,
+                          ),
                           borderRadius:
-                              BorderRadius.only(
+                              const BorderRadius.only(
                             topLeft:
-                                Radius.circular(18),
+                                Radius.circular(
+                              18,
+                            ),
                             topRight:
-                                Radius.circular(18),
+                                Radius.circular(
+                              18,
+                            ),
+                          ),
+                          border:
+                              Border(
+                            bottom:
+                                BorderSide(
+                              color:
+                                  gold.withOpacity(
+                                0.18,
+                              ),
+                            ),
                           ),
                         ),
-
                         child: Row(
                           children: [
                             Container(
-                              width: 42,
-                              height: 42,
-
+                              width: 44,
+                              height: 44,
                               decoration:
                                   BoxDecoration(
                                 color:
-                                    const Color(
-                                  0xFF315BEF,
-                                ).withOpacity(0.18),
-
+                                    gold.withOpacity(
+                                  0.10,
+                                ),
                                 borderRadius:
                                     BorderRadius.circular(
-                                  10,
+                                  11,
+                                ),
+                                border:
+                                    Border.all(
+                                  color:
+                                      gold.withOpacity(
+                                    0.25,
+                                  ),
                                 ),
                               ),
-
                               child:
                                   const Icon(
                                 Icons
                                     .calendar_month_outlined,
-
                                 color:
-                                    Color(0xFF7C9AFF),
+                                    gold,
+                                size:
+                                    23,
                               ),
                             ),
 
@@ -400,13 +451,13 @@ class _DashboardContentState extends State<DashboardContent> {
                             ),
 
                             const Expanded(
-                              child: Column(
+                              child:
+                                  Column(
                                 crossAxisAlignment:
                                     CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Filter Dashboard',
-
                                     style:
                                         TextStyle(
                                       color:
@@ -417,18 +468,15 @@ class _DashboardContentState extends State<DashboardContent> {
                                           FontWeight.w700,
                                     ),
                                   ),
-
                                   SizedBox(
-                                    height: 3,
+                                    height: 4,
                                   ),
-
                                   Text(
                                     'Select a date range to filter stats',
-
                                     style:
                                         TextStyle(
                                       color:
-                                          Color(0xFF98A2B3),
+                                          mutedText,
                                       fontSize:
                                           12,
                                     ),
@@ -439,16 +487,16 @@ class _DashboardContentState extends State<DashboardContent> {
 
                             IconButton(
                               onPressed:
-                                  () =>
-                                      Navigator.pop(
-                                dialogContext,
-                              ),
-
+                                  () {
+                                Navigator.pop(
+                                  dialogContext,
+                                );
+                              },
                               icon:
                                   const Icon(
                                 Icons.close,
                                 color:
-                                    Colors.white,
+                                    mutedText,
                               ),
                             ),
                           ],
@@ -461,20 +509,20 @@ class _DashboardContentState extends State<DashboardContent> {
 
                       Padding(
                         padding:
-                            const EdgeInsets.all(20),
-
-                        child: Column(
+                            const EdgeInsets.all(
+                          20,
+                        ),
+                        child:
+                            Column(
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
-
                           children: [
                             const Text(
                               'Date Range',
-
                               style:
                                   TextStyle(
                                 color:
-                                    Color(0xFF101828),
+                                    Colors.white,
                                 fontSize:
                                     14,
                                 fontWeight:
@@ -486,111 +534,223 @@ class _DashboardContentState extends State<DashboardContent> {
                               height: 12,
                             ),
 
-                            Row(
-                              children: [
-                                Expanded(
-                                  child:
+                            LayoutBuilder(
+                              builder: (
+                                context,
+                                constraints,
+                              ) {
+                                if (constraints
+                                        .maxWidth <
+                                    420) {
+                                  return Column(
+                                    children: [
                                       _dateBox(
-                                    label:
-                                        'From Date',
-
-                                    date:
-                                        tempFromDate,
-
-                                    onTap:
-                                        () async {
-                                      final date =
-                                          await _pickSingleDate(
-                                        context,
-                                        tempFromDate ??
-                                            DateTime.now(),
-                                      );
-
-                                      if (date !=
-                                          null) {
-                                        setDialogState(
-                                          () {
-                                            tempFromDate =
-                                                date;
-
-                                            tempTodayOnly =
-                                                false;
-
-                                            if (tempToDate !=
-                                                    null &&
-                                                tempToDate!
-                                                    .isBefore(
-                                                  date,
-                                                )) {
-                                              tempToDate =
-                                                  date;
-                                            }
-                                          },
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-
-                                const SizedBox(
-                                  width: 12,
-                                ),
-
-                                Expanded(
-                                  child:
-                                      _dateBox(
-                                    label:
-                                        'To Date',
-
-                                    date:
-                                        tempToDate,
-
-                                    onTap:
-                                        () async {
-                                      final date =
-                                          await _pickSingleDate(
-                                        context,
-                                        tempToDate ??
-                                            tempFromDate ??
-                                            DateTime.now(),
-                                      );
-
-                                      if (date !=
-                                          null) {
-                                        if (tempFromDate !=
-                                                null &&
-                                            date.isBefore(
-                                              tempFromDate!,
-                                            )) {
-                                          ScaffoldMessenger
-                                                  .of(
+                                        label:
+                                            'From Date',
+                                        date:
+                                            tempFromDate,
+                                        onTap:
+                                            () async {
+                                          final date =
+                                              await _pickSingleDate(
                                             context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content:
-                                                  Text(
-                                                'To Date cannot be before From Date.',
-                                              ),
-                                            ),
+                                            tempFromDate ??
+                                                DateTime.now(),
                                           );
 
-                                          return;
-                                        }
+                                          if (date ==
+                                              null) {
+                                            return;
+                                          }
 
-                                        setDialogState(
-                                          () {
-                                            tempToDate =
-                                                date;
+                                          setDialogState(
+                                            () {
+                                              tempFromDate =
+                                                  date;
 
-                                            tempTodayOnly =
-                                                false;
-                                          },
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ],
+                                              tempTodayOnly =
+                                                  false;
+
+                                              if (tempToDate !=
+                                                      null &&
+                                                  tempToDate!
+                                                      .isBefore(
+                                                    date,
+                                                  )) {
+                                                tempToDate =
+                                                    date;
+                                              }
+                                            },
+                                          );
+                                        },
+                                      ),
+
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+
+                                      _dateBox(
+                                        label:
+                                            'To Date',
+                                        date:
+                                            tempToDate,
+                                        onTap:
+                                            () async {
+                                          final date =
+                                              await _pickSingleDate(
+                                            context,
+                                            tempToDate ??
+                                                tempFromDate ??
+                                                DateTime.now(),
+                                          );
+
+                                          if (date ==
+                                              null) {
+                                            return;
+                                          }
+
+                                          if (tempFromDate !=
+                                                  null &&
+                                              date.isBefore(
+                                                tempFromDate!,
+                                              )) {
+                                            ScaffoldMessenger
+                                                    .of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content:
+                                                    Text(
+                                                  'To Date cannot be before From Date.',
+                                                ),
+                                              ),
+                                            );
+
+                                            return;
+                                          }
+
+                                          setDialogState(
+                                            () {
+                                              tempToDate =
+                                                  date;
+
+                                              tempTodayOnly =
+                                                  false;
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          _dateBox(
+                                        label:
+                                            'From Date',
+                                        date:
+                                            tempFromDate,
+                                        onTap:
+                                            () async {
+                                          final date =
+                                              await _pickSingleDate(
+                                            context,
+                                            tempFromDate ??
+                                                DateTime.now(),
+                                          );
+
+                                          if (date ==
+                                              null) {
+                                            return;
+                                          }
+
+                                          setDialogState(
+                                            () {
+                                              tempFromDate =
+                                                  date;
+
+                                              tempTodayOnly =
+                                                  false;
+
+                                              if (tempToDate !=
+                                                      null &&
+                                                  tempToDate!
+                                                      .isBefore(
+                                                    date,
+                                                  )) {
+                                                tempToDate =
+                                                    date;
+                                              }
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ),
+
+                                    const SizedBox(
+                                      width: 12,
+                                    ),
+
+                                    Expanded(
+                                      child:
+                                          _dateBox(
+                                        label:
+                                            'To Date',
+                                        date:
+                                            tempToDate,
+                                        onTap:
+                                            () async {
+                                          final date =
+                                              await _pickSingleDate(
+                                            context,
+                                            tempToDate ??
+                                                tempFromDate ??
+                                                DateTime.now(),
+                                          );
+
+                                          if (date ==
+                                              null) {
+                                            return;
+                                          }
+
+                                          if (tempFromDate !=
+                                                  null &&
+                                              date.isBefore(
+                                                tempFromDate!,
+                                              )) {
+                                            ScaffoldMessenger
+                                                    .of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content:
+                                                    Text(
+                                                  'To Date cannot be before From Date.',
+                                                ),
+                                              ),
+                                            );
+
+                                            return;
+                                          }
+
+                                          setDialogState(
+                                            () {
+                                              tempToDate =
+                                                  date;
+
+                                              tempTodayOnly =
+                                                  false;
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
 
                             const SizedBox(
@@ -599,11 +759,10 @@ class _DashboardContentState extends State<DashboardContent> {
 
                             const Text(
                               'Quick Select',
-
                               style:
                                   TextStyle(
                                 color:
-                                    Color(0xFF101828),
+                                    Colors.white,
                                 fontSize:
                                     14,
                                 fontWeight:
@@ -618,7 +777,6 @@ class _DashboardContentState extends State<DashboardContent> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-
                               children: [
                                 _quickDateButton(
                                   'Today',
@@ -630,10 +788,8 @@ class _DashboardContentState extends State<DashboardContent> {
                                       () {
                                         tempFromDate =
                                             now;
-
                                         tempToDate =
                                             now;
-
                                         tempTodayOnly =
                                             true;
                                       },
@@ -706,43 +862,61 @@ class _DashboardContentState extends State<DashboardContent> {
 
                       Container(
                         padding:
-                            const EdgeInsets.all(18),
-
+                            const EdgeInsets.all(
+                          18,
+                        ),
                         decoration:
-                            const BoxDecoration(
+                            BoxDecoration(
                           color:
-                              Color(0xFFF9FAFB),
-
+                              const Color(
+                            0xFF06090C,
+                          ),
                           borderRadius:
-                              BorderRadius.only(
+                              const BorderRadius.only(
                             bottomLeft:
-                                Radius.circular(18),
+                                Radius.circular(
+                              18,
+                            ),
                             bottomRight:
-                                Radius.circular(18),
+                                Radius.circular(
+                              18,
+                            ),
+                          ),
+                          border:
+                              Border(
+                            top:
+                                BorderSide(
+                              color:
+                                  gold.withOpacity(
+                                0.15,
+                              ),
+                            ),
                           ),
                         ),
-
                         child: Row(
                           children: [
                             TextButton(
-                              onPressed: () {
+                              onPressed:
+                                  () {
                                 setDialogState(
                                   () {
                                     tempFromDate =
                                         null;
-
                                     tempToDate =
                                         null;
-
                                     tempTodayOnly =
                                         false;
                                   },
                                 );
                               },
-
                               child:
                                   const Text(
                                 'Clear',
+                                style:
+                                    TextStyle(
+                                  color:
+                                      mutedText,
+                                ),
                               ),
                             ),
 
@@ -750,11 +924,30 @@ class _DashboardContentState extends State<DashboardContent> {
 
                             OutlinedButton(
                               onPressed:
-                                  () =>
-                                      Navigator.pop(
-                                dialogContext,
+                                  () {
+                                Navigator.pop(
+                                  dialogContext,
+                                );
+                              },
+                              style:
+                                  OutlinedButton.styleFrom(
+                                foregroundColor:
+                                    white,
+                                side:
+                                    BorderSide(
+                                  color:
+                                      gold.withOpacity(
+                                    0.30,
+                                  ),
+                                ),
+                                shape:
+                                    RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                    8,
+                                  ),
+                                ),
                               ),
-
                               child:
                                   const Text(
                                 'Cancel',
@@ -772,10 +965,8 @@ class _DashboardContentState extends State<DashboardContent> {
                                   () {
                                     fromDate =
                                         tempFromDate;
-
                                     toDate =
                                         tempToDate;
-
                                     todayOnly =
                                         tempTodayOnly;
                                   },
@@ -787,24 +978,30 @@ class _DashboardContentState extends State<DashboardContent> {
 
                                 await _loadTrackingSummary();
                               },
-
                               style:
-                                  ElevatedButton
-                                      .styleFrom(
+                                  ElevatedButton.styleFrom(
                                 backgroundColor:
-                                    const Color(
-                                  0xFF315BEF,
-                                ),
-
+                                    gold,
                                 foregroundColor:
-                                    Colors.white,
-
-                                elevation: 0,
+                                    Colors.black,
+                                elevation:
+                                    0,
+                                shape:
+                                    RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                    8,
+                                  ),
+                                ),
                               ),
-
                               child:
                                   const Text(
                                 'Apply Filter',
+                                style:
+                                    TextStyle(
+                                  fontWeight:
+                                      FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
@@ -831,48 +1028,45 @@ class _DashboardContentState extends State<DashboardContent> {
   ) async {
     return showDatePicker(
       context: context,
-
       initialDate: initialDate,
-
-      firstDate:
-          DateTime(2020),
-
-      lastDate:
-          DateTime(2035),
-
-      builder:
-          (context, child) {
+      firstDate: DateTime(
+        2020,
+      ),
+      lastDate: DateTime(
+        2035,
+      ),
+      builder: (
+        context,
+        child,
+      ) {
         return Theme(
-          data:
-              Theme.of(context).copyWith(
+          data: ThemeData.dark().copyWith(
             colorScheme:
-                const ColorScheme.light(
-              primary:
-                  Color(0xFF315BEF),
-
+                const ColorScheme.dark(
+              primary: gold,
               onPrimary:
-                  Colors.white,
-
+                  Colors.black,
               surface:
-                  Colors.white,
-
+                  Color(
+                0xFF0D1116,
+              ),
               onSurface:
-                  Color(0xFF101828),
+                  Colors.white,
             ),
-
             datePickerTheme:
                 const DatePickerThemeData(
               backgroundColor:
-                  Colors.white,
-
+                  Color(
+                0xFF080B0F,
+              ),
               headerBackgroundColor:
-                  Color(0xFF101828),
-
+                  Color(
+                0xFF05070A,
+              ),
               headerForegroundColor:
-                  Colors.white,
+                  gold,
             ),
           ),
-
           child:
               child!,
         );
@@ -890,39 +1084,42 @@ class _DashboardContentState extends State<DashboardContent> {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: onTap,
-
+      onTap:
+          onTap,
       borderRadius:
-          BorderRadius.circular(10),
-
+          BorderRadius.circular(
+        10,
+      ),
       child: Container(
         padding:
-            const EdgeInsets.all(12),
-
+            const EdgeInsets.all(
+          12,
+        ),
         decoration:
             BoxDecoration(
           color:
-              Colors.white,
-
+              const Color(
+            0xFF0D1116,
+          ),
           border:
               Border.all(
             color:
-                const Color(0xFFD0D5DD),
+                gold.withOpacity(
+              0.28,
+            ),
           ),
-
           borderRadius:
-              BorderRadius.circular(10),
+              BorderRadius.circular(
+            10,
+          ),
         ),
-
         child: Row(
           children: [
             const Icon(
-              Icons.calendar_today_outlined,
-
+              Icons
+                  .calendar_today_outlined,
               size: 18,
-
-              color:
-                  Color(0xFF667085),
+              color: gold,
             ),
 
             const SizedBox(
@@ -930,19 +1127,17 @@ class _DashboardContentState extends State<DashboardContent> {
             ),
 
             Expanded(
-              child: Column(
+              child:
+                  Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
-
                 children: [
                   Text(
                     label,
-
                     style:
                         const TextStyle(
                       color:
-                          Color(0xFF667085),
-
+                          mutedText,
                       fontSize:
                           10,
                     ),
@@ -958,21 +1153,14 @@ class _DashboardContentState extends State<DashboardContent> {
                         : _formatDateLabel(
                             date,
                           ),
-
                     style:
                         TextStyle(
-                      color:
-                          date == null
-                              ? const Color(
-                                  0xFF98A2B3,
-                                )
-                              : const Color(
-                                  0xFF101828,
-                                ),
-
+                      color: date ==
+                              null
+                          ? mutedText
+                          : white,
                       fontSize:
                           13,
-
                       fontWeight:
                           FontWeight.w600,
                     ),
@@ -997,40 +1185,39 @@ class _DashboardContentState extends State<DashboardContent> {
     return OutlinedButton(
       onPressed:
           onPressed,
-
       style:
           OutlinedButton.styleFrom(
         foregroundColor:
-            const Color(0xFF315BEF),
-
+            gold,
         side:
-            const BorderSide(
+            BorderSide(
           color:
-              Color(0xFFD0D5DD),
+              gold.withOpacity(
+            0.30,
+          ),
         ),
-
+        backgroundColor:
+            gold.withOpacity(
+          0.03,
+        ),
         padding:
             const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 9,
         ),
-
         shape:
             RoundedRectangleBorder(
           borderRadius:
-              BorderRadius.circular(8),
+              BorderRadius.circular(
+            8,
+          ),
         ),
       ),
-
-      child:
-          Text(
+      child: Text(
         label,
-
         style:
             const TextStyle(
-          fontSize:
-              12,
-
+          fontSize: 12,
           fontWeight:
               FontWeight.w600,
         ),
@@ -1045,9 +1232,7 @@ class _DashboardContentState extends State<DashboardContent> {
   Future<void> _clearDateFilters() async {
     setState(() {
       fromDate = null;
-
       toDate = null;
-
       todayOnly = false;
     });
 
@@ -1055,90 +1240,122 @@ class _DashboardContentState extends State<DashboardContent> {
   }
 
   // ============================================================
-  // ACTIVE DATE FILTER
+  // BACKGROUND
   // ============================================================
 
-  Widget _buildActiveDateFilter() {
-    return Container(
-      width:
-          double.infinity,
+  Widget _buildBackground() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          fit:
+              StackFit.expand,
+          children: [
+            const ColoredBox(
+              color:
+                  background,
+            ),
 
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
-      ),
+            // ==================================================
+            // JEWELLERY IMAGE
+            // ==================================================
 
-      decoration:
-          BoxDecoration(
-        color:
-            const Color(0xFFF8FAFF),
+            Align(
+              alignment:
+                  Alignment.topRight,
+              child: SizedBox(
+                width: 650,
+                height: 470,
+                child: Opacity(
+                  opacity: 0.48,
+                  child:
+                      Image.asset(
+                    'assets/images/login_jewellery.png',
+                    fit:
+                        BoxFit.cover,
+                    alignment:
+                        Alignment.center,
+                    filterQuality:
+                        FilterQuality.high,
+                    errorBuilder: (
+                      context,
+                      error,
+                      stackTrace,
+                    ) {
+                      return const SizedBox
+                          .shrink();
+                    },
+                  ),
+                ),
+              ),
+            ),
 
-        borderRadius:
-            BorderRadius.circular(8),
+            // ==================================================
+            // DARK FADE
+            // ==================================================
 
-        border:
-            Border.all(
-          color:
-              const Color(0xFFDCE5FF),
+            DecoratedBox(
+              decoration:
+                  BoxDecoration(
+                gradient:
+                    LinearGradient(
+                  begin:
+                      Alignment.topRight,
+                  end:
+                      Alignment.bottomLeft,
+                  colors: [
+                    Colors
+                        .transparent,
+                    background
+                        .withOpacity(
+                      0.25,
+                    ),
+                    background
+                        .withOpacity(
+                      0.83,
+                    ),
+                    background,
+                  ],
+                  stops:
+                      const [
+                    0.0,
+                    0.30,
+                    0.64,
+                    1.0,
+                  ],
+                ),
+              ),
+            ),
+
+            // ==================================================
+            // GOLD GLOW
+            // ==================================================
+
+            Positioned(
+              right: -120,
+              top: 80,
+              child:
+                  Container(
+                width: 400,
+                height: 400,
+                decoration:
+                    BoxDecoration(
+                  shape:
+                      BoxShape.circle,
+                  gradient:
+                      RadialGradient(
+                    colors: [
+                      gold.withOpacity(
+                        0.10,
+                      ),
+                      Colors
+                          .transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-
-      child: Row(
-        children: [
-          const Icon(
-            Icons.filter_alt_outlined,
-
-            size: 17,
-
-            color:
-                Color(0xFF315BEF),
-          ),
-
-          const SizedBox(
-            width: 8,
-          ),
-
-          Expanded(
-            child:
-                Text(
-              todayOnly
-                  ? 'Showing dashboard data for today'
-                  : 'Date: ${_getDateText()}',
-
-              style:
-                  const TextStyle(
-                color:
-                    Color(0xFF344054),
-
-                fontSize:
-                    13,
-
-                fontWeight:
-                    FontWeight.w600,
-              ),
-            ),
-          ),
-
-          TextButton(
-            onPressed:
-                _clearDateFilters,
-
-            child:
-                const Text(
-              'Clear',
-
-              style:
-                  TextStyle(
-                color:
-                    Color(0xFF315BEF),
-
-                fontWeight:
-                    FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1151,62 +1368,449 @@ class _DashboardContentState extends State<DashboardContent> {
   Widget build(
     BuildContext context,
   ) {
-    return Container(
-      width:
-          double.infinity,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildBackground(),
 
-      height:
-          double.infinity,
+        RefreshIndicator(
+          color:
+              gold,
+          backgroundColor:
+              panelColor2,
+          onRefresh:
+              () {
+            return _loadTrackingSummary(
+              showLoading: false,
+            );
+          },
+          child:
+              SingleChildScrollView(
+            physics:
+                const AlwaysScrollableScrollPhysics(),
+            padding:
+                const EdgeInsets.all(
+              20,
+            ),
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                _buildDashboardHeader(),
 
-      color:
-          const Color(0xFFF5F7FA),
+                const SizedBox(
+                  height: 24,
+                ),
 
-      child:
-          SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(20),
+                if (_hasActiveDateFilter) ...[
+                  _buildActiveDateFilter(),
 
-        child:
+                  const SizedBox(
+                    height: 16,
+                  ),
+                ],
+
+                if (_summaryError !=
+                    null) ...[
+                  _buildErrorBanner(),
+
+                  const SizedBox(
+                    height: 16,
+                  ),
+                ],
+
+                _buildStatistics(),
+
+                const SizedBox(
+                  height: 24,
+                ),
+
+                _buildAnalytics(),
+
+                const SizedBox(
+                  height: 35,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // DASHBOARD HEADER
+  // ============================================================
+
+  Widget _buildDashboardHeader() {
+    final String firstName =
+        widget.user?.firstName ??
+            '';
+
+    return LayoutBuilder(
+      builder: (
+        context,
+        constraints,
+      ) {
+        final bool mobile =
+            constraints.maxWidth <
+                600;
+
+        final Widget heading =
             Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
-
           children: [
-            _buildDashboardHeader(),
-
-            const SizedBox(
-              height: 22,
+            Text(
+              'Dashboard',
+              style:
+                  TextStyle(
+                color:
+                    Colors.white,
+                fontSize:
+                    mobile
+                        ? 29
+                        : 34,
+                fontWeight:
+                    FontWeight.w800,
+                letterSpacing:
+                    -0.5,
+              ),
             ),
 
-            if (_hasActiveDateFilter) ...[
-              _buildActiveDateFilter(),
-
-              const SizedBox(
-                height: 16,
-              ),
-            ],
-
-            if (_summaryError != null) ...[
-              _buildErrorBanner(),
-
-              const SizedBox(
-                height: 16,
-              ),
-            ],
-
-            _buildStatistics(),
-
             const SizedBox(
-              height: 20,
+              height: 8,
             ),
 
-            _buildAnalytics(),
+            RichText(
+              text:
+                  TextSpan(
+                style:
+                    const TextStyle(
+                  color:
+                      mutedText,
+                  fontSize:
+                      15,
+                ),
+                children: [
+                  const TextSpan(
+                    text:
+                        'Welcome back',
+                  ),
+
+                  if (firstName
+                      .isNotEmpty)
+                    TextSpan(
+                      text:
+                          ', $firstName',
+                      style:
+                          const TextStyle(
+                        color:
+                            gold,
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+
+                  const TextSpan(
+                    text:
+                        "! Here's what's happening.",
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+        final Widget controls =
+            Row(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            _buildDateButton(),
 
             const SizedBox(
-              height: 20,
+              width: 10,
+            ),
+
+            _buildRefreshButton(),
+          ],
+        );
+
+        if (mobile) {
+          return Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              heading,
+
+              const SizedBox(
+                height: 18,
+              ),
+
+              controls,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child:
+                  heading,
+            ),
+
+            controls,
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // DATE BUTTON
+  // ============================================================
+
+  Widget _buildDateButton() {
+    return InkWell(
+      onTap:
+          _showDateFilter,
+      borderRadius:
+          BorderRadius.circular(
+        10,
+      ),
+      child: Container(
+        height: 48,
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 15,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              const Color(
+            0xD90A0D11,
+          ),
+          border:
+              Border.all(
+            color:
+                gold.withOpacity(
+              0.58,
+            ),
+          ),
+          borderRadius:
+              BorderRadius.circular(
+            10,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  Colors.black.withOpacity(
+                0.22,
+              ),
+              blurRadius:
+                  10,
+              offset:
+                  const Offset(
+                0,
+                4,
+              ),
             ),
           ],
         ),
+        child: Row(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons
+                  .calendar_month_outlined,
+              size: 20,
+              color: gold,
+            ),
+
+            const SizedBox(
+              width: 8,
+            ),
+
+            Text(
+              _getDateText(),
+              style:
+                  const TextStyle(
+                color:
+                    Colors.white,
+                fontSize:
+                    14,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(
+              width: 8,
+            ),
+
+            const Icon(
+              Icons
+                  .keyboard_arrow_down_rounded,
+              size: 20,
+              color: gold,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // REFRESH BUTTON
+  // ============================================================
+
+  Widget _buildRefreshButton() {
+    return InkWell(
+      onTap:
+          _isRefreshing
+              ? null
+              : () {
+                  _loadTrackingSummary(
+                    showLoading:
+                        false,
+                  );
+                },
+      borderRadius:
+          BorderRadius.circular(
+        10,
+      ),
+      child: Container(
+        width: 50,
+        height: 48,
+        decoration:
+            BoxDecoration(
+          color:
+              const Color(
+            0xD90A0D11,
+          ),
+          border:
+              Border.all(
+            color:
+                gold.withOpacity(
+              0.58,
+            ),
+          ),
+          borderRadius:
+              BorderRadius.circular(
+            10,
+          ),
+        ),
+        child:
+            _isRefreshing
+                ? const Padding(
+                    padding:
+                        EdgeInsets.all(
+                      14,
+                    ),
+                    child:
+                        CircularProgressIndicator(
+                      strokeWidth:
+                          2,
+                      color:
+                          gold,
+                    ),
+                  )
+                : const Icon(
+                    Icons
+                        .refresh_rounded,
+                    size:
+                        22,
+                    color:
+                        gold,
+                  ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // ACTIVE DATE FILTER
+  // ============================================================
+
+  Widget _buildActiveDateFilter() {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 9,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            gold.withOpacity(
+          0.055,
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          9,
+        ),
+        border:
+            Border.all(
+          color:
+              gold.withOpacity(
+            0.25,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons
+                .filter_alt_outlined,
+            size: 18,
+            color: gold,
+          ),
+
+          const SizedBox(
+            width: 8,
+          ),
+
+          Expanded(
+            child: Text(
+              todayOnly
+                  ? 'Showing dashboard data for today'
+                  : 'Date: ${_getDateText()}',
+              style:
+                  const TextStyle(
+                color:
+                    Color(
+                  0xFFD1D4DA,
+                ),
+                fontSize:
+                    13,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            ),
+          ),
+
+          TextButton(
+            onPressed:
+                _clearDateFilters,
+            child:
+                const Text(
+              'Clear',
+              style:
+                  TextStyle(
+                color:
+                    gold,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1219,33 +1823,37 @@ class _DashboardContentState extends State<DashboardContent> {
     return Container(
       width:
           double.infinity,
-
       padding:
-          const EdgeInsets.all(12),
-
+          const EdgeInsets.all(
+        12,
+      ),
       decoration:
           BoxDecoration(
         color:
-            const Color(0xFFFFF4F4),
-
+            const Color(
+          0xFF2A1014,
+        ),
         border:
             Border.all(
           color:
-              const Color(0xFFFECACA),
+              const Color(
+            0xFF87313A,
+          ),
         ),
-
         borderRadius:
-            BorderRadius.circular(8),
+            BorderRadius.circular(
+          9,
+        ),
       ),
-
-      child:
-          Row(
+      child: Row(
         children: [
           const Icon(
-            Icons.error_outline,
-
+            Icons
+                .error_outline,
             color:
-                Color(0xFFE72D3B),
+                Color(
+              0xFFFF6674,
+            ),
           ),
 
           const SizedBox(
@@ -1253,15 +1861,14 @@ class _DashboardContentState extends State<DashboardContent> {
           ),
 
           Expanded(
-            child:
-                Text(
+            child: Text(
               _summaryError!,
-
               style:
                   const TextStyle(
                 color:
-                    Color(0xFF991B1B),
-
+                    Color(
+                  0xFFFFB6BC,
+                ),
                 fontSize:
                     13,
               ),
@@ -1270,227 +1877,20 @@ class _DashboardContentState extends State<DashboardContent> {
 
           TextButton(
             onPressed:
-                () =>
-                    _loadTrackingSummary(),
-
+                () {
+              _loadTrackingSummary();
+            },
             child:
                 const Text(
               'Retry',
+              style:
+                  TextStyle(
+                color:
+                    gold,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // DASHBOARD HEADER
-  // ============================================================
-
-  Widget _buildDashboardHeader() {
-    final String welcomeText =
-        widget.user == null
-            ? "Welcome back! Here's what's happening."
-            : "Welcome back, ${widget.user!.firstName}! Here's what's happening.";
-
-    return LayoutBuilder(
-      builder:
-          (
-        context,
-        constraints,
-      ) {
-        if (constraints.maxWidth < 500) {
-          return Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-            children: [
-              const Text(
-                'Dashboard',
-
-                style:
-                    TextStyle(
-                  color:
-                      Color(0xFF172033),
-
-                  fontSize:
-                      28,
-
-                  fontWeight:
-                      FontWeight.w700,
-                ),
-              ),
-
-              const SizedBox(
-                height: 5,
-              ),
-
-              Text(
-                welcomeText,
-
-                style:
-                    const TextStyle(
-                  color:
-                      Color(0xFF667085),
-
-                  fontSize:
-                      14,
-                ),
-              ),
-
-              const SizedBox(
-                height: 15,
-              ),
-
-              Row(
-                children: [
-                  _buildDateButton(),
-
-                  const SizedBox(
-                    width: 8,
-                  ),
-
-                  _buildRefreshButton(),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-          children: [
-            Expanded(
-              child:
-                  Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
-                children: [
-                  const Text(
-                    'Dashboard',
-
-                    style:
-                        TextStyle(
-                      color:
-                          Color(0xFF172033),
-
-                      fontSize:
-                          28,
-
-                      fontWeight:
-                          FontWeight.w700,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: 5,
-                  ),
-
-                  Text(
-                    welcomeText,
-
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF667085),
-
-                      fontSize:
-                          14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(
-              width: 15,
-            ),
-
-            _buildDateButton(),
-
-            const SizedBox(
-              width: 8,
-            ),
-
-            _buildRefreshButton(),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // REFRESH BUTTON
-  // ============================================================
-
-  Widget _buildRefreshButton() {
-    return InkWell(
-      onTap: _isRefreshing
-          ? null
-          : () =>
-              _loadTrackingSummary(
-                showLoading: false,
-              ),
-
-      borderRadius:
-          BorderRadius.circular(8),
-
-      child:
-          Container(
-        width:
-            42,
-
-        height:
-            42,
-
-        decoration:
-            BoxDecoration(
-          color:
-              Colors.white,
-
-          border:
-              Border.all(
-            color:
-                const Color(0xFFD0D5DD),
-          ),
-
-          borderRadius:
-              BorderRadius.circular(8),
-        ),
-
-        child:
-            _isRefreshing
-                ? const Padding(
-                    padding:
-                        EdgeInsets.all(11),
-
-                    child:
-                        SizedBox(
-                      width:
-                          18,
-
-                      height:
-                          18,
-
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth:
-                            2,
-                      ),
-                    ),
-                  )
-                : const Icon(
-                    Icons.refresh,
-
-                    size:
-                        19,
-
-                    color:
-                        Color(0xFF667085),
-                  ),
       ),
     );
   }
@@ -1501,8 +1901,7 @@ class _DashboardContentState extends State<DashboardContent> {
 
   Widget _buildStatistics() {
     return LayoutBuilder(
-      builder:
-          (
+      builder: (
         context,
         constraints,
       ) {
@@ -1511,45 +1910,47 @@ class _DashboardContentState extends State<DashboardContent> {
 
         int columns;
 
-        if (width >= 1300) {
-          columns = 5;
-        } else if (width >= 950) {
+        if (width >=
+            1200) {
           columns = 4;
-        } else if (width >= 650) {
+        } else if (width >=
+            800) {
           columns = 3;
         } else {
           columns = 2;
         }
 
+        double ratio;
+
+        if (width <
+            400) {
+          ratio = 1.05;
+        } else if (width <
+            650) {
+          ratio = 1.18;
+        } else {
+          ratio = 1.45;
+        }
+
         return GridView.builder(
           shrinkWrap:
               true,
-
           physics:
               const NeverScrollableScrollPhysics(),
-
           itemCount:
               10,
-
           gridDelegate:
               SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount:
                 columns,
-
             crossAxisSpacing:
-                14,
-
+                12,
             mainAxisSpacing:
-                14,
-
+                12,
             childAspectRatio:
-                width < 650
-                    ? 1.25
-                    : 1.45,
+                ratio,
           ),
-
-          itemBuilder:
-              (
+          itemBuilder: (
             context,
             index,
           ) {
@@ -1570,238 +1971,179 @@ class _DashboardContentState extends State<DashboardContent> {
     int index,
   ) {
     final cards = [
-      // ========================================================
-      // TOTAL MAILS
-      // ========================================================
-
       DashboardStatCard(
         title:
             'Total Mails',
-
         value:
             _countLabel(
           'totalMails',
         ),
-
         subtitle:
             'Total emails',
-
         icon:
             Icons.mail_outline,
-
         iconColor:
-            const Color(0xFF1677FF),
+            const Color(
+          0xFF2388FF,
+        ),
       ),
-
-      // ========================================================
-      // TOTAL LEADS
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Total Leads',
-
         value:
             _countLabel(
           'totalLeads',
         ),
-
         subtitle:
             'Total leads',
-
         icon:
             Icons.groups_outlined,
-
         iconColor:
-            const Color(0xFF9146FF),
+            const Color(
+          0xFF9A4DFF,
+        ),
       ),
-
-      // ========================================================
-      // TODAY LEADS
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Today Leads',
-
         value:
             _countLabel(
           'todayLeads',
         ),
-
         subtitle:
             'Today leads',
-
         icon:
             Icons.people_alt_outlined,
-
         iconColor:
-            const Color(0xFF8D7777),
+            const Color(
+          0xFF96756E,
+        ),
       ),
-
-      // ========================================================
-      // PENDING
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Pending',
-
         value:
             _countLabel(
           'pending',
         ),
-
         subtitle:
             'Pending emails',
-
         icon:
             Icons.access_time,
-
         iconColor:
-            const Color(0xFFFFB800),
+            const Color(
+          0xFFFFAD00,
+        ),
       ),
-
-      // ========================================================
-      // SENT
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Sent',
-
         value:
             _countLabel(
           'sent',
         ),
-
         subtitle:
             'Successfully sent',
-
         icon:
             Icons.send_outlined,
-
         iconColor:
-            const Color(0xFF15955E),
+            const Color(
+          0xFF18A56B,
+        ),
       ),
-
-      // ========================================================
-      // SEEN
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Seen',
-
         value:
             _countLabel(
           'opened',
         ),
-
         subtitle:
             'Opened emails',
-
         icon:
             Icons.visibility_outlined,
-
         iconColor:
-            const Color(0xFF7041C5),
+            const Color(
+          0xFF7542D8,
+        ),
       ),
-
-      // ========================================================
-      // FAILED
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Failed',
-
         value:
             _countLabel(
           'failed',
         ),
-
         subtitle:
             'Failed emails',
-
         icon:
             Icons.cancel_outlined,
-
         iconColor:
-            const Color(0xFFE72D3B),
+            const Color(
+          0xFFFF3548,
+        ),
       ),
-
-      // ========================================================
-      // INTERESTED
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Interested',
-
         value:
             _countLabel(
           'interested',
         ),
-
         subtitle:
             'Interested leads',
-
         icon:
             Icons.thumb_up_alt_outlined,
-
         iconColor:
-            const Color(0xFF1BC69B),
+            const Color(
+          0xFF18C6A1,
+        ),
       ),
-
-      // ========================================================
-      // NOT INTERESTED
-      // ========================================================
 
       DashboardStatCard(
         title:
             'Not Interested',
-
         value:
             _countLabel(
           'notInterested',
         ),
-
         subtitle:
             'Not interested leads',
-
         icon:
             Icons.thumb_down_alt_outlined,
-
         iconColor:
-            const Color(0xFFFF7800),
+            const Color(
+          0xFFFF8000,
+        ),
       ),
-
-      // ========================================================
-      // QR SCANS
-      // ========================================================
 
       DashboardStatCard(
         title:
             'QR Scans',
-
         value:
             _countLabel(
           'qrScans',
         ),
-
         subtitle:
             'Total QR code scans',
-
         icon:
             Icons.qr_code_2,
-
         iconColor:
-            const Color(0xFF10B8D8),
+            const Color(
+          0xFF12B8D4,
+        ),
       ),
     ];
 
-    return cards[index];
+    return cards[
+        index];
   }
 
   // ============================================================
@@ -1809,228 +2151,68 @@ class _DashboardContentState extends State<DashboardContent> {
   // ============================================================
 
   Widget _buildAnalytics() {
-    return LayoutBuilder(
-      builder:
-          (
-        context,
-        constraints,
-      ) {
-        if (constraints.maxWidth < 1000) {
-          return Column(
-            children: [
-              CampaignStatusCard(
-                total:
-                    _numericValue(
-                  'totalMails',
-                ),
-
-                pending:
-                    _numericValue(
-                  'pending',
-                ),
-
-                sent:
-                    _numericValue(
-                  'sent',
-                ),
-
-                opened:
-                    _numericValue(
-                  'opened',
-                ),
-
-                failed:
-                    _numericValue(
-                  'failed',
-                ),
-              ),
-
-              const SizedBox(
-                height: 16,
-              ),
-
-              PlatformTrackingCard(
-                totalClicks:
-                    _numericValue(
-                  'clicked',
-                ),
-              ),
-
-              const SizedBox(
-                height: 16,
-              ),
-
-              QrAnalyticsCard(
-                total:
-                    _numericValue(
-                  'qrScans',
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-          children: [
-            Expanded(
-              child:
-                  CampaignStatusCard(
-                total:
-                    _numericValue(
-                  'totalMails',
-                ),
-
-                pending:
-                    _numericValue(
-                  'pending',
-                ),
-
-                sent:
-                    _numericValue(
-                  'sent',
-                ),
-
-                opened:
-                    _numericValue(
-                  'opened',
-                ),
-
-                failed:
-                    _numericValue(
-                  'failed',
-                ),
-              ),
-            ),
-
-            const SizedBox(
-              width: 16,
-            ),
-
-            Expanded(
-              child:
-                  PlatformTrackingCard(
-                totalClicks:
-                    _numericValue(
-                  'clicked',
-                ),
-              ),
-            ),
-
-            const SizedBox(
-              width: 16,
-            ),
-
-            Expanded(
-              child:
-                  QrAnalyticsCard(
-                total:
-                    _numericValue(
-                  'qrScans',
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // DATE BUTTON
-  // ============================================================
-
-  Widget _buildDateButton() {
-    return GestureDetector(
-      onTap:
-          _showDateFilter,
-
-      child:
-          Container(
-        height:
-            42,
-
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 14,
-        ),
-
-        decoration:
-            BoxDecoration(
-          color:
-              Colors.white,
-
-          border:
-              Border.all(
-            color:
-                const Color(0xFFD0D5DD),
+    return Column(
+      children: [
+        CampaignStatusCard(
+          total:
+              _numericValue(
+            'totalMails',
           ),
-
-          borderRadius:
-              BorderRadius.circular(8),
+          pending:
+              _numericValue(
+            'pending',
+          ),
+          sent:
+              _numericValue(
+            'sent',
+          ),
+          opened:
+              _numericValue(
+            'opened',
+          ),
+          failed:
+              _numericValue(
+            'failed',
+          ),
+          interested:
+              _numericValue(
+            'interested',
+          ),
+          notInterested:
+              _numericValue(
+            'notInterested',
+          ),
         ),
 
-        child:
-            Row(
-          mainAxisSize:
-              MainAxisSize.min,
-
-          children: [
-            const Icon(
-              Icons.calendar_month_outlined,
-
-              size:
-                  18,
-
-              color:
-                  Color(0xFF667085),
-            ),
-
-            const SizedBox(
-              width: 8,
-            ),
-
-            Text(
-              _getDateText(),
-
-              style:
-                  const TextStyle(
-                color:
-                    Color(0xFF344054),
-
-                fontSize:
-                    14,
-
-                fontWeight:
-                    FontWeight.w500,
-              ),
-            ),
-
-            const SizedBox(
-              width: 8,
-            ),
-
-            const Icon(
-              Icons.keyboard_arrow_down,
-
-              size:
-                  20,
-
-              color:
-                  Color(0xFF667085),
-            ),
-          ],
+        const SizedBox(
+          height: 20,
         ),
-      ),
+
+        PlatformTrackingCard(
+          totalClicks:
+              _numericValue(
+            'clicked',
+          ),
+        ),
+
+        const SizedBox(
+          height: 20,
+        ),
+
+        QrAnalyticsCard(
+          total:
+              _numericValue(
+            'qrScans',
+          ),
+        ),
+      ],
     );
   }
 }
 
-// =================================================================
+// ============================================================
 // DASHBOARD STAT CARD
-// =================================================================
+// ============================================================
 
 class DashboardStatCard extends StatelessWidget {
   final String title;
@@ -2045,17 +2227,17 @@ class DashboardStatCard extends StatelessWidget {
 
   const DashboardStatCard({
     super.key,
-
     required this.title,
-
     required this.value,
-
     required this.subtitle,
-
     required this.icon,
-
     required this.iconColor,
   });
+
+  static const Color gold =
+      Color(
+    0xFFF2C45F,
+  );
 
   @override
   Widget build(
@@ -2063,116 +2245,107 @@ class DashboardStatCard extends StatelessWidget {
   ) {
     return Container(
       padding:
-          const EdgeInsets.all(14),
-
+          const EdgeInsets.all(
+        15,
+      ),
       decoration:
           BoxDecoration(
         color:
-            Colors.white,
-
+            const Color(
+          0xE60A0D11,
+        ),
         borderRadius:
-            BorderRadius.circular(7),
-
+            BorderRadius.circular(
+          12,
+        ),
         border:
             Border.all(
           color:
-              const Color(0xFFE4E7EC),
+              gold.withOpacity(
+            0.34,
+          ),
         ),
-
         boxShadow: [
           BoxShadow(
             color:
                 Colors.black.withOpacity(
-              0.04,
+              0.32,
             ),
-
             blurRadius:
-                5,
-
+                16,
             offset:
-                const Offset(0, 2),
+                const Offset(
+              0,
+              7,
+            ),
           ),
         ],
       ),
-
-      child:
-          Row(
+      child: Row(
         children: [
           Expanded(
             child:
                 Column(
               mainAxisAlignment:
                   MainAxisAlignment.center,
-
               crossAxisAlignment:
                   CrossAxisAlignment.start,
-
               mainAxisSize:
                   MainAxisSize.min,
-
               children: [
                 Text(
                   title,
-
-                  softWrap:
-                      false,
-
+                  maxLines: 1,
                   overflow:
-                      TextOverflow.visible,
-
+                      TextOverflow.ellipsis,
                   style:
                       TextStyle(
                     color:
                         iconColor,
-
                     fontSize:
-                        13,
-
-                    fontWeight:
-                        FontWeight.w600,
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 5,
-                ),
-
-                Text(
-                  value,
-
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(0xFF101828),
-
-                    fontSize:
-                        22,
-
+                        14,
                     fontWeight:
                         FontWeight.w700,
                   ),
                 ),
 
                 const SizedBox(
-                  height: 2,
+                  height: 7,
+                ),
+
+                Text(
+                  value,
+                  maxLines: 1,
+                  style:
+                      const TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize:
+                        27,
+                    fontWeight:
+                        FontWeight.w700,
+                    height:
+                        1,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 7,
                 ),
 
                 Text(
                   subtitle,
-
-                  softWrap:
-                      false,
-
+                  maxLines: 1,
                   overflow:
                       TextOverflow.ellipsis,
-
                   style:
                       const TextStyle(
                     color:
-                        Color(0xFF667085),
-
+                        Color(
+                      0xFFB1B6BF,
+                    ),
                     fontSize:
-                        10,
+                        10.5,
                   ),
                 ),
               ],
@@ -2184,30 +2357,33 @@ class DashboardStatCard extends StatelessWidget {
           ),
 
           Container(
-            width:
-                45,
-
-            height:
-                45,
-
+            width: 50,
+            height: 50,
             decoration:
                 BoxDecoration(
               color:
                   iconColor,
-
               borderRadius:
-                  BorderRadius.circular(11),
+                  BorderRadius.circular(
+                12,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color:
+                      iconColor.withOpacity(
+                    0.22,
+                  ),
+                  blurRadius:
+                      14,
+                ),
+              ],
             ),
-
-            child:
-                Icon(
+            child: Icon(
               icon,
-
               color:
                   Colors.white,
-
               size:
-                  23,
+                  26,
             ),
           ),
         ],
@@ -2216,9 +2392,138 @@ class DashboardStatCard extends StatelessWidget {
   }
 }
 
-// =================================================================
+// ============================================================
+// ANALYTICS CARD
+// ============================================================
+
+class _AnalyticsCard extends StatelessWidget {
+  final String title;
+
+  final Widget child;
+
+  final Widget? trailing;
+
+  const _AnalyticsCard({
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
+
+  static const Color gold =
+      Color(
+    0xFFF2C45F,
+  );
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    return Container(
+      width:
+          double.infinity,
+      decoration:
+          BoxDecoration(
+        color:
+            const Color(
+          0xEA0A0D11,
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          14,
+        ),
+        border:
+            Border.all(
+          color:
+              gold.withOpacity(
+            0.35,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color:
+                Colors.black.withOpacity(
+              0.35,
+            ),
+            blurRadius:
+                20,
+            offset:
+                const Offset(
+              0,
+              8,
+            ),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize:
+            MainAxisSize.min,
+        children: [
+          // ====================================================
+          // FIXED:
+          // Container has no minHeight argument.
+          // ====================================================
+
+          Container(
+            constraints:
+                const BoxConstraints(
+              minHeight: 56,
+            ),
+            padding:
+                const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
+                    style:
+                        const TextStyle(
+                      color:
+                          Colors.white,
+                      fontSize:
+                          17,
+                      fontWeight:
+                          FontWeight.w700,
+                    ),
+                  ),
+                ),
+
+                if (trailing !=
+                    null) ...[
+                  const SizedBox(
+                    width: 8,
+                  ),
+
+                  trailing!,
+                ],
+              ],
+            ),
+          ),
+
+          Container(
+            height:
+                1,
+            color:
+                gold.withOpacity(
+              0.12,
+            ),
+          ),
+
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
 // CAMPAIGN STATUS
-// =================================================================
+// ============================================================
 
 class CampaignStatusCard extends StatelessWidget {
   final int total;
@@ -2231,18 +2536,19 @@ class CampaignStatusCard extends StatelessWidget {
 
   final int failed;
 
+  final int interested;
+
+  final int notInterested;
+
   const CampaignStatusCard({
     super.key,
-
     required this.total,
-
     required this.pending,
-
     required this.sent,
-
     required this.opened,
-
     required this.failed,
+    required this.interested,
+    required this.notInterested,
   });
 
   @override
@@ -2252,217 +2558,205 @@ class CampaignStatusCard extends StatelessWidget {
     return _AnalyticsCard(
       title:
           'Campaign Status Overview',
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          20,
+        ),
+        child: LayoutBuilder(
+          builder: (
+            context,
+            constraints,
+          ) {
+            final bool mobile =
+                constraints.maxWidth <
+                    550;
 
-      child:
-          SizedBox(
-        height:
-            230,
+            final chart =
+                SizedBox(
+              width: 180,
+              height: 180,
+              child:
+                  CustomPaint(
+                painter:
+                    CampaignDonutPainter(
+                  pending:
+                      pending,
+                  sent:
+                      sent,
+                  opened:
+                      opened,
+                  failed:
+                      failed,
+                ),
+                child:
+                    Center(
+                  child:
+                      Column(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Total Mail',
+                        style:
+                            TextStyle(
+                          color:
+                              Color(
+                            0xFFADB2BB,
+                          ),
+                          fontSize:
+                              14,
+                        ),
+                      ),
 
-        child:
-            _CampaignStatusContent(
-          total:
-              total,
+                      const SizedBox(
+                        height: 5,
+                      ),
 
-          pending:
-              pending,
+                      Text(
+                        total
+                            .toString(),
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white,
+                          fontSize:
+                              28,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
 
-          sent:
-              sent,
+            final legend =
+                Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                _LegendItem(
+                  color:
+                      const Color(
+                    0xFFFFA800,
+                  ),
+                  title:
+                      'Pending',
+                  value:
+                      pending,
+                ),
 
-          opened:
-              opened,
+                _LegendItem(
+                  color:
+                      const Color(
+                    0xFF19A974,
+                  ),
+                  title:
+                      'Sent',
+                  value:
+                      sent,
+                ),
 
-          failed:
-              failed,
+                _LegendItem(
+                  color:
+                      const Color(
+                    0xFF7C4DFF,
+                  ),
+                  title:
+                      'Seen',
+                  value:
+                      opened,
+                ),
+
+                _LegendItem(
+                  color:
+                      const Color(
+                    0xFFE73B45,
+                  ),
+                  title:
+                      'Fail',
+                  value:
+                      failed,
+                ),
+
+                _LegendItem(
+                  color:
+                      const Color(
+                    0xFF11B5D6,
+                  ),
+                  title:
+                      'Interested',
+                  value:
+                      interested,
+                ),
+
+                _LegendItem(
+                  color:
+                      const Color(
+                    0xFF667085,
+                  ),
+                  title:
+                      'Not Interested',
+                  value:
+                      notInterested,
+                ),
+              ],
+            );
+
+            if (mobile) {
+              return Column(
+                children: [
+                  chart,
+
+                  const SizedBox(
+                    height: 22,
+                  ),
+
+                  legend,
+                ],
+              );
+            }
+
+            return SizedBox(
+              height:
+                  245,
+              child: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.center,
+                children: [
+                  chart,
+
+                  const SizedBox(
+                    width: 65,
+                  ),
+
+                  Flexible(
+                    child:
+                        legend,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _CampaignStatusContent extends StatelessWidget {
-  final int total;
-
-  final int pending;
-
-  final int sent;
-
-  final int opened;
-
-  final int failed;
-
-  const _CampaignStatusContent({
-    required this.total,
-
-    required this.pending,
-
-    required this.sent,
-
-    required this.opened,
-
-    required this.failed,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.center,
-
-      children: [
-        SizedBox(
-          width:
-              130,
-
-          height:
-              130,
-
-          child:
-              CustomPaint(
-            painter:
-                CampaignDonutPainter(
-              pending:
-                  pending,
-
-              sent:
-                  sent,
-
-              opened:
-                  opened,
-
-              failed:
-                  failed,
-            ),
-
-            child:
-                Center(
-              child:
-                  Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-
-                children: [
-                  const Text(
-                    'Total Mail',
-
-                    style:
-                        TextStyle(
-                      color:
-                          Color(0xFF667085),
-
-                      fontSize:
-                          12,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height:
-                        5,
-                  ),
-
-                  Text(
-                    total.toString(),
-
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF101828),
-
-                      fontSize:
-                          18,
-
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(
-          width:
-              18,
-        ),
-
-        Flexible(
-          child:
-              Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-            children: [
-              _LegendItem(
-                color:
-                    const Color(0xFFFFA800),
-
-                title:
-                    'Pending ($pending)',
-              ),
-
-              _LegendItem(
-                color:
-                    const Color(0xFF19A974),
-
-                title:
-                    'Sent ($sent)',
-              ),
-
-              _LegendItem(
-                color:
-                    const Color(0xFF7C4DFF),
-
-                title:
-                    'Seen ($opened)',
-              ),
-
-              _LegendItem(
-                color:
-                    const Color(0xFFE73B45),
-
-                title:
-                    'Fail ($failed)',
-              ),
-
-              const _LegendItem(
-                color:
-                    Color(0xFF11B5D6),
-
-                title:
-                    'Interested',
-              ),
-
-              const _LegendItem(
-                color:
-                    Color(0xFF667085),
-
-                title:
-                    'Not Interested',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// =================================================================
-// PLATFORM TRACKING
-// =================================================================
+// ============================================================
+// PLATFORM CLICK TRACKING
+// ============================================================
 
 class PlatformTrackingCard extends StatelessWidget {
   final int totalClicks;
 
   const PlatformTrackingCard({
     super.key,
-
     this.totalClicks = 0,
   });
 
@@ -2473,195 +2767,254 @@ class PlatformTrackingCard extends StatelessWidget {
     return _AnalyticsCard(
       title:
           'Platform Click Tracking',
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          20,
+        ),
+        child: LayoutBuilder(
+          builder: (
+            context,
+            constraints,
+          ) {
+            final bool mobile =
+                constraints.maxWidth <
+                    600;
 
-      child:
-          SizedBox(
-        height:
-            230,
+            final chart =
+                SizedBox(
+              width: 165,
+              height: 165,
+              child:
+                  CustomPaint(
+                painter:
+                    const EmptyDonutPainter(),
+                child:
+                    Center(
+                  child:
+                      Column(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Total Clicks',
+                        style:
+                            TextStyle(
+                          color:
+                              Color(
+                            0xFFADB2BB,
+                          ),
+                          fontSize:
+                              14,
+                        ),
+                      ),
 
-        child:
-            _PlatformTrackingContent(
-          totalClicks:
-              totalClicks,
+                      const SizedBox(
+                        height: 5,
+                      ),
+
+                      Text(
+                        totalClicks
+                            .toString(),
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white,
+                          fontSize:
+                              28,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+
+            final platforms =
+                Wrap(
+              spacing:
+                  26,
+              runSpacing:
+                  1,
+              children:
+                  const [
+                SizedBox(
+                  width:
+                      210,
+                  child:
+                      Column(
+                    children: [
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFF20C978,
+                        ),
+                        title:
+                            'WhatsApp',
+                        value:
+                            0,
+                      ),
+
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFFE83F55,
+                        ),
+                        title:
+                            'Instagram',
+                        value:
+                            0,
+                      ),
+
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFF2877E8,
+                        ),
+                        title:
+                            'Facebook Messenger',
+                        value:
+                            0,
+                      ),
+
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFF2299D5,
+                        ),
+                        title:
+                            'Telegram',
+                        value:
+                            0,
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(
+                  width:
+                      175,
+                  child:
+                      Column(
+                    children: [
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFF0A66C2,
+                        ),
+                        title:
+                            'LinkedIn',
+                        value:
+                            0,
+                      ),
+
+                      _LegendItem(
+                        color:
+                            Colors.white,
+                        title:
+                            'X (Twitter)',
+                        value:
+                            0,
+                      ),
+
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFF7C3AED,
+                        ),
+                        title:
+                            'Threads',
+                        value:
+                            0,
+                      ),
+
+                      _LegendItem(
+                        color:
+                            Color(
+                          0xFF667085,
+                        ),
+                        title:
+                            'Other',
+                        value:
+                            0,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+
+            if (mobile) {
+              return Column(
+                children: [
+                  chart,
+
+                  const SizedBox(
+                    height: 26,
+                  ),
+
+                  platforms,
+                ],
+              );
+            }
+
+            return SizedBox(
+              height:
+                  240,
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 12,
+                  ),
+
+                  chart,
+
+                  const SizedBox(
+                    width: 45,
+                  ),
+
+                  Expanded(
+                    child:
+                        platforms,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _PlatformTrackingContent extends StatelessWidget {
-  final int totalClicks;
-
-  const _PlatformTrackingContent({
-    required this.totalClicks,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.center,
-
-      children: [
-        SizedBox(
-          width:
-              130,
-
-          height:
-              130,
-
-          child:
-              CustomPaint(
-            painter:
-                const EmptyDonutPainter(),
-
-            child:
-                Center(
-              child:
-                  Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-
-                children: [
-                  const Text(
-                    'Total Clicks',
-
-                    style:
-                        TextStyle(
-                      color:
-                          Color(0xFF667085),
-
-                      fontSize:
-                          12,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height:
-                        5,
-                  ),
-
-                  Text(
-                    totalClicks.toString(),
-
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF101828),
-
-                      fontSize:
-                          18,
-
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(
-          width:
-              15,
-        ),
-
-        const Flexible(
-          child:
-              Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-            children: [
-              _LegendItem(
-                color:
-                    Color(0xFF20C978),
-
-                title:
-                    'WhatsApp',
-              ),
-
-              _LegendItem(
-                color:
-                    Color(0xFFE83F55),
-
-                title:
-                    'Instagram',
-              ),
-
-              _LegendItem(
-                color:
-                    Color(0xFF2877E8),
-
-                title:
-                    'Facebook Messenger',
-              ),
-
-              _LegendItem(
-                color:
-                    Color(0xFF2299D5),
-
-                title:
-                    'Telegram',
-              ),
-
-              _LegendItem(
-                color:
-                    Color(0xFF0A66C2),
-
-                title:
-                    'LinkedIn',
-              ),
-
-              _LegendItem(
-                color:
-                    Colors.black,
-
-                title:
-                    'X (Twitter)',
-              ),
-
-              _LegendItem(
-                color:
-                    Color(0xFF7C3AED),
-
-                title:
-                    'Threads',
-              ),
-
-              _LegendItem(
-                color:
-                    Color(0xFF667085),
-
-                title:
-                    'Other',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// =================================================================
+// ============================================================
 // QR ANALYTICS
-// =================================================================
+// ============================================================
 
 class QrAnalyticsCard extends StatelessWidget {
   final int total;
 
   const QrAnalyticsCard({
     super.key,
-
     this.total = 0,
   });
+
+  static const Color gold =
+      Color(
+    0xFFF2C45F,
+  );
+
+  // ============================================================
+  // FIXED:
+  // mutedText is now defined inside this class.
+  // ============================================================
+
+  static const Color mutedText =
+      Color(
+    0xFFADB2BB,
+  );
 
   @override
   Widget build(
@@ -2670,258 +3023,141 @@ class QrAnalyticsCard extends StatelessWidget {
     return _AnalyticsCard(
       title:
           'QR Button Click Analytics',
-
       trailing:
           Container(
         padding:
             const EdgeInsets.symmetric(
-          horizontal: 9,
-
-          vertical: 5,
+          horizontal: 12,
+          vertical: 6,
         ),
-
         decoration:
             BoxDecoration(
           color:
-              const Color(0xFF15955E),
-
+              gold.withOpacity(
+            0.06,
+          ),
           borderRadius:
-              BorderRadius.circular(5),
+              BorderRadius.circular(
+            7,
+          ),
+          border:
+              Border.all(
+            color:
+                gold.withOpacity(
+              0.42,
+            ),
+          ),
         ),
-
-        child:
-            Text(
+        child: Text(
           'Total: $total',
-
           style:
               const TextStyle(
             color:
-                Colors.white,
-
+                gold,
             fontSize:
-                11,
-
+                12,
             fontWeight:
-                FontWeight.w600,
+                FontWeight.w700,
           ),
         ),
       ),
-
-      child:
-          SizedBox(
-        height:
-            230,
-
-        child:
-            total <= 0
-                ? const Center(
-                    child:
-                        Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-
-                      children: [
-                        Icon(
-                          Icons.qr_code_2,
-
-                          size:
-                              45,
-
-                          color:
-                              Color(0xFFD0D5DD),
-                        ),
-
-                        SizedBox(
-                          height:
-                              10,
-                        ),
-
-                        Text(
-                          'No QR click data available',
-
-                          style:
-                              TextStyle(
-                            color:
-                                Color(0xFF667085),
-
-                            fontSize:
-                                13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Center(
-                    child:
-                        Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-
-                      children: [
-                        const Icon(
-                          Icons.qr_code_2,
-
-                          size:
-                              45,
-
-                          color:
-                              Color(0xFF15955E),
-                        ),
-
-                        const SizedBox(
-                          height:
-                              10,
-                        ),
-
-                        Text(
-                          '$total QR scans',
-
-                          style:
-                              const TextStyle(
-                            color:
-                                Color(0xFF101828),
-
-                            fontSize:
-                                18,
-
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                      ],
+      child: Container(
+        width:
+            double.infinity,
+        constraints:
+            const BoxConstraints(
+          minHeight: 235,
+        ),
+        padding:
+            const EdgeInsets.all(
+          25,
+        ),
+        child: Center(
+          child:
+              Column(
+            mainAxisSize:
+                MainAxisSize.min,
+            children: [
+              Container(
+                width: 82,
+                height: 82,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      gold.withOpacity(
+                    0.045,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(
+                    14,
+                  ),
+                  border:
+                      Border.all(
+                    color:
+                        gold.withOpacity(
+                      0.42,
                     ),
                   ),
-      ),
-    );
-  }
-}
-
-// =================================================================
-// ANALYTICS CARD
-// =================================================================
-
-class _AnalyticsCard extends StatelessWidget {
-  final String title;
-
-  final Widget child;
-
-  final Widget? trailing;
-
-  const _AnalyticsCard({
-    required this.title,
-
-    required this.child,
-
-    this.trailing,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Container(
-      decoration:
-          BoxDecoration(
-        color:
-            Colors.white,
-
-        borderRadius:
-            BorderRadius.circular(7),
-
-        border:
-            Border.all(
-          color:
-              const Color(0xFFE4E7EC),
-        ),
-      ),
-
-      child:
-          Column(
-        mainAxisSize:
-            MainAxisSize.min,
-
-        children: [
-          Container(
-            height:
-                45,
-
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 14,
-            ),
-
-            decoration:
-                const BoxDecoration(
-              border:
-                  Border(
-                bottom:
-                    BorderSide(
+                ),
+                child:
+                    const Icon(
+                  Icons.qr_code_2,
                   color:
-                      Color(0xFFE4E7EC),
+                      gold,
+                  size:
+                      53,
                 ),
               ),
-            ),
 
-            child:
-                Row(
-              children: [
-                Expanded(
-                  child:
-                      Text(
-                    title,
+              const SizedBox(
+                height: 17,
+              ),
 
-                    maxLines:
-                        1,
-
-                    overflow:
-                        TextOverflow.ellipsis,
-
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF101828),
-
-                      fontSize:
-                          16,
-
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
+              Text(
+                total <= 0
+                    ? 'No QR click data available'
+                    : '$total QR scans',
+                textAlign:
+                    TextAlign.center,
+                style:
+                    TextStyle(
+                  color: total <=
+                          0
+                      ? mutedText
+                      : Colors.white,
+                  fontSize:
+                      total <= 0
+                          ? 13
+                          : 17,
+                  fontWeight: total <=
+                          0
+                      ? FontWeight.w400
+                      : FontWeight.w600,
                 ),
-
-                if (trailing != null) ...[
-                  const SizedBox(
-                    width:
-                        8,
-                  ),
-
-                  trailing!,
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
-
-          child,
-        ],
+        ),
       ),
     );
   }
 }
 
-// =================================================================
+// ============================================================
 // LEGEND ITEM
-// =================================================================
+// ============================================================
 
 class _LegendItem extends StatelessWidget {
   final Color color;
 
   final String title;
 
+  final int value;
+
   const _LegendItem({
     required this.color,
-
     required this.title,
+    required this.value,
   });
 
   @override
@@ -2931,57 +3167,59 @@ class _LegendItem extends StatelessWidget {
     return Padding(
       padding:
           const EdgeInsets.symmetric(
-        vertical:
-            2.5,
+        vertical: 5,
       ),
-
-      child:
-          Row(
-        mainAxisSize:
-            MainAxisSize.min,
-
+      child: Row(
         children: [
           Container(
-            width:
-                9,
-
-            height:
-                9,
-
+            width: 10,
+            height: 10,
             decoration:
                 BoxDecoration(
               color:
                   color,
-
               shape:
                   BoxShape.circle,
             ),
           ),
 
           const SizedBox(
-            width:
-                6,
+            width: 8,
           ),
 
-          Flexible(
-            child:
-                Text(
+          Expanded(
+            child: Text(
               title,
-
-              maxLines:
-                  1,
-
+              maxLines: 1,
               overflow:
                   TextOverflow.ellipsis,
-
               style:
                   const TextStyle(
                 color:
-                    Color(0xFF475467),
-
+                    Color(
+                  0xFFC0C4CB,
+                ),
                 fontSize:
-                    10,
+                    11.5,
               ),
+            ),
+          ),
+
+          const SizedBox(
+            width: 10,
+          ),
+
+          Text(
+            value
+                .toString(),
+            style:
+                const TextStyle(
+              color:
+                  Colors.white,
+              fontSize:
+                  12,
+              fontWeight:
+                  FontWeight.w600,
             ),
           ),
         ],
@@ -2990,9 +3228,9 @@ class _LegendItem extends StatelessWidget {
   }
 }
 
-// =================================================================
-// CAMPAIGN DONUT
-// =================================================================
+// ============================================================
+// CAMPAIGN DONUT PAINTER
+// ============================================================
 
 class CampaignDonutPainter extends CustomPainter {
   final int pending;
@@ -3005,11 +3243,8 @@ class CampaignDonutPainter extends CustomPainter {
 
   const CampaignDonutPainter({
     required this.pending,
-
     required this.sent,
-
     required this.opened,
-
     required this.failed,
   });
 
@@ -3018,31 +3253,42 @@ class CampaignDonutPainter extends CustomPainter {
     Canvas canvas,
     Size size,
   ) {
-    final center =
+    final Offset center =
         Offset(
       size.width / 2,
       size.height / 2,
     );
 
-    final radius =
-        size.width / 2 - 10;
+    final double radius =
+        math.min(
+              size.width,
+              size.height,
+            ) /
+            2 -
+        13;
 
-    final total =
+    final int total =
         pending +
             sent +
             opened +
             failed;
 
-    final backgroundPaint =
+    // ==========================================================
+    // BACKGROUND RING
+    // ==========================================================
+
+    final Paint backgroundPaint =
         Paint()
           ..style =
               PaintingStyle.stroke
-
           ..strokeWidth =
-              18
-
+              23
+          ..strokeCap =
+              StrokeCap.butt
           ..color =
-              const Color(0xFFE9EDF2);
+              const Color(
+            0xFF252A33,
+          );
 
     canvas.drawCircle(
       center,
@@ -3054,63 +3300,68 @@ class CampaignDonutPainter extends CustomPainter {
       return;
     }
 
-    final values = [
+    final List<int> values = [
       pending,
       sent,
       opened,
       failed,
     ];
 
-    final colors = [
-      const Color(0xFFFFA800),
-      const Color(0xFF19A974),
-      const Color(0xFF7C4DFF),
-      const Color(0xFFE73B45),
+    final List<Color> colors = [
+      const Color(
+        0xFFFFA800,
+      ),
+
+      const Color(
+        0xFF19A974,
+      ),
+
+      const Color(
+        0xFF7C4DFF,
+      ),
+
+      const Color(
+        0xFFE73B45,
+      ),
     ];
 
     double startAngle =
-        -1.5708;
+        -math.pi / 2;
 
-    for (int i = 0;
-        i < values.length;
-        i++) {
-      if (values[i] <= 0) {
+    for (int index = 0;
+        index < values.length;
+        index++) {
+      if (values[index] <= 0) {
         continue;
       }
 
-      final sweepAngle =
-          (values[i] / total) *
-              6.283185307;
+      final double sweepAngle =
+          (values[index] /
+                  total) *
+              math.pi *
+              2;
 
-      final paint =
+      final Paint paint =
           Paint()
             ..style =
                 PaintingStyle.stroke
-
             ..strokeWidth =
-                18
-
+                23
             ..strokeCap =
                 StrokeCap.butt
-
             ..color =
-                colors[i];
+                colors[index];
 
       canvas.drawArc(
         Rect.fromCircle(
           center:
               center,
-
           radius:
               radius,
         ),
-
         startAngle,
-
         sweepAngle,
-
         false,
-
         paint,
       );
 
@@ -3121,8 +3372,7 @@ class CampaignDonutPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(
-    covariant CampaignDonutPainter
-        oldDelegate,
+    covariant CampaignDonutPainter oldDelegate,
   ) {
     return oldDelegate.pending !=
             pending ||
@@ -3135,9 +3385,9 @@ class CampaignDonutPainter extends CustomPainter {
   }
 }
 
-// =================================================================
-// EMPTY DONUT
-// =================================================================
+// ============================================================
+// EMPTY DONUT PAINTER
+// ============================================================
 
 class EmptyDonutPainter extends CustomPainter {
   const EmptyDonutPainter();
@@ -3147,25 +3397,32 @@ class EmptyDonutPainter extends CustomPainter {
     Canvas canvas,
     Size size,
   ) {
-    final center =
+    final Offset center =
         Offset(
       size.width / 2,
       size.height / 2,
     );
 
-    final radius =
-        size.width / 2 - 10;
+    final double radius =
+        math.min(
+              size.width,
+              size.height,
+            ) /
+            2 -
+        13;
 
-    final paint =
+    final Paint paint =
         Paint()
           ..style =
               PaintingStyle.stroke
-
           ..strokeWidth =
-              18
-
+              23
+          ..strokeCap =
+              StrokeCap.round
           ..color =
-              const Color(0xFFE9EDF2);
+              const Color(
+            0xFF252A33,
+          );
 
     canvas.drawCircle(
       center,
@@ -3176,8 +3433,7 @@ class EmptyDonutPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(
-    covariant EmptyDonutPainter
-        oldDelegate,
+    covariant EmptyDonutPainter oldDelegate,
   ) {
     return false;
   }
