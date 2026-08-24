@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../services/tracking_api.dart';
 
+// ============================================================
+// TRACKING REPORT SCREEN
+// ============================================================
+
 class TrackingReportScreen extends StatefulWidget {
   const TrackingReportScreen({
     super.key,
@@ -14,6 +18,34 @@ class TrackingReportScreen extends StatefulWidget {
 
 class _TrackingReportScreenState
     extends State<TrackingReportScreen> {
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color background = Color(0xFF020507);
+
+  static const Color cardColor = Color(0xFF071016);
+
+  static const Color cardColor2 = Color(0xFF081118);
+
+  static const Color borderColor = Color(0xFF1B2A35);
+
+  static const Color white = Colors.white;
+
+  static const Color mutedText = Color(0xFFA7AFBD);
+
+  static const Color purple = Color(0xFF7C35FF);
+
+  static const Color green = Color(0xFF00E676);
+
+  static const Color orange = Color(0xFFFF9800);
+
+  static const Color blue = Color(0xFF146CFF);
+
+  // ============================================================
+  // STATE
+  // ============================================================
+
   bool _loading = true;
 
   String? _error;
@@ -22,11 +54,41 @@ class _TrackingReportScreenState
 
   List<dynamic> _deliveries = [];
 
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  String _searchQuery = '';
+
+  // ============================================================
+  // DATE
+  // ============================================================
+
+  DateTime? _selectedDate;
+
+  // ============================================================
+  // INIT
+  // ============================================================
+
   @override
   void initState() {
     super.initState();
 
     _loadReport();
+  }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+
+    super.dispose();
   }
 
   // ============================================================
@@ -64,6 +126,7 @@ class _TrackingReportScreenState
 
       setState(() {
         _loading = false;
+
         _error = error
             .toString()
             .replaceFirst(
@@ -75,7 +138,7 @@ class _TrackingReportScreenState
   }
 
   // ============================================================
-  // HELPERS
+  // NUMBER
   // ============================================================
 
   int _number(String key) {
@@ -88,6 +151,10 @@ class _TrackingReportScreenState
     return 0;
   }
 
+  // ============================================================
+  // PERCENTAGE
+  // ============================================================
+
   double _percentage(String key) {
     final value = _statistics?[key];
 
@@ -99,6 +166,107 @@ class _TrackingReportScreenState
   }
 
   // ============================================================
+  // FILTERED DELIVERIES
+  // ============================================================
+
+  List<dynamic> get _filteredDeliveries {
+    final query =
+        _searchQuery.trim().toLowerCase();
+
+    return _deliveries.where((delivery) {
+      if (delivery is! Map) {
+        return false;
+      }
+
+      final lead = delivery['leadId'];
+
+      final sequence =
+          delivery['sequenceId'];
+
+      String firstName = '';
+      String lastName = '';
+      String email = '';
+      String subject = '';
+
+      if (lead is Map) {
+        firstName =
+            lead['firstName']
+                ?.toString()
+                .toLowerCase() ??
+            '';
+
+        lastName =
+            lead['lastName']
+                ?.toString()
+                .toLowerCase() ??
+            '';
+
+        email =
+            lead['email']
+                ?.toString()
+                .toLowerCase() ??
+            '';
+      }
+
+      if (sequence is Map) {
+        subject =
+            sequence['subject']
+                ?.toString()
+                .toLowerCase() ??
+            '';
+      }
+
+      // ========================================================
+      // SEARCH
+      // ========================================================
+
+      if (query.isNotEmpty) {
+        final searchable =
+            '$firstName $lastName $email $subject';
+
+        if (!searchable.contains(query)) {
+          return false;
+        }
+      }
+
+      // ========================================================
+      // DATE FILTER
+      // ========================================================
+
+      if (_selectedDate != null) {
+        final dateValue =
+            delivery['sentAt'] ??
+            delivery['createdAt'] ??
+            delivery['updatedAt'];
+
+        if (dateValue == null) {
+          return false;
+        }
+
+        try {
+          final date =
+              DateTime.parse(
+                dateValue.toString(),
+              ).toLocal();
+
+          if (date.year !=
+                  _selectedDate!.year ||
+              date.month !=
+                  _selectedDate!.month ||
+              date.day !=
+                  _selectedDate!.day) {
+            return false;
+          }
+        } catch (_) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
+
+  // ============================================================
   // BUILD
   // ============================================================
 
@@ -107,77 +275,8 @@ class _TrackingReportScreenState
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF5F7FA),
-      child: Column(
-        children: [
-          _buildHeader(),
-
-          Expanded(
-            child: _buildBody(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // HEADER
-  // ============================================================
-
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        24,
-        22,
-        24,
-        18,
-      ),
-      color: const Color(0xFFF5F7FA),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Tracking Report',
-                  style: TextStyle(
-                    color: Color(0xFF101828),
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  'Track sequence email opens and delivery performance.',
-                  style: TextStyle(
-                    color: Color(0xFF667085),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 15),
-
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed:
-                _loading ? null : _loadReport,
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              padding: const EdgeInsets.all(12),
-            ),
-            icon: const Icon(
-              Icons.refresh,
-              color: Color(0xFF101828),
-            ),
-          ),
-        ],
-      ),
+      color: background,
+      child: _buildBody(),
     );
   }
 
@@ -188,7 +287,9 @@ class _TrackingReportScreenState
   Widget _buildBody() {
     if (_loading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          color: purple,
+        ),
       );
     }
 
@@ -197,97 +298,656 @@ class _TrackingReportScreenState
     }
 
     return RefreshIndicator(
+      color: purple,
+      backgroundColor: cardColor,
       onRefresh: _loadReport,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          24,
-          0,
-          24,
-          30,
-        ),
-        children: [
-          _buildStatistics(),
+      child: LayoutBuilder(
+        builder: (
+          context,
+          constraints,
+        ) {
+          final bool isMobile =
+              constraints.maxWidth < 700;
 
-          const SizedBox(height: 28),
-
-          _buildDeliveryHeader(),
-
-          const SizedBox(height: 14),
-
-          if (_deliveries.isEmpty)
-            _buildEmptyState()
-          else
-            ..._deliveries.map(
-              _buildDeliveryCard,
+          return ListView(
+            physics:
+                const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              isMobile ? 14 : 24,
+              isMobile ? 16 : 24,
+              isMobile ? 14 : 24,
+              35,
             ),
-        ],
+            children: [
+              // =================================================
+              // HEADER
+              // =================================================
+
+              _buildHeader(
+                isMobile,
+              ),
+
+              const SizedBox(
+                height: 22,
+              ),
+
+              // =================================================
+              // STATISTICS
+              // =================================================
+
+              _buildStatistics(
+                isMobile,
+              ),
+
+              const SizedBox(
+                height: 22,
+              ),
+
+              // =================================================
+              // EMAIL ACTIVITY
+              // =================================================
+
+              _buildEmailActivity(
+                isMobile,
+              ),
+
+              const SizedBox(
+                height: 18,
+              ),
+
+              // =================================================
+              // EXPORT
+              // =================================================
+
+              _buildExportButton(),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  // ============================================================
+  // HEADER
+  // ============================================================
+
+  Widget _buildHeader(
+    bool isMobile,
+  ) {
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // ===============================================
+              // ICON
+              // ===============================================
+
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  gradient:
+                      const LinearGradient(
+                    begin:
+                        Alignment.topLeft,
+                    end:
+                        Alignment.bottomRight,
+                    colors: [
+                      Color(
+                        0xFF4438FF,
+                      ),
+                      Color(
+                        0xFF9400FF,
+                      ),
+                    ],
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(
+                    13,
+                  ),
+                ),
+                child:
+                    const Icon(
+                  Icons
+                      .trending_up_rounded,
+                  color:
+                      Colors.white,
+                  size: 31,
+                ),
+              ),
+
+              const SizedBox(
+                width: 13,
+              ),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    const Text(
+                      'Tracking Report',
+                      style:
+                          TextStyle(
+                        color:
+                            white,
+                        fontSize:
+                            23,
+                        fontWeight:
+                            FontWeight
+                                .w800,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 3,
+                    ),
+
+                    Text(
+                      'Email sequence performance analytics',
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow
+                              .ellipsis,
+                      style:
+                          TextStyle(
+                        color:
+                            mutedText,
+                        fontSize:
+                            isMobile
+                                ? 12
+                                : 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 14,
+          ),
+
+          Align(
+            alignment:
+                Alignment.centerRight,
+            child:
+                _buildDateButton(),
+          ),
+        ],
+      );
+    }
+
+    // ==========================================================
+    // DESKTOP HEADER
+    // ==========================================================
+
+    return Row(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration:
+              BoxDecoration(
+            gradient:
+                const LinearGradient(
+              colors: [
+                Color(
+                  0xFF4438FF,
+                ),
+                Color(
+                  0xFF9400FF,
+                ),
+              ],
+            ),
+            borderRadius:
+                BorderRadius.circular(
+              15,
+            ),
+          ),
+          child:
+              const Icon(
+            Icons
+                .trending_up_rounded,
+            color:
+                Colors.white,
+            size: 36,
+          ),
+        ),
+
+        const SizedBox(
+          width: 18,
+        ),
+
+        const Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
+            children: [
+              Text(
+                'Tracking Report',
+                style:
+                    TextStyle(
+                  color:
+                      white,
+                  fontSize:
+                      30,
+                  fontWeight:
+                      FontWeight
+                          .w800,
+                ),
+              ),
+
+              SizedBox(
+                height: 4,
+              ),
+
+              Text(
+                'Email sequence performance analytics',
+                style:
+                    TextStyle(
+                  color:
+                      mutedText,
+                  fontSize:
+                      15,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        _buildDateButton(),
+      ],
+    );
+  }
+
+  // ============================================================
+  // DATE BUTTON
+  // ============================================================
+
+  Widget _buildDateButton() {
+    return InkWell(
+      onTap: _selectDate,
+      borderRadius:
+          BorderRadius.circular(
+        14,
+      ),
+      child: Container(
+        height: 52,
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 17,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              const Color(
+            0xFF071016,
+          ),
+          borderRadius:
+              BorderRadius.circular(
+            14,
+          ),
+          border:
+              Border.all(
+            color:
+                borderColor,
+          ),
+        ),
+        child: Row(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons
+                  .calendar_month_outlined,
+              color:
+                  Color(
+                0xFFC3C9D4,
+              ),
+              size: 23,
+            ),
+
+            const SizedBox(
+              width: 10,
+            ),
+
+            Text(
+              _selectedDate ==
+                      null
+                  ? 'All Dates'
+                  : _formatOnlyDate(
+                      _selectedDate!,
+                    ),
+              style:
+                  const TextStyle(
+                color:
+                    white,
+                fontSize:
+                    14,
+                fontWeight:
+                    FontWeight
+                        .w600,
+              ),
+            ),
+
+            const SizedBox(
+              width: 10,
+            ),
+
+            const Icon(
+              Icons
+                  .keyboard_arrow_down_rounded,
+              color:
+                  Colors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // SELECT DATE
+  // ============================================================
+
+  Future<void> _selectDate() async {
+    final selected =
+        await showDatePicker(
+      context: context,
+      initialDate:
+          _selectedDate ??
+          DateTime.now(),
+      firstDate:
+          DateTime(
+        2020,
+      ),
+      lastDate:
+          DateTime(
+        2035,
+      ),
+      builder: (
+        context,
+        child,
+      ) {
+        return Theme(
+          data:
+              Theme.of(
+            context,
+          ).copyWith(
+            colorScheme:
+                const ColorScheme.dark(
+              primary:
+                  purple,
+              surface:
+                  cardColor,
+            ),
+            dialogTheme:
+                const DialogThemeData(
+              backgroundColor:
+                  cardColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selected == null ||
+        !mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedDate =
+          selected;
+    });
   }
 
   // ============================================================
   // STATISTICS
   // ============================================================
 
-  Widget _buildStatistics() {
+  Widget _buildStatistics(
+    bool isMobile,
+  ) {
+    final totalSent =
+        _number(
+      'totalSent',
+    );
+
+    final opened =
+        _number(
+      'totalOpened',
+    );
+
+    // ==========================================================
+    // SENT BUT NOT OPENED
+    // ==========================================================
+
+    int sent =
+        _number(
+      'totalNotOpened',
+    );
+
+    if (sent == 0 &&
+        totalSent >= opened) {
+      sent =
+          totalSent -
+          opened;
+    }
+
+    final openRate =
+        _percentage(
+      'openRate',
+    );
+
     return LayoutBuilder(
       builder: (
         context,
         constraints,
       ) {
-        final width = constraints.maxWidth;
+        final width =
+            constraints.maxWidth;
 
-        double cardWidth;
+        // ======================================================
+        // MOBILE = 2 X 2
+        // ======================================================
 
-        if (width >= 1100) {
-          cardWidth =
-              (width - 48) / 4;
-        } else if (width >= 650) {
-          cardWidth =
-              (width - 16) / 2;
-        } else {
-          cardWidth = width;
+        if (isMobile) {
+          final cardWidth =
+              (width - 10) /
+                  2;
+
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _statCard(
+                width:
+                    cardWidth,
+                title:
+                    'Total Sent',
+                value:
+                    totalSent
+                        .toString(),
+                subtitle:
+                    'Emails sent',
+                icon:
+                    Icons
+                        .send_rounded,
+                iconColor:
+                    purple,
+                iconBackground:
+                    const Color(
+                  0xFF1D123D,
+                ),
+              ),
+
+              _statCard(
+                width:
+                    cardWidth,
+                title:
+                    'Opened',
+                value:
+                    opened
+                        .toString(),
+                subtitle:
+                    'Emails opened',
+                icon:
+                    Icons
+                        .email_rounded,
+                iconColor:
+                    green,
+                iconBackground:
+                    const Color(
+                  0xFF00331E,
+                ),
+              ),
+
+              _statCard(
+                width:
+                    cardWidth,
+                title:
+                    'Sent',
+                value:
+                    sent
+                        .toString(),
+                subtitle:
+                    'Emails sent',
+                icon:
+                    Icons
+                        .send_rounded,
+                iconColor:
+                    blue,
+                iconBackground:
+                    const Color(
+                  0xFF062453,
+                ),
+              ),
+
+              _statCard(
+                width:
+                    cardWidth,
+                title:
+                    'Open Rate',
+                value:
+                    '${openRate.toStringAsFixed(1)}%',
+                subtitle:
+                    'Success rate',
+                icon:
+                    Icons
+                        .bar_chart_rounded,
+                iconColor:
+                    blue,
+                iconBackground:
+                    const Color(
+                  0xFF062453,
+                ),
+              ),
+            ],
+          );
         }
 
+        // ======================================================
+        // DESKTOP = 4 IN ONE ROW
+        // ======================================================
+
+        final cardWidth =
+            (width - 36) /
+                4;
+
         return Wrap(
-          spacing: 16,
-          runSpacing: 16,
+          spacing: 12,
+          runSpacing: 12,
           children: [
             _statCard(
-              width: cardWidth,
-              title: 'Total Sent',
-              value: _number(
-                'totalSent',
-              ),
-              icon: Icons.send_outlined,
-            ),
-
-            _statCard(
-              width: cardWidth,
-              title: 'Opened',
-              value: _number(
-                'totalOpened',
-              ),
-              icon:
-                  Icons.mark_email_read_outlined,
-            ),
-
-            _statCard(
-              width: cardWidth,
-              title: 'Not Opened',
-              value: _number(
-                'totalNotOpened',
-              ),
-              icon:
-                  Icons.mark_email_unread_outlined,
-            ),
-
-            _statCard(
-              width: cardWidth,
-              title: 'Open Rate',
+              width:
+                  cardWidth,
+              title:
+                  'Total Sent',
               value:
-                  '${_percentage('openRate').toStringAsFixed(1)}%',
-              icon: Icons.bar_chart_outlined,
+                  totalSent
+                      .toString(),
+              subtitle:
+                  'Emails sent',
+              icon:
+                  Icons
+                      .send_rounded,
+              iconColor:
+                  purple,
+              iconBackground:
+                  const Color(
+                0xFF1D123D,
+              ),
+            ),
+
+            _statCard(
+              width:
+                  cardWidth,
+              title:
+                  'Opened',
+              value:
+                  opened
+                      .toString(),
+              subtitle:
+                  'Emails opened',
+              icon:
+                  Icons
+                      .email_rounded,
+              iconColor:
+                  green,
+              iconBackground:
+                  const Color(
+                0xFF00331E,
+              ),
+            ),
+
+            _statCard(
+              width:
+                  cardWidth,
+              title:
+                  'Sent',
+              value:
+                  sent
+                      .toString(),
+              subtitle:
+                  'Emails sent',
+              icon:
+                  Icons
+                      .send_rounded,
+              iconColor:
+                  blue,
+              iconBackground:
+                  const Color(
+                0xFF062453,
+              ),
+            ),
+
+            _statCard(
+              width:
+                  cardWidth,
+              title:
+                  'Open Rate',
+              value:
+                  '${openRate.toStringAsFixed(1)}%',
+              subtitle:
+                  'Success rate',
+              icon:
+                  Icons
+                      .bar_chart_rounded,
+              iconColor:
+                  blue,
+              iconBackground:
+                  const Color(
+                0xFF062453,
+              ),
             ),
           ],
         );
@@ -295,83 +955,128 @@ class _TrackingReportScreenState
     );
   }
 
+  // ============================================================
+  // STAT CARD
+  // ============================================================
+
   Widget _statCard({
     required double width,
     required String title,
-    required dynamic value,
+    required String value,
+    required String subtitle,
     required IconData icon,
+    required Color iconColor,
+    required Color iconBackground,
   }) {
     return SizedBox(
       width: width,
       child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.circular(14),
-          border: Border.all(
-            color: const Color(0xFFE4E7EC),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  Colors.black.withOpacity(
-                0.03,
-              ),
-              blurRadius: 12,
-              offset:
-                  const Offset(0, 4),
-            ),
-          ],
+        constraints:
+            const BoxConstraints(
+          minHeight: 132,
         ),
-        child: Row(
+        padding:
+            const EdgeInsets.all(
+          14,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              cardColor,
+          borderRadius:
+              BorderRadius.circular(
+            16,
+          ),
+          border:
+              Border.all(
+            color:
+                borderColor,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment
+                  .start,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
+            Row(
+              children: [
+                Container(
+                  width: 43,
+                  height: 43,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        iconBackground,
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      11,
+                    ),
+                  ),
+                  child:
+                      Icon(
+                    icon,
+                    color:
+                        iconColor,
+                    size: 24,
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 10,
+                ),
+
+                Expanded(
+                  child:
+                      Text(
+                    title,
+                    maxLines: 2,
+                    style:
+                        const TextStyle(
+                      color:
+                          white,
+                      fontSize:
+                          13,
+                      fontWeight:
+                          FontWeight
+                              .w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 13,
+            ),
+
+            Text(
+              value,
+              maxLines: 1,
+              style:
+                  const TextStyle(
                 color:
-                    const Color(0xFFD4AF37)
-                        .withOpacity(0.12),
-                borderRadius:
-                    BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color:
-                    const Color(0xFFD4AF37),
+                    white,
+                fontSize:
+                    27,
+                fontWeight:
+                    FontWeight
+                        .w800,
               ),
             ),
 
-            const SizedBox(width: 14),
+            const SizedBox(
+              height: 4,
+            ),
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color:
-                          Color(0xFF667085),
-                      fontSize: 13,
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Text(
-                    value.toString(),
-                    style: const TextStyle(
-                      color:
-                          Color(0xFF101828),
-                      fontSize: 24,
-                      fontWeight:
-                          FontWeight.w800,
-                    ),
-                  ),
-                ],
+            Text(
+              subtitle,
+              style:
+                  const TextStyle(
+                color:
+                    mutedText,
+                fontSize:
+                    11,
               ),
             ),
           ],
@@ -381,31 +1086,241 @@ class _TrackingReportScreenState
   }
 
   // ============================================================
-  // DELIVERY HEADER
+  // EMAIL ACTIVITY
   // ============================================================
 
-  Widget _buildDeliveryHeader() {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'Sequence Deliveries',
-            style: TextStyle(
-              color: Color(0xFF101828),
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
+  Widget _buildEmailActivity(
+    bool isMobile,
+  ) {
+    final deliveries =
+        _filteredDeliveries;
 
-        Text(
-          '${_deliveries.length} records',
-          style: const TextStyle(
-            color: Color(0xFF667085),
-            fontSize: 13,
+    return Container(
+      width: double.infinity,
+      padding:
+          EdgeInsets.all(
+        isMobile ? 13 : 20,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            const Color(
+          0xFF040B10,
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          17,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment
+                .start,
+        children: [
+          // ====================================================
+          // TITLE
+          // ====================================================
+
+          Row(
+            children: [
+              Container(
+                width: 43,
+                height: 43,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      const Color(
+                    0xFF1D123D,
+                  ),
+                  borderRadius:
+                      BorderRadius
+                          .circular(
+                    10,
+                  ),
+                ),
+                child:
+                    const Icon(
+                  Icons
+                      .email_outlined,
+                  color:
+                      purple,
+                  size: 24,
+                ),
+              ),
+
+              const SizedBox(
+                width: 12,
+              ),
+
+              const Expanded(
+                child:
+                    Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    Text(
+                      'Email Activity',
+                      style:
+                          TextStyle(
+                        color:
+                            white,
+                        fontSize:
+                            21,
+                        fontWeight:
+                            FontWeight
+                                .w800,
+                      ),
+                    ),
+
+                    SizedBox(
+                      height: 3,
+                    ),
+
+                    Text(
+                      'Latest email tracking events',
+                      style:
+                          TextStyle(
+                        color:
+                            mutedText,
+                        fontSize:
+                            12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 17,
+          ),
+
+          // ====================================================
+          // SEARCH
+          // ====================================================
+
+          _buildSearch(),
+
+          const SizedBox(
+            height: 18,
+          ),
+
+          // ====================================================
+          // CARDS
+          // ====================================================
+
+          if (deliveries.isEmpty)
+            _buildEmptyState()
+          else
+            ...deliveries.map(
+              (delivery) =>
+                  _buildDeliveryCard(
+                delivery,
+                isMobile,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
+  Widget _buildSearch() {
+    return TextField(
+      controller:
+          _searchController,
+      onChanged: (
+        value,
+      ) {
+        setState(() {
+          _searchQuery =
+              value;
+        });
+      },
+      style:
+          const TextStyle(
+        color:
+            white,
+        fontSize:
+            14,
+      ),
+      decoration:
+          InputDecoration(
+        hintText:
+            'Search by name or email...',
+        hintStyle:
+            const TextStyle(
+          color:
+              mutedText,
+          fontSize:
+              14,
+        ),
+        prefixIcon:
+            const Icon(
+          Icons
+              .search_rounded,
+          color:
+              Color(
+            0xFFABB3C4,
           ),
         ),
-      ],
+        filled:
+            true,
+        fillColor:
+            const Color(
+          0xFF071016,
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(
+          vertical: 16,
+        ),
+        border:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            13,
+          ),
+          borderSide:
+              const BorderSide(
+            color:
+                borderColor,
+          ),
+        ),
+        enabledBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            13,
+          ),
+          borderSide:
+              const BorderSide(
+            color:
+                borderColor,
+          ),
+        ),
+        focusedBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            13,
+          ),
+          borderSide:
+              const BorderSide(
+            color:
+                purple,
+          ),
+        ),
+      ),
     );
   }
 
@@ -415,6 +1330,7 @@ class _TrackingReportScreenState
 
   Widget _buildDeliveryCard(
     dynamic delivery,
+    bool isMobile,
   ) {
     final sequence =
         delivery['sequenceId'];
@@ -425,224 +1341,646 @@ class _TrackingReportScreenState
     final openedAt =
         delivery['openedAt'];
 
-    final openedCount =
-        delivery['openedCount'] ?? 0;
-
-    final status =
-        delivery['status']
-            ?.toString() ??
-        '';
-
-    final email =
-        lead is Map
-            ? lead['email']?.toString()
-            : null;
+    final sentAt =
+        delivery['sentAt'] ??
+        delivery['createdAt'];
 
     final firstName =
         lead is Map
-            ? lead['firstName']?.toString()
-            : null;
+            ? lead['firstName']
+                    ?.toString() ??
+                ''
+            : '';
 
     final lastName =
         lead is Map
-            ? lead['lastName']?.toString()
-            : null;
+            ? lead['lastName']
+                    ?.toString() ??
+                ''
+            : '';
 
-    final leadName = [
-      firstName,
-      lastName,
-    ]
-        .where(
-          (value) =>
-              value != null &&
-              value.trim().isNotEmpty,
-        )
-        .join(' ');
+    final email =
+        lead is Map
+            ? lead['email']
+                    ?.toString() ??
+                ''
+            : '';
 
-    final sequenceStep =
+    final name =
+        '$firstName $lastName'
+            .trim();
+
+    final step =
         sequence is Map
             ? sequence['step']
-            : null;
+                    ?.toString() ??
+                '-'
+            : '-';
 
     final variant =
         sequence is Map
             ? sequence['variant']
-            : null;
+                    ?.toString() ??
+                '-'
+            : '-';
 
     final subject =
         sequence is Map
             ? sequence['subject']
-            : null;
+                    ?.toString() ??
+                'No Subject'
+            : 'No Subject';
 
-    final isOpened =
+    final bool opened =
         openedAt != null;
 
-    return Container(
-      margin:
-          const EdgeInsets.only(
-        bottom: 12,
-      ),
-      padding:
-          const EdgeInsets.all(18),
-      decoration:
-          BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color:
-              const Color(0xFFE4E7EC),
+    final eventDate =
+        opened
+            ? openedAt
+            : sentAt;
+
+    final displayName =
+        name.isNotEmpty
+            ? name
+            : email.isNotEmpty
+                ? email
+                : 'Unknown Lead';
+
+    final initial =
+        displayName.isNotEmpty
+            ? displayName[0]
+                .toUpperCase()
+            : '?';
+
+    // ==========================================================
+    // MOBILE CARD
+    // ==========================================================
+
+    if (isMobile) {
+      return Container(
+        width: double.infinity,
+        margin:
+            const EdgeInsets.only(
+          bottom: 10,
         ),
-        boxShadow: [
-          BoxShadow(
+        padding:
+            const EdgeInsets.all(
+          14,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              cardColor2,
+          borderRadius:
+              BorderRadius.circular(
+            15,
+          ),
+          border:
+              Border.all(
             color:
-                Colors.black.withOpacity(
-              0.025,
-            ),
-            blurRadius: 10,
-            offset:
-                const Offset(0, 3),
+                borderColor,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  leadName.isNotEmpty
-                      ? leadName
-                      : email ??
-                          'Unknown Lead',
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(0xFF101828),
-                    fontSize: 16,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-              ),
-
-              _statusBadge(
-                isOpened,
-              ),
-            ],
-          ),
-
-          if (email != null) ...[
-            const SizedBox(height: 5),
-
-            Text(
-              email,
-              style:
-                  const TextStyle(
-                color:
-                    Color(0xFF667085),
-                fontSize: 13,
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 14),
-
-          Wrap(
-            spacing: 20,
-            runSpacing: 10,
-            children: [
-              _infoItem(
-                'Step',
-                sequenceStep
-                        ?.toString() ??
-                    '-',
-              ),
-
-              _infoItem(
-                'Variant',
-                variant
-                        ?.toString() ??
-                    '-',
-              ),
-
-              _infoItem(
-                'Opens',
-                openedCount
-                    .toString(),
-              ),
-
-              _infoItem(
-                'Status',
-                status.isEmpty
-                    ? '-'
-                    : status,
-              ),
-            ],
-          ),
-
-          if (subject != null) ...[
-            const SizedBox(height: 14),
-
-            Text(
-              subject.toString(),
-              maxLines: 2,
-              overflow:
-                  TextOverflow.ellipsis,
-              style:
-                  const TextStyle(
-                color:
-                    Color(0xFF344054),
-                fontSize: 14,
-                fontWeight:
-                    FontWeight.w500,
-              ),
-            ),
-          ],
-
-          if (openedAt != null) ...[
-            const SizedBox(height: 10),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment
+                  .start,
+          children: [
+            // ==================================================
+            // LEAD + STATUS
+            // ==================================================
 
             Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
               children: [
-                const Icon(
-                  Icons.access_time,
-                  size: 14,
-                  color:
-                      Colors.green,
+                _buildAvatar(
+                  initial,
+                  email,
                 ),
 
                 const SizedBox(
-                  width: 6,
+                  width: 11,
                 ),
 
+                Expanded(
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              white,
+                          fontSize:
+                              15,
+                          fontWeight:
+                              FontWeight
+                                  .w700,
+                        ),
+                      ),
+
+                      if (email
+                          .isNotEmpty) ...[
+                        const SizedBox(
+                          height: 3,
+                        ),
+
+                        Text(
+                          email,
+                          maxLines:
+                              1,
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                          style:
+                              const TextStyle(
+                            color:
+                                mutedText,
+                            fontSize:
+                                11,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 8,
+                ),
+
+                _statusBadge(
+                  opened,
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 13,
+            ),
+
+            // ==================================================
+            // STEP / VARIANT
+            // ==================================================
+
+            Row(
+              children: [
+                _stepBadge(
+                  'Step $step',
+                ),
+
+                const SizedBox(
+                  width: 7,
+                ),
+
+                _variantBadge(
+                  'Variant $variant',
+                ),
+
+                const Spacer(),
+
                 Text(
-                  'First opened: ${_formatDate(openedAt)}',
+                  opened
+                      ? 'Opened ${_formatTime(eventDate)}'
+                      : 'Sent ${_formatTime(eventDate)}',
                   style:
-                      const TextStyle(
+                      TextStyle(
                     color:
-                        Colors.green,
-                    fontSize: 12,
+                        opened
+                            ? green
+                            : orange,
+                    fontSize:
+                        11,
                     fontWeight:
-                        FontWeight.w500,
+                        FontWeight
+                            .w500,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 13,
+            ),
+
+            Container(
+              width:
+                  double.infinity,
+              height: 1,
+              color:
+                  borderColor,
+            ),
+
+            const SizedBox(
+              height: 13,
+            ),
+
+            // ==================================================
+            // SUBJECT
+            // ==================================================
+
+            Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+              children: [
+                const Text(
+                  '🚀',
+                  style:
+                      TextStyle(
+                    fontSize:
+                        17,
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 8,
+                ),
+
+                Expanded(
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        subject,
+                        maxLines:
+                            2,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              white,
+                          fontSize:
+                              14,
+                          height:
+                              1.35,
+                          fontWeight:
+                              FontWeight
+                                  .w500,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 5,
+                      ),
+
+                      Text(
+                        _formatDateOnly(
+                          eventDate,
+                        ),
+                        style:
+                            const TextStyle(
+                          color:
+                              mutedText,
+                          fontSize:
+                              11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ],
+        ),
+      );
+    }
+
+    // ==========================================================
+    // DESKTOP CARD
+    // ==========================================================
+
+    return Container(
+      width: double.infinity,
+      margin:
+          const EdgeInsets.only(
+        bottom: 8,
+      ),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 16,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            cardColor2,
+        borderRadius:
+            BorderRadius.circular(
+          14,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.center,
+        children: [
+          // ====================================================
+          // LEAD
+          // ====================================================
+
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                _buildAvatar(
+                  initial,
+                  email,
+                ),
+
+                const SizedBox(
+                  width: 12,
+                ),
+
+                Expanded(
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines:
+                            1,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              white,
+                          fontSize:
+                              14,
+                          fontWeight:
+                              FontWeight
+                                  .w700,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 4,
+                      ),
+
+                      Text(
+                        email,
+                        maxLines:
+                            1,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              mutedText,
+                          fontSize:
+                              11,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 8,
+                      ),
+
+                      Row(
+                        children: [
+                          _stepBadge(
+                            'Step $step',
+                          ),
+
+                          const SizedBox(
+                            width: 6,
+                          ),
+
+                          _variantBadge(
+                            'Variant $variant',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Container(
+            width: 1,
+            height: 75,
+            color:
+                borderColor,
+          ),
+
+          const SizedBox(
+            width: 20,
+          ),
+
+          // ====================================================
+          // SUBJECT
+          // ====================================================
+
+          Expanded(
+            flex: 4,
+            child: Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+              children: [
+                const Text(
+                  '🚀',
+                  style:
+                      TextStyle(
+                    fontSize:
+                        18,
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 9,
+                ),
+
+                Expanded(
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        subject,
+                        maxLines:
+                            2,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              white,
+                          fontSize:
+                              14,
+                          height:
+                              1.4,
+                          fontWeight:
+                              FontWeight
+                                  .w500,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 5,
+                      ),
+
+                      Text(
+                        _formatDateOnly(
+                          eventDate,
+                        ),
+                        style:
+                            const TextStyle(
+                          color:
+                              mutedText,
+                          fontSize:
+                              11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(
+            width: 20,
+          ),
+
+          // ====================================================
+          // STATUS
+          // ====================================================
+
+          SizedBox(
+            width: 115,
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+              children: [
+                _statusBadge(
+                  opened,
+                ),
+
+                const SizedBox(
+                  height: 6,
+                ),
+
+                Text(
+                  'at ${_formatTime(eventDate)}',
+                  style:
+                      const TextStyle(
+                    color:
+                        mutedText,
+                    fontSize:
+                        11,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   // ============================================================
-  // STATUS
+  // AVATAR
   // ============================================================
 
-  Widget _statusBadge(
-    bool opened,
+  Widget _buildAvatar(
+    String initial,
+    String seed,
+  ) {
+    final colors = [
+      const Color(
+        0xFF5B16E8,
+      ),
+      const Color(
+        0xFF0059FF,
+      ),
+      const Color(
+        0xFFFF6500,
+      ),
+      const Color(
+        0xFF16783D,
+      ),
+      const Color(
+        0xFFE8223B,
+      ),
+      const Color(
+        0xFF007C93,
+      ),
+      const Color(
+        0xFFE89400,
+      ),
+    ];
+
+    final index =
+        seed.hashCode
+            .abs() %
+        colors.length;
+
+    return Container(
+      width: 45,
+      height: 45,
+      decoration:
+          BoxDecoration(
+        color:
+            colors[index],
+        shape:
+            BoxShape.circle,
+      ),
+      alignment:
+          Alignment.center,
+      child: Text(
+        initial,
+        style:
+            const TextStyle(
+          color:
+              Colors.white,
+          fontSize:
+              20,
+          fontWeight:
+              FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // STEP BADGE
+  // ============================================================
+
+  Widget _stepBadge(
+    String text,
   ) {
     return Container(
       padding:
@@ -653,86 +1991,242 @@ class _TrackingReportScreenState
       decoration:
           BoxDecoration(
         color:
-            opened
-                ? Colors.green
-                    .withOpacity(0.10)
-                : Colors.orange
-                    .withOpacity(0.10),
+            const Color(
+          0xFF1B1033,
+        ),
         borderRadius:
-            BorderRadius.circular(20),
+            BorderRadius.circular(
+          7,
+        ),
       ),
-      child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
-        children: [
-          Icon(
-            opened
-                ? Icons.check_circle
-                : Icons.schedule,
-            size: 15,
-            color:
-                opened
-                    ? Colors.green
-                    : Colors.orange,
+      child: Text(
+        text,
+        style:
+            const TextStyle(
+          color:
+              Color(
+            0xFFB45CFF,
           ),
-
-          const SizedBox(
-            width: 5,
-          ),
-
-          Text(
-            opened
-                ? 'Opened'
-                : 'Pending',
-            style:
-                TextStyle(
-              color:
-                  opened
-                      ? Colors.green
-                      : Colors.orange,
-              fontSize: 12,
-              fontWeight:
-                  FontWeight.w700,
-            ),
-          ),
-        ],
+          fontSize:
+              11,
+          fontWeight:
+              FontWeight.w600,
+        ),
       ),
     );
   }
 
   // ============================================================
-  // INFO
+  // VARIANT BADGE
   // ============================================================
 
-  Widget _infoItem(
-    String title,
-    String value,
+  Widget _variantBadge(
+    String text,
   ) {
-    return Row(
-      mainAxisSize:
-          MainAxisSize.min,
-      children: [
-        Text(
-          '$title: ',
-          style:
-              const TextStyle(
-            color:
-                Color(0xFF98A2B3),
-            fontSize: 12,
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            const Color(
+          0xFF111820,
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          7,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child: Text(
+        text,
+        style:
+            const TextStyle(
+          color:
+              Color(
+            0xFFC1C7D0,
+          ),
+          fontSize:
+              11,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // STATUS BADGE
+  // ============================================================
+
+  Widget _statusBadge(
+    bool opened,
+  ) {
+    final color =
+        opened
+            ? green
+            : orange;
+
+    return Container(
+      constraints:
+          const BoxConstraints(
+        minWidth: 70,
+      ),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 7,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            opened
+                ? const Color(
+                    0xFF002F1C,
+                  )
+                : const Color(
+                    0xFF2D1B05,
+                  ),
+        borderRadius:
+            BorderRadius.circular(
+          8,
+        ),
+        border:
+            Border.all(
+          color:
+              color.withOpacity(
+            0.20,
           ),
         ),
-        Text(
-          value,
+      ),
+      child: Text(
+        opened
+            ? 'Open'
+            : 'Sent',
+        textAlign:
+            TextAlign.center,
+        style:
+            TextStyle(
+          color:
+              color,
+          fontSize:
+              12,
+          fontWeight:
+              FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // EXPORT BUTTON
+  // ============================================================
+
+  Widget _buildExportButton() {
+    return Container(
+      width:
+          double.infinity,
+      height: 55,
+      decoration:
+          BoxDecoration(
+        gradient:
+            const LinearGradient(
+          begin:
+              Alignment.centerLeft,
+          end:
+              Alignment.centerRight,
+          colors: [
+            Color(
+              0xFF1537E8,
+            ),
+            Color(
+              0xFF6B17DC,
+            ),
+            Color(
+              0xFFB408C5,
+            ),
+          ],
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          12,
+        ),
+      ),
+      child:
+          ElevatedButton.icon(
+        onPressed:
+            _exportReport,
+        icon:
+            const Icon(
+          Icons
+              .download_rounded,
+          color:
+              Colors.white,
+          size: 21,
+        ),
+        label:
+            const Text(
+          'Export Report',
           style:
-              const TextStyle(
+              TextStyle(
             color:
-                Color(0xFF344054),
-            fontSize: 12,
+                Colors.white,
+            fontSize:
+                15,
             fontWeight:
-                FontWeight.w600,
+                FontWeight.w700,
           ),
         ),
-      ],
+        style:
+            ElevatedButton.styleFrom(
+          backgroundColor:
+              Colors.transparent,
+          shadowColor:
+              Colors.transparent,
+          elevation:
+              0,
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // EXPORT
+  // ============================================================
+
+  void _exportReport() {
+    ScaffoldMessenger.of(
+      context,
+    ).hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(
+      const SnackBar(
+        behavior:
+            SnackBarBehavior
+                .floating,
+        backgroundColor:
+            Color(
+          0xFF121820,
+        ),
+        content:
+            Text(
+          'Export functionality will be connected here.',
+        ),
+      ),
     );
   }
 
@@ -742,53 +2236,70 @@ class _TrackingReportScreenState
 
   Widget _buildEmptyState() {
     return Container(
-      width: double.infinity,
+      width:
+          double.infinity,
       padding:
           const EdgeInsets.symmetric(
-        vertical: 70,
+        vertical: 55,
+        horizontal: 20,
       ),
       decoration:
           BoxDecoration(
-        color: Colors.white,
+        color:
+            cardColor2,
         borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
+            BorderRadius.circular(
+          14,
+        ),
+        border:
+            Border.all(
           color:
-              const Color(0xFFE4E7EC),
+              borderColor,
         ),
       ),
-      child: const Column(
+      child:
+          const Column(
         children: [
           Icon(
-            Icons.analytics_outlined,
+            Icons
+                .mail_outline_rounded,
             color:
-                Color(0xFF98A2B3),
-            size: 52,
+                mutedText,
+            size: 45,
           ),
 
-          SizedBox(height: 14),
+          SizedBox(
+            height: 12,
+          ),
 
           Text(
-            'No tracking data yet',
-            style: TextStyle(
+            'No email activity',
+            style:
+                TextStyle(
               color:
-                  Color(0xFF344054),
-              fontSize: 16,
+                  white,
+              fontSize:
+                  15,
               fontWeight:
-                  FontWeight.w600,
+                  FontWeight
+                      .w700,
             ),
           ),
 
-          SizedBox(height: 6),
+          SizedBox(
+            height: 5,
+          ),
 
           Text(
-            'Send a sequence email and open it to see tracking data here.',
+            'Tracking activity will appear here.',
             textAlign:
                 TextAlign.center,
-            style: TextStyle(
+            style:
+                TextStyle(
               color:
-                  Color(0xFF667085),
-              fontSize: 13,
+                  mutedText,
+              fontSize:
+                  12,
             ),
           ),
         ],
@@ -804,18 +2315,41 @@ class _TrackingReportScreenState
     return Center(
       child: Padding(
         padding:
-            const EdgeInsets.all(24),
+            const EdgeInsets.all(
+          24,
+        ),
         child: Column(
           mainAxisSize:
               MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 50,
+            Container(
+              width: 65,
+              height: 65,
+              decoration:
+                  BoxDecoration(
+                color:
+                    Colors.red
+                        .withOpacity(
+                  0.10,
+                ),
+                borderRadius:
+                    BorderRadius.circular(
+                  18,
+                ),
+              ),
+              child:
+                  const Icon(
+                Icons
+                    .error_outline_rounded,
+                color:
+                    Colors.redAccent,
+                size: 35,
+              ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(
+              height: 16,
+            ),
 
             Text(
               _error!,
@@ -824,18 +2358,43 @@ class _TrackingReportScreenState
               style:
                   const TextStyle(
                 color:
-                    Color(0xFF344054),
-                fontSize: 14,
+                    mutedText,
+                fontSize:
+                    14,
               ),
             ),
 
-            const SizedBox(height: 18),
+            const SizedBox(
+              height: 20,
+            ),
 
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed:
                   _loadReport,
-              child:
-                  const Text('Retry'),
+              icon:
+                  const Icon(
+                Icons
+                    .refresh_rounded,
+              ),
+              label:
+                  const Text(
+                'Retry',
+              ),
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    purple,
+                foregroundColor:
+                    Colors.white,
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+                  horizontal:
+                      22,
+                  vertical:
+                      13,
+                ),
+              ),
             ),
           ],
         ),
@@ -844,12 +2403,68 @@ class _TrackingReportScreenState
   }
 
   // ============================================================
-  // DATE
+  // DATE ONLY
   // ============================================================
 
-  String _formatDate(
+  String _formatDateOnly(
     dynamic value,
   ) {
+    if (value == null) {
+      return '-';
+    }
+
+    try {
+      final date =
+          DateTime.parse(
+        value.toString(),
+      ).toLocal();
+
+      return _formatOnlyDate(
+        date,
+      );
+    } catch (_) {
+      return '-';
+    }
+  }
+
+  // ============================================================
+  // DATE FORMAT
+  // ============================================================
+
+  String _formatOnlyDate(
+    DateTime date,
+  ) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${months[date.month - 1]} '
+        '${date.day}, '
+        '${date.year}';
+  }
+
+  // ============================================================
+  // TIME
+  // ============================================================
+
+  String _formatTime(
+    dynamic value,
+  ) {
+    if (value == null) {
+      return '-';
+    }
+
     try {
       final date =
           DateTime.parse(
@@ -866,17 +2481,19 @@ class _TrackingReportScreenState
       final minute =
           date.minute
               .toString()
-              .padLeft(2, '0');
+              .padLeft(
+                2,
+                '0',
+              );
 
       final period =
           date.hour >= 12
               ? 'PM'
               : 'AM';
 
-      return '${date.day}/${date.month}/${date.year} '
-          '$hour:$minute $period';
+      return '$hour:$minute $period';
     } catch (_) {
-      return value.toString();
+      return '-';
     }
   }
 }

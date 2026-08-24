@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 import '../../../services/sequence_api.dart';
 import 'create_sequence_preview.dart';
 
+// ============================================================
+// CREATE SEQUENCE FORM
+// ============================================================
+
 class CreateSequenceForm extends StatefulWidget {
   const CreateSequenceForm({
     super.key,
@@ -15,43 +19,84 @@ class CreateSequenceForm extends StatefulWidget {
       _CreateSequenceFormState();
 }
 
+// ============================================================
+// TYPE MODEL
+// ============================================================
+
 class _SequenceTypeOption {
   final String value;
   final String title;
   final String description;
   final IconData icon;
-  final Color iconColor;
-  final Color backgroundColor;
+  final Color color;
 
   const _SequenceTypeOption({
     required this.value,
     required this.title,
     required this.description,
     required this.icon,
-    required this.iconColor,
-    required this.backgroundColor,
+    required this.color,
   });
 }
+
+// ============================================================
+// STATE
+// ============================================================
 
 class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF315BEF);
-  static const Color backgroundColor = Color(0xFFF6F8FC);
-  static const Color cardColor = Colors.white;
-  static const Color textColor = Color(0xFF101828);
-  static const Color secondaryTextColor = Color(0xFF667085);
-  static const Color borderColor = Color(0xFFD0D5DD);
-  static const Color lightBorderColor = Color(0xFFE4E7EC);
-  static const Color fieldBackground = Color(0xFFF9FAFB);
+  static const Color background = Color(0xFF020507);
+
+  static const Color cardColor = Color(0xFF0A0D11);
+
+  static const Color cardColor2 = Color(0xFF0E1116);
+
+  static const Color fieldBackground = Color(0xFF070A0E);
+
+  static const Color borderColor = Color(0xFF282D35);
+
+  static const Color softBorder = Color(0xFF1C2027);
+
+  static const Color white = Colors.white;
+
+  static const Color textColor = Color(0xFFF3F4F6);
+
+  static const Color secondaryTextColor = Color(0xFF9298A3);
+
+  static const Color hintColor = Color(0xFF636A76);
+
+  static const Color purple = Color(0xFF7657EA);
+
+  static const Color purpleLight = Color(0xFF9D62F4);
+
+  static const Color gold = Color(0xFFF2C45F);
+
+  static const Color green = Color(0xFF25D366);
+
+  static const Color red = Color(0xFFFF5B66);
 
   // ============================================================
   // FORM
   // ============================================================
 
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey =
+      GlobalKey<FormState>();
+
+  // ============================================================
+  // CURRENT STEP
+  // ============================================================
+
+  int currentStep = 0;
+
+  final List<String> stepTitles = const [
+    'Basic Info',
+    'Email Content',
+    'Action Links',
+    'Review',
+  ];
 
   // ============================================================
   // CONTROLLERS
@@ -103,7 +148,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       TextEditingController();
 
   // ============================================================
-  // DROPDOWNS
+  // SELECTIONS
   // ============================================================
 
   String selectedType = 'Email';
@@ -119,11 +164,13 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   String selectedStatus = 'draft';
 
   // ============================================================
-  // TEXT FORMATTING
+  // EDITOR
   // ============================================================
 
   bool isBold = false;
+
   bool isItalic = false;
+
   bool isUnderline = false;
 
   // ============================================================
@@ -133,7 +180,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   bool trackingEnabled = true;
 
   // ============================================================
-  // SCHEDULING
+  // SCHEDULE
   // ============================================================
 
   DateTime? scheduledDateTime;
@@ -145,18 +192,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   bool isLoading = false;
 
   // ============================================================
-  // INIT
-  // ============================================================
-
-  @override
-  void initState() {
-    super.initState();
-
-    stepController.clear();
-    gapDaysController.clear();
-  }
-
-  // ============================================================
   // DISPOSE
   // ============================================================
 
@@ -166,13 +201,19 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     gapDaysController.dispose();
     variantController.dispose();
     subjectController.dispose();
+
     logoController.dispose();
+
     heroImageController.dispose();
     heroLinkController.dispose();
+
     contentController.dispose();
+
     whatsappController.dispose();
+
     ctaTextController.dispose();
     ctaUrlController.dispose();
+
     attachmentNameController.dispose();
     attachmentUrlController.dispose();
     attachmentMimeController.dispose();
@@ -187,584 +228,544 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 900) {
-            return _buildMobileLayout();
-          }
+    return Container(
+      color: background,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // ==================================================
+            // TOP STEPPER
+            // ==================================================
 
-          return _buildDesktopLayout();
-        },
+            _buildStepper(),
+
+            // ==================================================
+            // PAGE
+            // ==================================================
+
+            Expanded(
+              child: AnimatedSwitcher(
+                duration:
+                    const Duration(milliseconds: 220),
+                child: SingleChildScrollView(
+                  key: ValueKey<int>(
+                    currentStep,
+                  ),
+                  physics:
+                      const BouncingScrollPhysics(),
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                    14,
+                    16,
+                    14,
+                    32,
+                  ),
+                  child: _buildCurrentStep(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // ============================================================
-  // DESKTOP LAYOUT
+  // CURRENT STEP
   // ============================================================
 
-  Widget _buildDesktopLayout() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPageHeader(),
+  Widget _buildCurrentStep() {
+    switch (currentStep) {
+      case 0:
+        return _buildBasicStep();
 
-          const SizedBox(height: 24),
+      case 1:
+        return _buildEmailStep();
 
-          _buildBasicInformationCard(),
+      case 2:
+        return _buildActionStep();
 
-          const SizedBox(height: 20),
+      case 3:
+        return _buildReviewStep();
 
-          _buildBrandIdentityCard(),
-
-          const SizedBox(height: 20),
-
-          _buildHeroImageCard(),
-
-          const SizedBox(height: 20),
-
-          _buildEmailContentCard(),
-
-          const SizedBox(height: 20),
-
-          _buildAttachmentCard(),
-
-          const SizedBox(height: 20),
-
-          _buildActionLinksCard(),
-
-          const SizedBox(height: 20),
-
-          _buildSchedulingCard(),
-
-          const SizedBox(height: 20),
-
-          _buildPreviewCard(),
-
-          const SizedBox(height: 30),
-
-          _buildBottomButtons(),
-        ],
-      ),
-    );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   // ============================================================
-  // MOBILE LAYOUT
+  // STEPPER
   // ============================================================
 
-  Widget _buildMobileLayout() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPageHeader(),
-
-          const SizedBox(height: 20),
-
-          _buildBasicInformationCard(),
-
-          const SizedBox(height: 20),
-
-          _buildBrandIdentityCard(),
-
-          const SizedBox(height: 20),
-
-          _buildHeroImageCard(),
-
-          const SizedBox(height: 20),
-
-          _buildEmailContentCard(),
-
-          const SizedBox(height: 20),
-
-          _buildAttachmentCard(),
-
-          const SizedBox(height: 20),
-
-          _buildActionLinksCard(),
-
-          const SizedBox(height: 20),
-
-          _buildSchedulingCard(),
-
-          const SizedBox(height: 20),
-
-          _buildPreviewCard(),
-
-          const SizedBox(height: 30),
-
-          _buildBottomButtons(),
-        ],
+  Widget _buildStepper() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
+        14,
+        16,
+        14,
+        14,
       ),
-    );
-  }
-
-  // ============================================================
-  // PAGE HEADER
-  // ============================================================
-
-  Widget _buildPageHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Create Email Sequence',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: textColor,
+      decoration: const BoxDecoration(
+        color: background,
+        border: Border(
+          bottom: BorderSide(
+            color: softBorder,
           ),
         ),
-        const SizedBox(height: 6),
-        const Text(
-          'Create and configure your marketing sequence.',
-          style: TextStyle(
-            fontSize: 14,
-            color: secondaryTextColor,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children:
+                List.generate(
+              4,
+              (index) {
+                return Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                if (index <
+                                    currentStep) {
+                                  setState(() {
+                                    currentStep =
+                                        index;
+                                  });
+                                }
+                              },
+                              child: AnimatedContainer(
+                                duration:
+                                    const Duration(
+                                  milliseconds:
+                                      200,
+                                ),
+                                width: 32,
+                                height: 32,
+                                alignment:
+                                    Alignment.center,
+                                decoration:
+                                    BoxDecoration(
+                                  color: index <
+                                          currentStep
+                                      ? green
+                                      : index ==
+                                              currentStep
+                                          ? gold
+                                          : fieldBackground,
+                                  shape:
+                                      BoxShape.circle,
+                                  border:
+                                      Border.all(
+                                    color: index <=
+                                            currentStep
+                                        ? index <
+                                                currentStep
+                                            ? green
+                                            : gold
+                                        : borderColor,
+                                  ),
+                                ),
+                                child: index <
+                                        currentStep
+                                    ? const Icon(
+                                        Icons
+                                            .check_rounded,
+                                        size: 16,
+                                        color: Colors
+                                            .black,
+                                      )
+                                    : Text(
+                                        '${index + 1}',
+                                        style:
+                                            TextStyle(
+                                          color: index ==
+                                                  currentStep
+                                              ? Colors
+                                                  .black
+                                              : secondaryTextColor,
+                                          fontWeight:
+                                              FontWeight
+                                                  .w800,
+                                          fontSize:
+                                              12,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 7,
+                            ),
+                            Text(
+                              stepTitles[index],
+                              textAlign:
+                                  TextAlign.center,
+                              maxLines: 1,
+                              overflow:
+                                  TextOverflow
+                                      .ellipsis,
+                              style: TextStyle(
+                                color: index ==
+                                        currentStep
+                                    ? gold
+                                    : index <
+                                            currentStep
+                                        ? textColor
+                                        : secondaryTextColor,
+                                fontSize: 9.5,
+                                fontWeight: index ==
+                                        currentStep
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (index != 3)
+                        Container(
+                          width: 16,
+                          height: 1,
+                          margin:
+                              const EdgeInsets.only(
+                            bottom: 22,
+                          ),
+                          color: index <
+                                  currentStep
+                              ? green
+                              : borderColor,
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // STEP 1
+  // ============================================================
+
+  Widget _buildBasicStep() {
+    return Column(
+      children: [
+        _stepHeader(
+          icon: Icons
+              .description_outlined,
+          title: 'Basic Information',
+          subtitle:
+              'Set up your sequence details.',
+        ),
+
+        const SizedBox(height: 16),
+
+        _buildCard(
+          title: 'Sequence Details',
+          subtitle:
+              'Configure the main campaign information.',
+          icon:
+              Icons.tune_rounded,
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller:
+                          stepController,
+                      label: 'Step',
+                      hint: '1',
+                      keyboardType:
+                          TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter
+                            .digitsOnly,
+                      ],
+                      validator: (value) {
+                        if (value == null ||
+                            value
+                                .trim()
+                                .isEmpty) {
+                          return 'Required';
+                        }
+
+                        final parsed =
+                            int.tryParse(
+                          value.trim(),
+                        );
+
+                        if (parsed == null ||
+                            parsed <= 0) {
+                          return 'Invalid';
+                        }
+
+                        return null;
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(
+                    width: 10,
+                  ),
+
+                  Expanded(
+                    child: _buildTextField(
+                      controller:
+                          gapDaysController,
+                      label:
+                          'Gap Days',
+                      hint: '0',
+                      keyboardType:
+                          TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter
+                            .digitsOnly,
+                      ],
+                      validator: (value) {
+                        if (value == null ||
+                            value
+                                .trim()
+                                .isEmpty) {
+                          return 'Required';
+                        }
+
+                        final parsed =
+                            int.tryParse(
+                          value.trim(),
+                        );
+
+                        if (parsed == null ||
+                            parsed < 0) {
+                          return 'Invalid';
+                        }
+
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _buildTextField(
+                controller:
+                    variantController,
+                label: 'Variant',
+                hint: 'Example: A',
+                textCapitalization:
+                    TextCapitalization
+                        .characters,
+                validator: (value) {
+                  if (value == null ||
+                      value
+                          .trim()
+                          .isEmpty) {
+                    return 'Variant is required';
+                  }
+
+                  return null;
+                },
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _buildTypeSelector(),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _buildTextField(
+                controller:
+                    subjectController,
+                label:
+                    'Email Subject',
+                hint:
+                    'Enter your email subject',
+                prefixIcon:
+                    Icons.subject_rounded,
+                validator: (value) {
+                  if (value == null ||
+                      value
+                          .trim()
+                          .isEmpty) {
+                    return 'Subject is required';
+                  }
+
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        _buildCard(
+          title: 'Brand Identity',
+          subtitle:
+              'Upload your company logo or banner.',
+          icon:
+              Icons.business_outlined,
+          child: Column(
+            children: [
+              _buildFilePicker(
+                label:
+                    'Company Logo / Banner',
+                value:
+                    logoController.text,
+                emptyText:
+                    'Upload logo or banner',
+                icon: Icons
+                    .cloud_upload_outlined,
+                onTap:
+                    _pickLogoFile,
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _buildDropdown(
+                label:
+                    'Logo Position',
+                value:
+                    selectedLogoPosition,
+                items: const [
+                  'Left',
+                  'Center',
+                  'Right',
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+
+                  setState(() {
+                    selectedLogoPosition =
+                        value;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        _buildCard(
+          title: 'Hero Image',
+          subtitle:
+              'Add your campaign promotional image.',
+          icon:
+              Icons.image_outlined,
+          child: Column(
+            children: [
+              _goldInfoBox(
+                title:
+                    'Recommended Size',
+                text:
+                    '1200 × 400 px • Maximum 2 MB',
+              ),
+
+              const SizedBox(
+                height: 14,
+              ),
+
+              _buildFilePicker(
+                label: 'Hero Image',
+                value:
+                    heroImageController.text,
+                emptyText:
+                    'Upload hero image',
+                icon: Icons
+                    .add_photo_alternate_outlined,
+                onTap:
+                    _pickHeroImage,
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _buildTextField(
+                controller:
+                    heroLinkController,
+                label:
+                    'Hero Image Link',
+                hint:
+                    'https://example.com',
+                keyboardType:
+                    TextInputType.url,
+                prefixIcon:
+                    Icons.link_rounded,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        _navigationButtons(
+          nextTitle:
+              'Continue',
+          nextIcon:
+              Icons.arrow_forward_rounded,
+          onNext: _nextStep,
         ),
       ],
     );
   }
 
   // ============================================================
-  // 1. BASIC INFORMATION
+  // STEP 2 - EMAIL
   // ============================================================
 
-  Widget _buildBasicInformationCard() {
-    return _buildCard(
-      title: 'Basic Information',
-      icon: Icons.info_outline,
-      child: Column(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 600) {
-                return Column(
-                  children: [
-                    _buildTextField(
-                      controller: stepController,
-                      label: 'Step',
-                      hint: 'Example 1',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Step is required';
-                        }
+  Widget _buildEmailStep() {
+    return Column(
+      children: [
+        _stepHeader(
+          icon: Icons.email_outlined,
+          title: 'Email Content',
+          subtitle:
+              'Create and style your campaign email.',
+        ),
 
-                        final step =
-                            int.tryParse(value.trim());
+        const SizedBox(height: 16),
 
-                        if (step == null || step <= 0) {
-                          return 'Step Should bot be 0. Enter a valid step';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    _buildTextField(
-                      controller: gapDaysController,
-                      label: 'Gap Days',
-                      hint: 'Example 0',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Gap days is required';
-                        }
-
-                        final days =
-                            int.tryParse(value.trim());
-
-                        if (days == null) {
-                          return 'Enter valid days';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: stepController,
-                      label: 'Step',
-                      hint: 'Enter step number',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Step is required';
-                        }
-
-                        final step =
-                            int.tryParse(value.trim());
-
-                        if (step == null || step <= 0) {
-                          return 'Enter a valid step';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: gapDaysController,
-                      label: 'Gap Days',
-                      hint: 'Enter gap days',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Gap days is required';
-                        }
-
-                        final days =
-                            int.tryParse(value.trim());
-
-                        if (days == null || days < 0) {
-                          return 'Enter valid days';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          const SizedBox(height: 18),
-
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 600) {
-                return Column(
-                  children: [
-                    _buildTextField(
-                      controller: variantController,
-                      label: 'Variant',
-                      hint: 'Example: A',
-                      textCapitalization:
-                          TextCapitalization.characters,
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Variant is required';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    _buildTypeSelector(),
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: variantController,
-                      label: 'Variant',
-                      hint: 'Example: A',
-                      textCapitalization:
-                          TextCapitalization.characters,
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Variant is required';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTypeSelector(),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          const SizedBox(height: 18),
-
-          _buildTextField(
-            controller: subjectController,
-            label: 'Email Subject',
-            hint: 'Enter your email subject',
-            validator: (value) {
-              if (value == null ||
-                  value.trim().isEmpty) {
-                return 'Email subject is required';
-              }
-
-              return null;
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // 2. BRAND IDENTITY
-  // ============================================================
-
-  Widget _buildBrandIdentityCard() {
-    return _buildCard(
-      title: 'Brand Identity',
-      icon: Icons.business_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildRecommendation(
-            title: 'Recommended Company Logo / Banner',
-            icon: Icons.lightbulb_outline,
-            children: const [
-              _RecommendationRow(
-                label: 'Banner',
-                value: '500 × 200 px or 800 × 300 px',
-              ),
-              _RecommendationRow(
-                label: 'Logo',
-                value: '300 × 300 px or 450 × 120 px',
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          _buildFilePicker(
-            label: 'Company Logo / Banner',
-            value: logoController.text,
-            emptyText: 'Upload company logo or banner',
-            icon: Icons.cloud_upload_outlined,
-            onTap: _pickLogoFile,
-          ),
-
-          const SizedBox(height: 18),
-
-          _buildDropdown(
-            label: 'Logo Position',
-            value: selectedLogoPosition,
-            items: const [
-              'Left',
-              'Center',
-              'Right',
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-
-              setState(() {
-                selectedLogoPosition = value;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // 3. HERO IMAGE
-  // ============================================================
-
-  Widget _buildHeroImageCard() {
-    return _buildCard(
-      title: 'Hero Image',
-      icon: Icons.image_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildRecommendation(
-            title: 'Recommended Hero Image',
-            icon: Icons.photo_size_select_large_outlined,
-            children: const [
-              _RecommendationRow(
-                label: 'Size',
-                value: '1200 × 400 px',
-              ),
-              _RecommendationRow(
-                label: 'Maximum',
-                value: '2 MB',
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          _buildFilePicker(
-            label: 'Hero Image',
-            value: heroImageController.text,
-            emptyText: 'Upload hero image',
-            icon: Icons.add_photo_alternate_outlined,
-            onTap: _pickHeroImage,
-          ),
-
-          const SizedBox(height: 18),
-
-          _buildTextField(
-            controller: heroLinkController,
-            label: 'Hero Image Link',
-            hint: 'https://example.com',
-            keyboardType: TextInputType.url,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // 4. EMAIL CONTENT
-  // ============================================================
-
-  Widget _buildEmailContentCard() {
-    return _buildCard(
-      title: 'Email Content',
-      icon: Icons.email_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Editor Settings',
-            style: TextStyle(
-              color: textColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildEditorSettings(),
-
-          const SizedBox(height: 18),
-
-          _buildEditorToolbar(),
-
-          const SizedBox(height: 10),
-
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: borderColor,
-              ),
-            ),
-            child: TextFormField(
-              controller: contentController,
-              minLines: 12,
-              maxLines: 22,
-              keyboardType: TextInputType.multiline,
-              textCapitalization:
-                  TextCapitalization.sentences,
-              style: TextStyle(
-                color: _getSelectedTextColor(),
-                fontSize: _getFontSize(),
-                fontWeight:
-                    isBold
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                fontStyle:
-                    isItalic
-                        ? FontStyle.italic
-                        : FontStyle.normal,
-                decoration:
-                    isUnderline
-                        ? TextDecoration.underline
-                        : TextDecoration.none,
-              ),
-              decoration: const InputDecoration(
-                hintText:
-                    'Write your email content here...',
-                hintStyle: TextStyle(
-                  color: Color(0xFF98A2B3),
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
-              ),
-              onChanged: (_) {
-                setState(() {});
-              },
-              validator: (value) {
-                if (value == null ||
-                    value.trim().isEmpty) {
-                  return 'Email content is required';
-                }
-
-                return null;
-              },
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          const Text(
-            'You can use variables such as {{firstName}}, {{lastName}}, {{email}}.',
-            style: TextStyle(
-              fontSize: 12,
-              color: secondaryTextColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // EDITOR SETTINGS
-  // FIXED MOBILE OVERFLOW
-  // ============================================================
-
-  Widget _buildEditorSettings() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // MOBILE
-        if (constraints.maxWidth < 600) {
-          return Column(
+        _buildCard(
+          title: 'Editor Settings',
+          subtitle:
+              'Choose font and text formatting.',
+          icon:
+              Icons.text_fields_rounded,
+          child: Column(
             children: [
+              // =================================================
+              // IMPORTANT:
+              // No Row containing 3 large dropdowns here.
+              // This fixes the right overflow on mobile.
+              // =================================================
+
               _buildDropdown(
                 label: 'Font',
-                value: selectedFont,
+                value:
+                    selectedFont,
                 items: const [
                   'Arial',
                   'Roboto',
@@ -774,631 +775,1595 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   'Verdana',
                 ],
                 onChanged: (value) {
-                  if (value == null) return;
+                  if (value == null) {
+                    return;
+                  }
 
                   setState(() {
-                    selectedFont = value;
+                    selectedFont =
+                        value;
                   });
                 },
               ),
 
-              const SizedBox(height: 16),
-
-              _buildDropdown(
-                label: 'Font Size',
-                value: selectedFontSize,
-                items: const [
-                  '12px',
-                  '14px',
-                  '16px',
-                  '18px',
-                  '20px',
-                  '24px',
-                  '28px',
-                  '32px',
-                ],
-                onChanged: (value) {
-                  if (value == null) return;
-
-                  setState(() {
-                    selectedFontSize = value;
-                  });
-                },
+              const SizedBox(
+                height: 14,
               ),
 
-              const SizedBox(height: 16),
-
-              _buildDropdown(
-                label: 'Text Color',
-                value: selectedTextColor,
-                items: const [
-                  'Black',
-                  'White',
-                  'Gray',
-                  'Red',
-                  'Blue',
-                  'Green',
-                  'Gold',
-                ],
-                onChanged: (value) {
-                  if (value == null) return;
-
-                  setState(() {
-                    selectedTextColor = value;
-                  });
-                },
-              ),
-            ],
-          );
-        }
-
-        // DESKTOP / TABLET
-        return Column(
-          children: [
-            Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Font',
-                    value: selectedFont,
-                    items: const [
-                      'Arial',
-                      'Roboto',
-                      'Helvetica',
-                      'Times New Roman',
-                      'Georgia',
-                      'Verdana',
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-
-                      setState(() {
-                        selectedFont = value;
-                      });
-                    },
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Font Size',
-                    value: selectedFontSize,
-                    items: const [
-                      '12px',
-                      '14px',
-                      '16px',
-                      '18px',
-                      '20px',
-                      '24px',
-                      '28px',
-                      '32px',
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-
-                      setState(() {
-                        selectedFontSize = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildDropdown(
-              label: 'Text Color',
-              value: selectedTextColor,
-              items: const [
-                'Black',
-                'White',
-                'Gray',
-                'Red',
-                'Blue',
-                'Green',
-                'Gold',
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-
-                setState(() {
-                  selectedTextColor = value;
-                });
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // EDITOR TOOLBAR
-  // ============================================================
-
-  Widget _buildEditorToolbar() {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: lightBorderColor,
-        ),
-      ),
-      child: Row(
-        children: [
-          _toolbarButton(
-            icon: Icons.format_bold,
-            tooltip: 'Bold',
-            active: isBold,
-            onPressed: () {
-              setState(() {
-                isBold = !isBold;
-              });
-            },
-          ),
-
-          _toolbarButton(
-            icon: Icons.format_italic,
-            tooltip: 'Italic',
-            active: isItalic,
-            onPressed: () {
-              setState(() {
-                isItalic = !isItalic;
-              });
-            },
-          ),
-
-          _toolbarButton(
-            icon: Icons.format_underlined,
-            tooltip: 'Underline',
-            active: isUnderline,
-            onPressed: () {
-              setState(() {
-                isUnderline = !isUnderline;
-              });
-            },
-          ),
-
-          const Spacer(),
-
-          TextButton.icon(
-            onPressed: () {
-              contentController.clear();
-
-              setState(() {});
-            },
-            icon: const Icon(
-              Icons.delete_outline,
-              size: 17,
-            ),
-            label: const Text(
-              'Clear',
-              style: TextStyle(
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toolbarButton({
-    required IconData icon,
-    required String tooltip,
-    required bool active,
-    required VoidCallback onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        margin: const EdgeInsets.only(right: 4),
-        decoration: BoxDecoration(
-          color: active
-              ? primaryColor.withOpacity(0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: IconButton(
-          onPressed: onPressed,
-          icon: Icon(
-            icon,
-            size: 19,
-            color:
-                active
-                    ? primaryColor
-                    : textColor,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // 5. ATTACHMENT
-  // ============================================================
-
-  Widget _buildAttachmentCard() {
-    return _buildCard(
-      title: 'Attachment',
-      icon: Icons.attach_file,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFilePicker(
-            label: 'Attachment File',
-            value: attachmentNameController.text,
-            emptyText: 'Upload attachment',
-            icon: Icons.upload_file_outlined,
-            onTap: _pickAttachmentFile,
-          ),
-
-          const SizedBox(height: 18),
-
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 600) {
-                return Column(
-                  children: [
-                    _buildTextField(
-                      controller:
-                          attachmentMimeController,
-                      label: 'MIME Type',
-                      hint: 'application/pdf',
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    _buildTextField(
-                      controller:
-                          attachmentSizeController,
-                      label: 'File Size',
-                      hint: 'Size in bytes',
-                      keyboardType:
-                          TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter
-                            .digitsOnly,
-                      ],
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
+              Row(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: _buildTextField(
-                      controller:
-                          attachmentMimeController,
-                      label: 'MIME Type',
-                      hint: 'application/pdf',
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  Expanded(
-                    child: _buildTextField(
-                      controller:
-                          attachmentSizeController,
-                      label: 'File Size',
-                      hint: 'Size in bytes',
-                      keyboardType:
-                          TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter
-                            .digitsOnly,
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // 6. ACTION LINK / CTA
-  // ============================================================
-
-  Widget _buildActionLinksCard() {
-    return _buildCard(
-      title: 'Action Link / CTA Button',
-      icon: Icons.ads_click_outlined,
-      child: Column(
-        children: [
-          _buildTextField(
-            controller: ctaTextController,
-            label: 'CTA Button Text',
-            hint: 'Example: Shop Now',
-          ),
-
-          const SizedBox(height: 16),
-
-          _buildTextField(
-            controller: ctaUrlController,
-            label: 'CTA Button URL',
-            hint: 'https://example.com',
-            keyboardType: TextInputType.url,
-          ),
-
-          const SizedBox(height: 18),
-
-          _buildTextField(
-            controller: whatsappController,
-            label: 'WhatsApp Link',
-            hint: 'https://wa.me/919999999999',
-            keyboardType: TextInputType.url,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // 7. SCHEDULING
-  // FIXED TRACKING OVERFLOW
-  // ============================================================
-
-  Widget _buildSchedulingCard() {
-    return _buildCard(
-      title: 'Scheduling',
-      icon: Icons.schedule_outlined,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isMobile =
-              constraints.maxWidth < 600;
-
-          return Column(
-            children: [
-              if (isMobile)
-                Column(
-                  children: [
-                    _buildDropdown(
-                      label: 'Status',
-                      value: selectedStatus,
+                    child: _buildDropdown(
+                      label:
+                          'Font Size',
+                      value:
+                          selectedFontSize,
                       items: const [
-                        'draft',
-                        'scheduled',
-                        'active',
-                        'paused',
+                        '12px',
+                        '14px',
+                        '16px',
+                        '18px',
+                        '20px',
+                        '24px',
+                        '28px',
+                        '32px',
                       ],
                       onChanged: (value) {
-                        if (value == null) return;
+                        if (value ==
+                            null) {
+                          return;
+                        }
 
                         setState(() {
-                          selectedStatus = value;
+                          selectedFontSize =
+                              value;
                         });
                       },
                     ),
+                  ),
 
-                    const SizedBox(height: 16),
+                  const SizedBox(
+                    width: 10,
+                  ),
 
-                    _buildTrackingSwitch(),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildDropdown(
-                        label: 'Status',
-                        value: selectedStatus,
-                        items: const [
-                          'draft',
-                          'scheduled',
-                          'active',
-                          'paused',
-                        ],
-                        onChanged: (value) {
-                          if (value == null) return;
+                  Expanded(
+                    child: _buildDropdown(
+                      label:
+                          'Text Color',
+                      value:
+                          selectedTextColor,
+                      items: const [
+                        'Black',
+                        'White',
+                        'Gray',
+                        'Red',
+                        'Blue',
+                        'Green',
+                        'Gold',
+                      ],
+                      onChanged: (value) {
+                        if (value ==
+                            null) {
+                          return;
+                        }
 
-                          setState(() {
-                            selectedStatus = value;
-                          });
-                        },
+                        setState(() {
+                          selectedTextColor =
+                              value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        _buildCard(
+          title: 'Message',
+          subtitle:
+              'Write your email message.',
+          icon:
+              Icons.edit_note_rounded,
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              _buildEditorToolbar(),
+
+              const SizedBox(
+                height: 10,
+              ),
+
+              Container(
+                width: double.infinity,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      fieldBackground,
+                  borderRadius:
+                      BorderRadius.circular(
+                    12,
+                  ),
+                  border:
+                      Border.all(
+                    color:
+                        borderColor,
+                  ),
+                ),
+                child:
+                    TextFormField(
+                  controller:
+                      contentController,
+
+                  minLines: 10,
+                  maxLines: 16,
+
+                  keyboardType:
+                      TextInputType
+                          .multiline,
+
+                  textCapitalization:
+                      TextCapitalization
+                          .sentences,
+
+                  cursorColor:
+                      gold,
+
+                  style:
+                      TextStyle(
+                    color:
+                        _selectedEditorColor(),
+                    fontSize:
+                        _selectedEditorSize(),
+                    fontWeight:
+                        isBold
+                            ? FontWeight
+                                .bold
+                            : FontWeight
+                                .normal,
+                    fontStyle:
+                        isItalic
+                            ? FontStyle
+                                .italic
+                            : FontStyle
+                                .normal,
+                    decoration:
+                        isUnderline
+                            ? TextDecoration
+                                .underline
+                            : TextDecoration
+                                .none,
+                  ),
+
+                  decoration:
+                      const InputDecoration(
+                    hintText:
+                        'Write your email content here...',
+                    hintStyle:
+                        TextStyle(
+                      color:
+                          hintColor,
+                      fontSize:
+                          12,
+                    ),
+                    border:
+                        InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.all(
+                      14,
+                    ),
+                  ),
+
+                  validator:
+                      (value) {
+                    if (value ==
+                            null ||
+                        value
+                            .trim()
+                            .isEmpty) {
+                      return 'Email content is required';
+                    }
+
+                    return null;
+                  },
+
+                  onChanged: (_) {
+                    setState(() {});
+                  },
+                ),
+              ),
+
+              const SizedBox(
+                height: 11,
+              ),
+
+              const Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons
+                        .auto_awesome_rounded,
+                    size: 15,
+                    color: gold,
+                  ),
+                  SizedBox(
+                    width: 7,
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Variables: {{firstName}}, {{lastName}}, {{email}}',
+                      style:
+                          TextStyle(
+                        color:
+                            secondaryTextColor,
+                        fontSize:
+                            10.5,
+                        height:
+                            1.4,
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
 
-                    const SizedBox(width: 16),
+        const SizedBox(height: 14),
 
-                    Expanded(
-                      child: _buildTrackingSwitch(),
-                    ),
-                  ],
+        _buildCard(
+          title: 'Attachment',
+          subtitle:
+              'Attach a file to your email.',
+          icon:
+              Icons.attach_file_rounded,
+          child: Column(
+            children: [
+              _buildFilePicker(
+                label:
+                    'Attachment File',
+                value:
+                    attachmentNameController
+                        .text,
+                emptyText:
+                    'Upload attachment',
+                icon:
+                    Icons.upload_file_outlined,
+                onTap:
+                    _pickAttachmentFile,
+              ),
+
+              if (attachmentNameController
+                  .text
+                  .trim()
+                  .isNotEmpty) ...[
+                const SizedBox(
+                  height: 12,
                 ),
 
-              const SizedBox(height: 18),
-
-              InkWell(
-                onTap: _selectDateTime,
-                borderRadius:
-                    BorderRadius.circular(10),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: fieldBackground,
+                Container(
+                  width:
+                      double.infinity,
+                  padding:
+                      const EdgeInsets.all(
+                    12,
+                  ),
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        fieldBackground,
                     borderRadius:
-                        BorderRadius.circular(10),
-                    border: Border.all(
-                      color: borderColor,
+                        BorderRadius.circular(
+                      10,
+                    ),
+                    border:
+                        Border.all(
+                      color:
+                          borderColor,
                     ),
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color:
-                              primaryColor
-                                  .withOpacity(0.10),
-                          borderRadius:
-                              BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_month_outlined,
-                          color: primaryColor,
-                          size: 20,
-                        ),
+                      const Icon(
+                        Icons
+                            .description_outlined,
+                        color:
+                            gold,
+                        size:
+                            19,
                       ),
 
-                      const SizedBox(width: 12),
+                      const SizedBox(
+                        width:
+                            9,
+                      ),
 
                       Expanded(
-                        child: Column(
+                        child:
+                            Column(
                           crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              CrossAxisAlignment
+                                  .start,
                           children: [
-                            const Text(
-                              'Scheduled Date & Time',
-                              style: TextStyle(
-                                fontSize: 12,
+                            Text(
+                              attachmentNameController
+                                  .text,
+                              maxLines:
+                                  1,
+                              overflow:
+                                  TextOverflow
+                                      .ellipsis,
+                              style:
+                                  const TextStyle(
                                 color:
-                                    secondaryTextColor,
+                                    textColor,
+                                fontSize:
+                                    11.5,
                                 fontWeight:
-                                    FontWeight.w500,
+                                    FontWeight
+                                        .w600,
                               ),
                             ),
 
-                            const SizedBox(height: 4),
+                            const SizedBox(
+                              height:
+                                  2,
+                            ),
 
                             Text(
-                              scheduledDateTime == null
-                                  ? 'Select date and time'
-                                  : _formatDateTime(
-                                      scheduledDateTime!,
-                                    ),
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 14,
+                              attachmentMimeController
+                                      .text
+                                      .isEmpty
+                                  ? 'Attachment'
+                                  : attachmentMimeController
+                                      .text,
+                              style:
+                                  const TextStyle(
                                 color:
-                                    scheduledDateTime ==
-                                            null
-                                        ? secondaryTextColor
-                                        : textColor,
-                                fontWeight:
-                                    scheduledDateTime ==
-                                            null
-                                        ? FontWeight.normal
-                                        : FontWeight.w600,
+                                    secondaryTextColor,
+                                fontSize:
+                                    9.5,
                               ),
                             ),
                           ],
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
 
-                      const Icon(
-                        Icons.chevron_right,
-                        color: secondaryTextColor,
+        const SizedBox(height: 18),
+
+        _navigationButtons(
+          backTitle: 'Back',
+          nextTitle: 'Continue',
+          nextIcon:
+              Icons.arrow_forward_rounded,
+          onBack:
+              _previousStep,
+          onNext:
+              _nextStep,
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // STEP 3
+  // ============================================================
+
+  Widget _buildActionStep() {
+    return Column(
+      children: [
+        _stepHeader(
+          icon: Icons.ads_click_rounded,
+          title: 'Action Links',
+          subtitle:
+              'Add CTA buttons and campaign actions.',
+        ),
+
+        const SizedBox(height: 16),
+
+        _buildCard(
+          title: 'Primary CTA',
+          subtitle:
+              'Add your main campaign button.',
+          icon:
+              Icons.touch_app_outlined,
+          child: Column(
+            children: [
+              _buildTextField(
+                controller:
+                    ctaTextController,
+                label:
+                    'Button Text',
+                hint:
+                    'Example: Shop Now',
+                prefixIcon:
+                    Icons.ads_click_outlined,
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _buildTextField(
+                controller:
+                    ctaUrlController,
+                label:
+                    'Button URL',
+                hint:
+                    'https://example.com',
+                keyboardType:
+                    TextInputType.url,
+                prefixIcon:
+                    Icons.link_rounded,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        _buildCard(
+          title: 'WhatsApp',
+          subtitle:
+              'Add a WhatsApp communication link.',
+          icon:
+              Icons.chat_outlined,
+          child: _buildTextField(
+            controller:
+                whatsappController,
+            label:
+                'WhatsApp Link',
+            hint:
+                'https://wa.me/919999999999',
+            keyboardType:
+                TextInputType.url,
+            prefixIcon:
+                Icons.chat_bubble_outline,
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        _buildCard(
+          title: 'Campaign Settings',
+          subtitle:
+              'Configure status, tracking and scheduling.',
+          icon:
+              Icons.settings_outlined,
+          child: Column(
+            children: [
+              _buildDropdown(
+                label: 'Status',
+                value:
+                    selectedStatus,
+                items: const [
+                  'draft',
+                  'scheduled',
+                  'active',
+                  'paused',
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+
+                  setState(() {
+                    selectedStatus =
+                        value;
+                  });
+                },
+              ),
+
+              const SizedBox(
+                height: 14,
+              ),
+
+              _buildTrackingSwitch(),
+
+              const SizedBox(
+                height: 14,
+              ),
+
+              _buildSchedulePicker(),
+
+              if (scheduledDateTime !=
+                  null) ...[
+                const SizedBox(
+                  height: 6,
+                ),
+
+                Align(
+                  alignment:
+                      Alignment.centerRight,
+                  child:
+                      TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        scheduledDateTime =
+                            null;
+                      });
+                    },
+                    icon:
+                        const Icon(
+                      Icons.close,
+                      color: red,
+                      size: 15,
+                    ),
+                    label:
+                        const Text(
+                      'Clear Schedule',
+                      style:
+                          TextStyle(
+                        color: red,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        _navigationButtons(
+          backTitle: 'Back',
+          nextTitle:
+              'Review Sequence',
+          nextIcon:
+              Icons.arrow_forward_rounded,
+          onBack:
+              _previousStep,
+          onNext:
+              _nextStep,
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // STEP 4
+  // ============================================================
+
+  Widget _buildReviewStep() {
+    return Column(
+      children: [
+        _stepHeader(
+          icon:
+              Icons.fact_check_outlined,
+          title:
+              'Review & Publish',
+          subtitle:
+              'Review your sequence before publishing.',
+        ),
+
+        const SizedBox(height: 16),
+
+        // ========================================================
+        // OVERVIEW
+        // ========================================================
+
+        _reviewCard(
+          icon:
+              Icons.description_outlined,
+          iconColor:
+              gold,
+          title:
+              'Sequence Overview',
+          editStep:
+              0,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child:
+                        _overviewItem(
+                      icon:
+                          Icons.layers_outlined,
+                      title:
+                          'Step',
+                      value: stepController
+                              .text
+                              .trim()
+                              .isEmpty
+                          ? '-'
+                          : stepController
+                              .text
+                              .trim(),
+                    ),
+                  ),
+
+                  Expanded(
+                    child:
+                        _overviewItem(
+                      icon:
+                          Icons.schedule_outlined,
+                      title:
+                          'Gap Days',
+                      value:
+                          '${gapDaysController.text.trim().isEmpty ? '0' : gapDaysController.text.trim()} Days',
+                    ),
+                  ),
+                ],
+              ),
+
+              const Divider(
+                color: softBorder,
+                height: 28,
+              ),
+
+              Row(
+                children: [
+                  Expanded(
+                    child:
+                        _overviewItem(
+                      icon:
+                          Icons.alt_route_outlined,
+                      title:
+                          'Variant',
+                      value: variantController
+                              .text
+                              .trim()
+                              .isEmpty
+                          ? '-'
+                          : variantController
+                              .text
+                              .trim(),
+                    ),
+                  ),
+
+                  Expanded(
+                    child:
+                        _overviewItem(
+                      icon:
+                          Icons.email_outlined,
+                      title:
+                          'Type',
+                      value:
+                          selectedType,
+                    ),
+                  ),
+                ],
+              ),
+
+              const Divider(
+                color: softBorder,
+                height: 28,
+              ),
+
+              Row(
+                children: [
+                  Expanded(
+                    child:
+                        _overviewItem(
+                      icon:
+                          Icons.circle,
+                      iconColor:
+                          _statusColor(),
+                      title:
+                          'Status',
+                      value:
+                          _capitalize(
+                        selectedStatus,
+                      ),
+                      valueColor:
+                          _statusColor(),
+                    ),
+                  ),
+
+                  Expanded(
+                    child:
+                        _overviewItem(
+                      icon: Icons
+                          .calendar_month_outlined,
+                      title:
+                          'Schedule',
+                      value: scheduledDateTime ==
+                              null
+                          ? 'Not scheduled'
+                          : _formatDateTime(
+                              scheduledDateTime!,
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // ========================================================
+        // CONTENT
+        // ========================================================
+
+        _reviewCard(
+          icon:
+              Icons.email_outlined,
+          iconColor:
+              purpleLight,
+          title:
+              'Email Content',
+          editStep:
+              1,
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Subject',
+                style:
+                    TextStyle(
+                  color:
+                      secondaryTextColor,
+                  fontSize:
+                      10.5,
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    5,
+              ),
+
+              Text(
+                subjectController.text
+                        .trim()
+                        .isEmpty
+                    ? 'No subject'
+                    : subjectController
+                        .text
+                        .trim(),
+                style:
+                    const TextStyle(
+                  color:
+                      textColor,
+                  fontSize:
+                      13.5,
+                  fontWeight:
+                      FontWeight.w700,
+                ),
+              ),
+
+              const Divider(
+                color:
+                    softBorder,
+                height:
+                    28,
+              ),
+
+              const Text(
+                'Message',
+                style:
+                    TextStyle(
+                  color:
+                      secondaryTextColor,
+                  fontSize:
+                      10.5,
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    7,
+              ),
+
+              Text(
+                contentController.text
+                        .trim()
+                        .isEmpty
+                    ? 'No email content'
+                    : contentController
+                        .text
+                        .trim(),
+                maxLines:
+                    7,
+                overflow:
+                    TextOverflow.ellipsis,
+                style:
+                    const TextStyle(
+                  color:
+                      textColor,
+                  fontSize:
+                      12,
+                  height:
+                      1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // ========================================================
+        // LINKS
+        // ========================================================
+
+        _reviewCard(
+          icon:
+              Icons.link_rounded,
+          iconColor:
+              purpleLight,
+          title:
+              'Action Links',
+          editStep:
+              2,
+          child: Column(
+            children: [
+              _reviewLinkRow(
+                label:
+                    'Primary CTA',
+                title: ctaTextController
+                        .text
+                        .trim()
+                        .isEmpty
+                    ? 'Not configured'
+                    : ctaTextController
+                        .text
+                        .trim(),
+                url: ctaUrlController
+                        .text
+                        .trim()
+                        .isEmpty
+                    ? '-'
+                    : ctaUrlController
+                        .text
+                        .trim(),
+              ),
+
+              const Divider(
+                color:
+                    softBorder,
+                height:
+                    28,
+              ),
+
+              _reviewLinkRow(
+                label:
+                    'WhatsApp',
+                title: whatsappController
+                        .text
+                        .trim()
+                        .isEmpty
+                    ? 'Not configured'
+                    : 'WhatsApp Link',
+                url: whatsappController
+                        .text
+                        .trim()
+                        .isEmpty
+                    ? '-'
+                    : whatsappController
+                        .text
+                        .trim(),
+              ),
+
+              const Divider(
+                color:
+                    softBorder,
+                height:
+                    28,
+              ),
+
+              Row(
+                children: [
+                  const Icon(
+                    Icons.analytics_outlined,
+                    color:
+                        gold,
+                    size:
+                        20,
+                  ),
+
+                  const SizedBox(
+                    width:
+                        10,
+                  ),
+
+                  const Expanded(
+                    child:
+                        Text(
+                      'Tracking',
+                      style:
+                          TextStyle(
+                        color:
+                            textColor,
+                        fontSize:
+                            12,
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
+                  ),
+
+                  Icon(
+                    trackingEnabled
+                        ? Icons.check_circle_rounded
+                        : Icons.cancel_outlined,
+                    color:
+                        trackingEnabled
+                            ? green
+                            : secondaryTextColor,
+                    size:
+                        18,
+                  ),
+
+                  const SizedBox(
+                    width:
+                        5,
+                  ),
+
+                  Text(
+                    trackingEnabled
+                        ? 'Enabled'
+                        : 'Disabled',
+                    style:
+                        TextStyle(
+                      color:
+                          trackingEnabled
+                              ? green
+                              : secondaryTextColor,
+                      fontSize:
+                          10,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // ========================================================
+        // PREVIEW CARD
+        // ========================================================
+
+        _buildReviewPreviewCard(),
+
+        const SizedBox(height: 14),
+
+        _goldInfoBox(
+          title:
+              'Ready to Publish',
+          text:
+              'Review your campaign carefully. Once published, the sequence will be available for your automated email workflow.',
+        ),
+
+        const SizedBox(height: 18),
+
+        _navigationButtons(
+          backTitle:
+              'Back',
+          nextTitle:
+              'Publish Sequence',
+          nextIcon:
+              Icons.send_rounded,
+          onBack:
+              _previousStep,
+          onNext:
+              isLoading
+                  ? null
+                  : _createSequence,
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // REVIEW PREVIEW CARD
+  // ============================================================
+
+  Widget _buildReviewPreviewCard() {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        16,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            cardColor,
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child:
+          Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width:
+                    42,
+                height:
+                    42,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      gold.withOpacity(
+                    0.10,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(
+                    10,
+                  ),
+                  border:
+                      Border.all(
+                    color:
+                        gold.withOpacity(
+                      0.22,
+                    ),
+                  ),
+                ),
+                child:
+                    const Icon(
+                  Icons.visibility_outlined,
+                  color:
+                      gold,
+                  size:
+                      20,
+                ),
+              ),
+
+              const SizedBox(
+                width:
+                    11,
+              ),
+
+              const Expanded(
+                child:
+                    Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Email Preview',
+                      style:
+                          TextStyle(
+                        color:
+                            textColor,
+                        fontSize:
+                            15,
+                        fontWeight:
+                            FontWeight.w800,
+                      ),
+                    ),
+
+                    SizedBox(
+                      height:
+                          2,
+                    ),
+
+                    Text(
+                      'Preview your final email.',
+                      style:
+                          TextStyle(
+                        color:
+                            secondaryTextColor,
+                        fontSize:
+                            10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              InkWell(
+                onTap:
+                    _showEmailPreview,
+                borderRadius:
+                    BorderRadius.circular(
+                  8,
+                ),
+                child:
+                    Container(
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal:
+                        10,
+                    vertical:
+                        7,
+                  ),
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        gold.withOpacity(
+                      0.08,
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(
+                      8,
+                    ),
+                    border:
+                        Border.all(
+                      color:
+                          gold.withOpacity(
+                        0.35,
+                      ),
+                    ),
+                  ),
+                  child:
+                      const Row(
+                    children: [
+                      Icon(
+                        Icons.open_in_full_rounded,
+                        color:
+                            gold,
+                        size:
+                            14,
+                      ),
+                      SizedBox(
+                        width:
+                            5,
+                      ),
+                      Text(
+                        'Open',
+                        style:
+                            TextStyle(
+                          color:
+                              gold,
+                          fontSize:
+                              10,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-
-              if (scheduledDateTime != null)
-                Align(
-                  alignment:
-                      Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        scheduledDateTime = null;
-                      });
-                    },
-                    child: const Text(
-                      'Clear Schedule',
-                    ),
-                  ),
-                ),
             ],
-          );
-        },
-      ),
-    );
-  }
-
-  // ============================================================
-  // TRACKING SWITCH
-  // ============================================================
-
-  Widget _buildTrackingSwitch() {
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(
-        minHeight: 72,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 8,
-      ),
-      decoration: BoxDecoration(
-        color: fieldBackground,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: borderColor,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.analytics_outlined,
-              color: primaryColor,
-              size: 19,
-            ),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(
+            height:
+                16,
+          ),
 
-          const Expanded(
-            child: Text(
-              'Enable Tracking',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+          const Divider(
+            height:
+                1,
+            color:
+                softBorder,
+          ),
+
+          const SizedBox(
+            height:
+                16,
+          ),
+
+          Container(
+            width:
+                double.infinity,
+            clipBehavior:
+                Clip.antiAlias,
+            decoration:
+                BoxDecoration(
+              color:
+                  Colors.white,
+              borderRadius:
+                  BorderRadius.circular(
+                12,
               ),
             ),
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch,
+              children: [
+                // ===============================================
+                // EMAIL HEADER
+                // ===============================================
+
+                Container(
+                  padding:
+                      const EdgeInsets.all(
+                    12,
+                  ),
+                  decoration:
+                      const BoxDecoration(
+                    color:
+                        Color(0xFFF8FAFC),
+                    border:
+                        Border(
+                      bottom:
+                          BorderSide(
+                        color:
+                            Color(0xFFE5E7EB),
+                      ),
+                    ),
+                  ),
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'EMAIL PREVIEW',
+                        style:
+                            TextStyle(
+                          color:
+                              Color(0xFF7C8491),
+                          fontSize:
+                              8,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height:
+                            5,
+                      ),
+
+                      Text(
+                        subjectController.text
+                                .trim()
+                                .isEmpty
+                            ? 'Your email subject'
+                            : subjectController
+                                .text
+                                .trim(),
+                        maxLines:
+                            2,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              Color(0xFF111827),
+                          fontSize:
+                              12,
+                          fontWeight:
+                              FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ===============================================
+                // LOGO
+                // ===============================================
+
+                if (logoController
+                    .text
+                    .trim()
+                    .isNotEmpty)
+                  Container(
+                    height:
+                        62,
+                    padding:
+                        const EdgeInsets.all(
+                      12,
+                    ),
+                    alignment:
+                        _logoAlignment(),
+                    child:
+                        Container(
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal:
+                            10,
+                        vertical:
+                            7,
+                      ),
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            const Color(
+                          0xFFF4F4F5,
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(
+                          7,
+                        ),
+                      ),
+                      child:
+                          const Row(
+                        mainAxisSize:
+                            MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.diamond_outlined,
+                            color:
+                                Colors.black,
+                            size:
+                                18,
+                          ),
+                          SizedBox(
+                            width:
+                                5,
+                          ),
+                          Text(
+                            'Brand Logo',
+                            style:
+                                TextStyle(
+                              color:
+                                  Colors.black,
+                              fontSize:
+                                  10,
+                              fontWeight:
+                                  FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // ===============================================
+                // HERO
+                // ===============================================
+
+                if (heroImageController
+                    .text
+                    .trim()
+                    .isNotEmpty)
+                  Container(
+                    width:
+                        double.infinity,
+                    height:
+                        95,
+                    color:
+                        const Color(
+                      0xFFF2F3F5,
+                    ),
+                    child:
+                        const Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          color:
+                              Color(0xFF777777),
+                          size:
+                              27,
+                        ),
+
+                        SizedBox(
+                          height:
+                              5,
+                        ),
+
+                        Text(
+                          'Hero Image',
+                          style:
+                              TextStyle(
+                            color:
+                                Color(0xFF777777),
+                            fontSize:
+                                9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // ===============================================
+                // BODY
+                // ===============================================
+
+                Padding(
+                  padding:
+                      const EdgeInsets.all(
+                    16,
+                  ),
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        contentController.text
+                                .trim()
+                                .isEmpty
+                            ? 'Your email content will appear here.'
+                            : contentController
+                                .text
+                                .trim(),
+                        maxLines:
+                            8,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            TextStyle(
+                          color:
+                              _previewTextColor(),
+                          fontSize:
+                              _previewFontSize(),
+                          height:
+                              1.5,
+                          fontWeight:
+                              isBold
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                          fontStyle:
+                              isItalic
+                                  ? FontStyle.italic
+                                  : FontStyle.normal,
+                          decoration:
+                              isUnderline
+                                  ? TextDecoration.underline
+                                  : TextDecoration.none,
+                        ),
+                      ),
+
+                      if (ctaTextController
+                          .text
+                          .trim()
+                          .isNotEmpty) ...[
+                        const SizedBox(
+                          height:
+                              18,
+                        ),
+
+                        Align(
+                          alignment:
+                              Alignment.center,
+                          child:
+                              Container(
+                            padding:
+                                const EdgeInsets.symmetric(
+                              horizontal:
+                                  22,
+                              vertical:
+                                  10,
+                            ),
+                            decoration:
+                                BoxDecoration(
+                              color:
+                                  gold,
+                              borderRadius:
+                                  BorderRadius.circular(
+                                7,
+                              ),
+                            ),
+                            child:
+                                Text(
+                              ctaTextController
+                                  .text
+                                  .trim(),
+                              maxLines:
+                                  1,
+                              overflow:
+                                  TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(
+                                color:
+                                    Colors.black,
+                                fontSize:
+                                    10.5,
+                                fontWeight:
+                                    FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      if (whatsappController
+                          .text
+                          .trim()
+                          .isNotEmpty) ...[
+                        const SizedBox(
+                          height:
+                              16,
+                        ),
+
+                        const Align(
+                          alignment:
+                              Alignment.center,
+                          child:
+                              Row(
+                            mainAxisSize:
+                                MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.chat_outlined,
+                                color:
+                                    Color(0xFF168447),
+                                size:
+                                    15,
+                              ),
+                              SizedBox(
+                                width:
+                                    5,
+                              ),
+                              Text(
+                                'Contact on WhatsApp',
+                                style:
+                                    TextStyle(
+                                  color:
+                                      Color(0xFF168447),
+                                  fontSize:
+                                      9.5,
+                                  fontWeight:
+                                      FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
 
-          const SizedBox(width: 6),
+          const SizedBox(
+            height:
+                14,
+          ),
 
-          Switch.adaptive(
-            value: trackingEnabled,
-            activeColor: primaryColor,
-            onChanged: (value) {
-              setState(() {
-                trackingEnabled = value;
-              });
-            },
+          SizedBox(
+            width:
+                double.infinity,
+            height:
+                44,
+            child:
+                OutlinedButton.icon(
+              onPressed:
+                  _showEmailPreview,
+              icon:
+                  const Icon(
+                Icons.visibility_outlined,
+                size:
+                    17,
+              ),
+              label:
+                  const Text(
+                'Open Full Email Preview',
+              ),
+              style:
+                  OutlinedButton.styleFrom(
+                foregroundColor:
+                    gold,
+                side:
+                    const BorderSide(
+                  color:
+                      borderColor,
+                ),
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    9,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1406,167 +2371,285 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // 8. LIVE PREVIEW
+  // SHOW FULL PREVIEW
   // ============================================================
 
-  Widget _buildPreviewCard() {
-    return CreateSequencePreview(
-      subjectController: subjectController,
-      logoController: logoController,
-      heroImageController: heroImageController,
-      heroLinkController: heroLinkController,
-      emailContentController: contentController,
-      whatsappController: whatsappController,
-      ctaTextController: ctaTextController,
-      ctaUrlController: ctaUrlController,
-      selectedLogoPosition: selectedLogoPosition,
-      selectedFont: selectedFont,
-      selectedTextColor: selectedTextColor,
-      selectedFontSize: selectedFontSize,
-      isBold: isBold,
-      isItalic: isItalic,
-      isUnderline: isUnderline,
+  void _showEmailPreview() {
+    showModalBottomSheet(
+      context:
+          context,
+      isScrollControlled:
+          true,
+      backgroundColor:
+          Colors.transparent,
+      builder:
+          (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize:
+              0.90,
+          minChildSize:
+              0.60,
+          maxChildSize:
+              0.96,
+          builder:
+              (
+            context,
+            scrollController,
+          ) {
+            return Container(
+              decoration:
+                  const BoxDecoration(
+                color:
+                    background,
+                borderRadius:
+                    BorderRadius.vertical(
+                  top:
+                      Radius.circular(
+                    22,
+                  ),
+                ),
+              ),
+              child:
+                  Column(
+                children: [
+                  const SizedBox(
+                    height:
+                        9,
+                  ),
+
+                  Container(
+                    width:
+                        40,
+                    height:
+                        4,
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          borderColor,
+                      borderRadius:
+                          BorderRadius.circular(
+                        20,
+                      ),
+                    ),
+                  ),
+
+                  Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(
+                      16,
+                      14,
+                      8,
+                      10,
+                    ),
+                    child:
+                        Row(
+                      children: [
+                        const Expanded(
+                          child:
+                              Text(
+                            'Email Preview',
+                            style:
+                                TextStyle(
+                              color:
+                                  textColor,
+                              fontSize:
+                                  17,
+                              fontWeight:
+                                  FontWeight.w800,
+                            ),
+                          ),
+                        ),
+
+                        IconButton(
+                          onPressed:
+                              () {
+                            Navigator.pop(
+                              sheetContext,
+                            );
+                          },
+                          icon:
+                              const Icon(
+                            Icons.close_rounded,
+                            color:
+                                secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Divider(
+                    height:
+                        1,
+                    color:
+                        softBorder,
+                  ),
+
+                  Expanded(
+                    child:
+                        SingleChildScrollView(
+                      controller:
+                          scrollController,
+                      padding:
+                          const EdgeInsets.all(
+                        14,
+                      ),
+                      child:
+                          CreateSequencePreview(
+                        subjectController:
+                            subjectController,
+                        logoController:
+                            logoController,
+                        heroImageController:
+                            heroImageController,
+                        heroLinkController:
+                            heroLinkController,
+                        emailContentController:
+                            contentController,
+                        whatsappController:
+                            whatsappController,
+                        ctaTextController:
+                            ctaTextController,
+                        ctaUrlController:
+                            ctaUrlController,
+                        selectedLogoPosition:
+                            selectedLogoPosition,
+                        selectedFont:
+                            selectedFont,
+                        selectedTextColor:
+                            selectedTextColor,
+                        selectedFontSize:
+                            selectedFontSize,
+                        isBold:
+                            isBold,
+                        isItalic:
+                            isItalic,
+                        isUnderline:
+                            isUnderline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   // ============================================================
-  // BOTTOM BUTTONS
+  // STEP HEADER
   // ============================================================
 
-  Widget _buildBottomButtons() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 500) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              OutlinedButton(
-                onPressed:
-                    isLoading ? null : _cancel,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: textColor,
-                  side: const BorderSide(
-                    color: borderColor,
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(
-                    vertical: 14,
-                  ),
-                ),
-                child: const Text('Cancel'),
+  Widget _stepHeader({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        16,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            cardColor,
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child:
+          Row(
+        children: [
+          Container(
+            width:
+                46,
+            height:
+                46,
+            decoration:
+                BoxDecoration(
+              color:
+                  gold.withOpacity(
+                0.10,
               ),
-
-              const SizedBox(height: 12),
-
-              ElevatedButton.icon(
-                onPressed:
-                    isLoading
-                        ? null
-                        : _createSequence,
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child:
-                            CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.check,
-                        size: 18,
-                      ),
-                label: Text(
-                  isLoading
-                      ? 'Creating...'
-                      : 'Create Sequence',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(
-                    vertical: 14,
-                  ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(8),
-                  ),
-                ),
+              borderRadius:
+                  BorderRadius.circular(
+                12,
               ),
-            ],
-          );
-        }
-
-        return Row(
-          mainAxisAlignment:
-              MainAxisAlignment.end,
-          children: [
-            OutlinedButton(
-              onPressed:
-                  isLoading ? null : _cancel,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: textColor,
-                side: const BorderSide(
-                  color: borderColor,
-                ),
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-              ),
-              child: const Text('Cancel'),
-            ),
-
-            const SizedBox(width: 12),
-
-            ElevatedButton.icon(
-              onPressed:
-                  isLoading
-                      ? null
-                      : _createSequence,
-              icon: isLoading
-                  ? const SizedBox(
-                      width: 17,
-                      height: 17,
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.check,
-                      size: 18,
-                    ),
-              label: Text(
-                isLoading
-                    ? 'Creating...'
-                    : 'Create Sequence',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(8),
+              border:
+                  Border.all(
+                color:
+                    gold.withOpacity(
+                  0.22,
                 ),
               ),
             ),
-          ],
-        );
-      },
+            child:
+                Icon(
+              icon,
+              color:
+                  gold,
+              size:
+                  22,
+            ),
+          ),
+
+          const SizedBox(
+            width:
+                12,
+          ),
+
+          Expanded(
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style:
+                      const TextStyle(
+                    color:
+                        textColor,
+                    fontSize:
+                        17,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(
+                  height:
+                      3,
+                ),
+
+                Text(
+                  subtitle,
+                  style:
+                      const TextStyle(
+                    color:
+                        secondaryTextColor,
+                    fontSize:
+                        10.5,
+                    height:
+                        1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1576,68 +2659,113 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   Widget _buildCard({
     required String title,
+    required String subtitle,
     required IconData icon,
     required Widget child,
   }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: lightBorderColor,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color:
-                Colors.black.withOpacity(0.035),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        16,
       ),
-      child: Column(
+      decoration:
+          BoxDecoration(
+        color:
+            cardColor,
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child:
+          Column(
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
+                width:
+                    39,
+                height:
+                    39,
+                decoration:
+                    BoxDecoration(
                   color:
-                      primaryColor.withOpacity(0.10),
+                      purple.withOpacity(
+                    0.10,
+                  ),
                   borderRadius:
-                      BorderRadius.circular(9),
+                      BorderRadius.circular(
+                    10,
+                  ),
                 ),
-                child: Icon(
+                child:
+                    Icon(
                   icon,
-                  color: primaryColor,
-                  size: 20,
+                  color:
+                      purpleLight,
+                  size:
+                      19,
                 ),
               ),
 
-              const SizedBox(width: 10),
+              const SizedBox(
+                width:
+                    10,
+              ),
 
               Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: textColor,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child:
+                    Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style:
+                          const TextStyle(
+                        color:
+                            textColor,
+                        fontSize:
+                            14,
+                        fontWeight:
+                            FontWeight.w800,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height:
+                          2,
+                    ),
+
+                    Text(
+                      subtitle,
+                      style:
+                          const TextStyle(
+                        color:
+                            secondaryTextColor,
+                        fontSize:
+                            9.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(
+            height:
+                17,
+          ),
 
           child,
         ],
@@ -1646,171 +2774,214 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // RECOMMENDATION BOX
+  // REVIEW CARD
   // ============================================================
 
-  Widget _buildRecommendation({
-    required String title,
+  Widget _reviewCard({
     required IconData icon,
-    required List<Widget> children,
+    required Color iconColor,
+    required String title,
+    required int editStep,
+    required Widget child,
   }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFD6E0FF),
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        16,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            cardColor,
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
         ),
       ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+      child:
+          Column(
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                color: primaryColor,
-                size: 19,
+              Container(
+                width:
+                    38,
+                height:
+                    38,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      iconColor.withOpacity(
+                    0.10,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(
+                    9,
+                  ),
+                ),
+                child:
+                    Icon(
+                  icon,
+                  color:
+                      iconColor,
+                  size:
+                      19,
+                ),
               ),
 
-              const SizedBox(width: 8),
+              const SizedBox(
+                width:
+                    10,
+              ),
 
               Expanded(
-                child: Text(
+                child:
+                    Text(
                   title,
-                  maxLines: 2,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: textColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                  style:
+                      const TextStyle(
+                    color:
+                        textColor,
+                    fontSize:
+                        14,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+              ),
+
+              TextButton.icon(
+                onPressed:
+                    () {
+                  setState(() {
+                    currentStep =
+                        editStep;
+                  });
+                },
+                icon:
+                    const Icon(
+                  Icons.edit_outlined,
+                  color:
+                      gold,
+                  size:
+                      14,
+                ),
+                label:
+                    const Text(
+                  'Edit',
+                  style:
+                      TextStyle(
+                    color:
+                        gold,
+                    fontSize:
+                        10,
+                    fontWeight:
+                        FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(
+            height:
+                14,
+          ),
 
-          ...children,
+          const Divider(
+            height:
+                1,
+            color:
+                softBorder,
+          ),
+
+          const SizedBox(
+            height:
+                15,
+          ),
+
+          child,
         ],
       ),
     );
   }
 
   // ============================================================
-  // FILE PICKER UI
+  // OVERVIEW ITEM
   // ============================================================
 
-  Widget _buildFilePicker({
-    required String label,
-    required String value,
-    required String emptyText,
+  Widget _overviewItem({
     required IconData icon,
-    required VoidCallback onTap,
+    required String title,
+    required String value,
+    Color? iconColor,
+    Color? valueColor,
   }) {
-    final bool hasFile =
-        value.trim().isNotEmpty;
-
-    String displayName = emptyText;
-
-    if (hasFile) {
-      displayName =
-          value.split('\\').last.split('/').last;
-    }
-
-    return Column(
+    return Row(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: textColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+        Icon(
+          icon,
+          color:
+              iconColor ??
+                  secondaryTextColor,
+          size:
+              17,
         ),
 
-        const SizedBox(height: 7),
+        const SizedBox(
+          width:
+              8,
+        ),
 
-        InkWell(
-          onTap: onTap,
-          borderRadius:
-              BorderRadius.circular(10),
-          child: Container(
-            width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            decoration: BoxDecoration(
-              color: fieldBackground,
-              borderRadius:
-                  BorderRadius.circular(10),
-              border: Border.all(
-                color:
-                    hasFile
-                        ? primaryColor
-                        : borderColor,
+        Expanded(
+          child:
+              Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style:
+                    const TextStyle(
+                  color:
+                      secondaryTextColor,
+                  fontSize:
+                      9.5,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color:
-                        primaryColor.withOpacity(
-                      0.10,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: primaryColor,
-                    size: 19,
-                  ),
+
+              const SizedBox(
+                height:
+                    3,
+              ),
+
+              Text(
+                value,
+                maxLines:
+                    2,
+                overflow:
+                    TextOverflow.ellipsis,
+                style:
+                    TextStyle(
+                  color:
+                      valueColor ??
+                          textColor,
+                  fontSize:
+                      11.5,
+                  fontWeight:
+                      FontWeight.w700,
                 ),
-
-                const SizedBox(width: 10),
-
-                Expanded(
-                  child: Text(
-                    displayName,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color:
-                          hasFile
-                              ? textColor
-                              : secondaryTextColor,
-                      fontSize: 13,
-                      fontWeight:
-                          hasFile
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                const Icon(
-                  Icons.upload_outlined,
-                  color: secondaryTextColor,
-                  size: 19,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1818,7 +2989,192 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // TEXT FIELD
+  // REVIEW LINK
+  // ============================================================
+
+  Widget _reviewLinkRow({
+    required String label,
+    required String title,
+    required String url,
+  }) {
+    return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.link_rounded,
+          color:
+              gold,
+          size:
+              18,
+        ),
+
+        const SizedBox(
+          width:
+              9,
+        ),
+
+        Expanded(
+          child:
+              Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style:
+                    const TextStyle(
+                  color:
+                      secondaryTextColor,
+                  fontSize:
+                      9.5,
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    3,
+              ),
+
+              Text(
+                title,
+                style:
+                    const TextStyle(
+                  color:
+                      textColor,
+                  fontSize:
+                      11.5,
+                  fontWeight:
+                      FontWeight.w700,
+                ),
+              ),
+
+              if (url !=
+                  '-') ...[
+                const SizedBox(
+                  height:
+                      3,
+                ),
+
+                Text(
+                  url,
+                  maxLines:
+                      2,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(
+                    color:
+                        gold,
+                    fontSize:
+                        9.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // GOLD INFO
+  // ============================================================
+
+  Widget _goldInfoBox({
+    required String title,
+    required String text,
+  }) {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        13,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            gold.withOpacity(
+          0.07,
+        ),
+        borderRadius:
+            BorderRadius.circular(
+          11,
+        ),
+        border:
+            Border.all(
+          color:
+              gold.withOpacity(
+            0.25,
+          ),
+        ),
+      ),
+      child:
+          Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color:
+                gold,
+            size:
+                18,
+          ),
+
+          const SizedBox(
+            width:
+                9,
+          ),
+
+          Expanded(
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style:
+                      const TextStyle(
+                    color:
+                        gold,
+                    fontSize:
+                        11,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(
+                  height:
+                      3,
+                ),
+
+                Text(
+                  text,
+                  style:
+                      const TextStyle(
+                    color:
+                        secondaryTextColor,
+                    fontSize:
+                        9.5,
+                    height:
+                        1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // FIELD
   // ============================================================
 
   Widget _buildTextField({
@@ -1828,6 +3184,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    IconData? prefixIcon,
     TextCapitalization textCapitalization =
         TextCapitalization.none,
   }) {
@@ -1837,373 +3194,155 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: textColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                11,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
 
-        const SizedBox(height: 7),
+        const SizedBox(
+          height:
+              7,
+        ),
 
         TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
+          controller:
+              controller,
+          keyboardType:
+              keyboardType,
+          inputFormatters:
+              inputFormatters,
+          validator:
+              validator,
           textCapitalization:
               textCapitalization,
-          validator: validator,
-          onChanged: (_) {
+          cursorColor:
+              gold,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                12.5,
+          ),
+          onChanged:
+              (_) {
             setState(() {});
           },
-          style: const TextStyle(
-            color: textColor,
-            fontSize: 14,
-          ),
-          cursorColor: primaryColor,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(
-              color: Color(0xFF98A2B3),
-              fontSize: 13,
+          decoration:
+              InputDecoration(
+            hintText:
+                hint,
+            hintStyle:
+                const TextStyle(
+              color:
+                  hintColor,
+              fontSize:
+                  11,
             ),
-            filled: true,
-            fillColor: fieldBackground,
+            prefixIcon:
+                prefixIcon == null
+                    ? null
+                    : Icon(
+                        prefixIcon,
+                        color:
+                            secondaryTextColor,
+                        size:
+                            17,
+                      ),
+            filled:
+                true,
+            fillColor:
+                fieldBackground,
             contentPadding:
                 const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
+              horizontal:
+                  12,
+              vertical:
+                  13,
             ),
-            border: OutlineInputBorder(
+            border:
+                OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: borderColor,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    borderColor,
               ),
             ),
             enabledBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: borderColor,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    borderColor,
               ),
             ),
             focusedBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: primaryColor,
-                width: 1.5,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    gold,
+                width:
+                    1.2,
               ),
             ),
             errorBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: Colors.red,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    red,
               ),
             ),
             focusedErrorBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1.5,
+                  BorderRadius.circular(
+                10,
               ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    red,
+              ),
+            ),
+            errorStyle:
+                const TextStyle(
+              color:
+                  red,
+              fontSize:
+                  9.5,
             ),
           ),
         ),
       ],
-    );
-  }
-
-  // ============================================================
-  // IMPROVED TYPE SELECTOR
-  // ============================================================
-
-  Widget _buildTypeSelector() {
-    final option = _typeOption(selectedType);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Type',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 7),
-        InkWell(
-          onTap: isLoading ? null : _showTypeSelector,
-          borderRadius: BorderRadius.circular(12),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 66),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 10,
-            ),
-            decoration: BoxDecoration(
-              color: fieldBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: option.backgroundColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    option.icon,
-                    color: option.iconColor,
-                    size: 21,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        option.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: textColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        option.description,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: secondaryTextColor,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  _SequenceTypeOption _typeOption(String value) {
-    switch (value) {
-      case 'WhatsApp':
-        return const _SequenceTypeOption(
-          value: 'WhatsApp',
-          title: 'WhatsApp',
-          description: 'Send WhatsApp campaign messages',
-          icon: Icons.chat_outlined,
-          iconColor: Color(0xFF039855),
-          backgroundColor: Color(0xFFECFDF3),
-        );
-      case 'SMS':
-        return const _SequenceTypeOption(
-          value: 'SMS',
-          title: 'SMS',
-          description: 'Send short text messages',
-          icon: Icons.sms_outlined,
-          iconColor: Color(0xFF7A5AF8),
-          backgroundColor: Color(0xFFF4F3FF),
-        );
-      case 'Email':
-      default:
-        return const _SequenceTypeOption(
-          value: 'Email',
-          title: 'Email',
-          description: 'Send email campaign messages',
-          icon: Icons.email_outlined,
-          iconColor: primaryColor,
-          backgroundColor: Color(0xFFEFF4FF),
-        );
-    }
-  }
-
-  Future<void> _showTypeSelector() async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD0D5DD),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Select Type',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Choose how this sequence will communicate with leads.',
-                  style: TextStyle(
-                    color: secondaryTextColor,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                ...['Email', 'WhatsApp', 'SMS'].map(
-                  (type) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildTypeOptionTile(
-                      option: _typeOption(type),
-                      selected: selectedType == type,
-                      onTap: () => Navigator.pop(sheetContext, type),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selected != null && mounted) {
-      setState(() {
-        selectedType = selected;
-      });
-    }
-  }
-
-  Widget _buildTypeOptionTile({
-    required _SequenceTypeOption option,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF5F8FF) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? primaryColor : lightBorderColor,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: option.backgroundColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                option.icon,
-                color: option.iconColor,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    option.title,
-                    style: const TextStyle(
-                      color: textColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    option.description,
-                    style: const TextStyle(
-                      color: secondaryTextColor,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? primaryColor : Colors.transparent,
-                border: Border.all(
-                  color: selected ? primaryColor : const Color(0xFFD0D5DD),
-                ),
-              ),
-              child: selected
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 15,
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   // ============================================================
   // DROPDOWN
-  // FIXED: isExpanded prevents dropdown text overflow
   // ============================================================
 
   Widget _buildDropdown({
@@ -2218,71 +3357,111 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: textColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                11,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
 
-        const SizedBox(height: 7),
+        const SizedBox(
+          height:
+              7,
+        ),
 
         DropdownButtonFormField<String>(
-          initialValue: value,
-          isExpanded: true,
-          icon: const Icon(
+          value:
+              value,
+          isExpanded:
+              true,
+          dropdownColor:
+              cardColor2,
+          icon:
+              const Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: secondaryTextColor,
+            color:
+                secondaryTextColor,
           ),
-          items: items
-              .map(
-                (item) =>
-                    DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(
-                    item,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: textColor,
-                      fontSize: 14,
+          items:
+              items
+                  .map(
+                    (
+                      item,
+                    ) =>
+                        DropdownMenuItem<String>(
+                      value:
+                          item,
+                      child:
+                          Text(
+                        item,
+                        maxLines:
+                            1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              textColor,
+                          fontSize:
+                              11.5,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: fieldBackground,
+                  )
+                  .toList(),
+          onChanged:
+              onChanged,
+          decoration:
+              InputDecoration(
+            filled:
+                true,
+            fillColor:
+                fieldBackground,
             contentPadding:
                 const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 5,
+              horizontal:
+                  12,
+              vertical:
+                  5,
             ),
-            border: OutlineInputBorder(
+            border:
+                OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: borderColor,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    borderColor,
               ),
             ),
             enabledBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: borderColor,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    borderColor,
               ),
             ),
             focusedBorder:
                 OutlineInputBorder(
               borderRadius:
-                  BorderRadius.circular(9),
-              borderSide: const BorderSide(
-                color: primaryColor,
-                width: 1.5,
+                  BorderRadius.circular(
+                10,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    gold,
               ),
             ),
           ),
@@ -2292,16 +3471,1884 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // TEXT COLOR
+  // TYPE SELECTOR
   // ============================================================
 
-  Color _getSelectedTextColor() {
+  Widget _buildTypeSelector() {
+    final option =
+        _typeOption(
+      selectedType,
+    );
+
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Type',
+          style:
+              TextStyle(
+            color:
+                textColor,
+            fontSize:
+                11,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(
+          height:
+              7,
+        ),
+
+        InkWell(
+          onTap:
+              _showTypeSelector,
+          borderRadius:
+              BorderRadius.circular(
+            10,
+          ),
+          child:
+              Container(
+            width:
+                double.infinity,
+            padding:
+                const EdgeInsets.all(
+              11,
+            ),
+            decoration:
+                BoxDecoration(
+              color:
+                  fieldBackground,
+              borderRadius:
+                  BorderRadius.circular(
+                10,
+              ),
+              border:
+                  Border.all(
+                color:
+                    borderColor,
+              ),
+            ),
+            child:
+                Row(
+              children: [
+                Container(
+                  width:
+                      38,
+                  height:
+                      38,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        option.color.withOpacity(
+                      0.12,
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(
+                      9,
+                    ),
+                  ),
+                  child:
+                      Icon(
+                    option.icon,
+                    color:
+                        option.color,
+                    size:
+                        19,
+                  ),
+                ),
+
+                const SizedBox(
+                  width:
+                      10,
+                ),
+
+                Expanded(
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        option.title,
+                        style:
+                            const TextStyle(
+                          color:
+                              textColor,
+                          fontSize:
+                              12,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height:
+                            2,
+                      ),
+
+                      Text(
+                        option.description,
+                        maxLines:
+                            1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              secondaryTextColor,
+                          fontSize:
+                              9.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color:
+                      secondaryTextColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // TYPE OPTION
+  // ============================================================
+
+  _SequenceTypeOption _typeOption(
+    String value,
+  ) {
+    switch (value) {
+      case 'WhatsApp':
+        return const _SequenceTypeOption(
+          value:
+              'WhatsApp',
+          title:
+              'WhatsApp',
+          description:
+              'WhatsApp campaign message',
+          icon:
+              Icons.chat_outlined,
+          color:
+              green,
+        );
+
+      case 'SMS':
+        return const _SequenceTypeOption(
+          value:
+              'SMS',
+          title:
+              'SMS',
+          description:
+              'SMS campaign message',
+          icon:
+              Icons.sms_outlined,
+          color:
+              purpleLight,
+        );
+
+      case 'Email':
+      default:
+        return const _SequenceTypeOption(
+          value:
+              'Email',
+          title:
+              'Email',
+          description:
+              'Email campaign message',
+          icon:
+              Icons.email_outlined,
+          color:
+              gold,
+        );
+    }
+  }
+
+  // ============================================================
+  // TYPE SHEET
+  // ============================================================
+
+  Future<void> _showTypeSelector() async {
+    final selected =
+        await showModalBottomSheet<String>(
+      context:
+          context,
+      backgroundColor:
+          Colors.transparent,
+      builder:
+          (
+        sheetContext,
+      ) {
+        return SafeArea(
+          child:
+              Container(
+            padding:
+                const EdgeInsets.fromLTRB(
+              16,
+              10,
+              16,
+              20,
+            ),
+            decoration:
+                const BoxDecoration(
+              color:
+                  Color(0xFF0B0E13),
+              borderRadius:
+                  BorderRadius.vertical(
+                top:
+                    Radius.circular(
+                  22,
+                ),
+              ),
+            ),
+            child:
+                Column(
+              mainAxisSize:
+                  MainAxisSize.min,
+              children: [
+                Container(
+                  width:
+                      40,
+                  height:
+                      4,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        borderColor,
+                    borderRadius:
+                        BorderRadius.circular(
+                      20,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(
+                  height:
+                      18,
+                ),
+
+                const Align(
+                  alignment:
+                      Alignment.centerLeft,
+                  child:
+                      Text(
+                    'Select Sequence Type',
+                    style:
+                        TextStyle(
+                      color:
+                          textColor,
+                      fontSize:
+                          17,
+                      fontWeight:
+                          FontWeight.w800,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(
+                  height:
+                      14,
+                ),
+
+                ...[
+                  'Email',
+                  'WhatsApp',
+                  'SMS',
+                ].map(
+                  (
+                    value,
+                  ) {
+                    final option =
+                        _typeOption(
+                      value,
+                    );
+
+                    final isSelected =
+                        selectedType ==
+                            value;
+
+                    return Padding(
+                      padding:
+                          const EdgeInsets.only(
+                        bottom:
+                            9,
+                      ),
+                      child:
+                          InkWell(
+                        onTap:
+                            () {
+                          Navigator.pop(
+                            sheetContext,
+                            value,
+                          );
+                        },
+                        borderRadius:
+                            BorderRadius.circular(
+                          11,
+                        ),
+                        child:
+                            Container(
+                          padding:
+                              const EdgeInsets.all(
+                            11,
+                          ),
+                          decoration:
+                              BoxDecoration(
+                            color:
+                                isSelected
+                                    ? gold.withOpacity(
+                                        0.08,
+                                      )
+                                    : fieldBackground,
+                            borderRadius:
+                                BorderRadius.circular(
+                              11,
+                            ),
+                            border:
+                                Border.all(
+                              color:
+                                  isSelected
+                                      ? gold
+                                      : borderColor,
+                            ),
+                          ),
+                          child:
+                              Row(
+                            children: [
+                              Container(
+                                width:
+                                    40,
+                                height:
+                                    40,
+                                decoration:
+                                    BoxDecoration(
+                                  color:
+                                      option.color.withOpacity(
+                                    0.12,
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                    9,
+                                  ),
+                                ),
+                                child:
+                                    Icon(
+                                  option.icon,
+                                  color:
+                                      option.color,
+                                  size:
+                                      20,
+                                ),
+                              ),
+
+                              const SizedBox(
+                                width:
+                                    10,
+                              ),
+
+                              Expanded(
+                                child:
+                                    Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      option.title,
+                                      style:
+                                          const TextStyle(
+                                        color:
+                                            textColor,
+                                        fontSize:
+                                            12,
+                                        fontWeight:
+                                            FontWeight.w700,
+                                      ),
+                                    ),
+
+                                    const SizedBox(
+                                      height:
+                                          3,
+                                    ),
+
+                                    Text(
+                                      option.description,
+                                      style:
+                                          const TextStyle(
+                                        color:
+                                            secondaryTextColor,
+                                        fontSize:
+                                            9.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color:
+                                      gold,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected !=
+            null &&
+        mounted) {
+      setState(() {
+        selectedType =
+            selected;
+      });
+    }
+  }
+
+  // ============================================================
+  // FILE PICKER
+  // ============================================================
+
+  Widget _buildFilePicker({
+    required String label,
+    required String value,
+    required String emptyText,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final hasFile =
+        value.trim().isNotEmpty;
+
+    final displayName =
+        hasFile
+            ? value
+                .split('\\')
+                .last
+                .split('/')
+                .last
+            : emptyText;
+
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style:
+              const TextStyle(
+            color:
+                textColor,
+            fontSize:
+                11,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(
+          height:
+              7,
+        ),
+
+        InkWell(
+          onTap:
+              onTap,
+          borderRadius:
+              BorderRadius.circular(
+            10,
+          ),
+          child:
+              Container(
+            width:
+                double.infinity,
+            padding:
+                const EdgeInsets.all(
+              11,
+            ),
+            decoration:
+                BoxDecoration(
+              color:
+                  fieldBackground,
+              borderRadius:
+                  BorderRadius.circular(
+                10,
+              ),
+              border:
+                  Border.all(
+                color:
+                    hasFile
+                        ? gold
+                        : borderColor,
+              ),
+            ),
+            child:
+                Row(
+              children: [
+                Container(
+                  width:
+                      38,
+                  height:
+                      38,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        gold.withOpacity(
+                      0.09,
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(
+                      9,
+                    ),
+                  ),
+                  child:
+                      Icon(
+                    icon,
+                    color:
+                        gold,
+                    size:
+                        18,
+                  ),
+                ),
+
+                const SizedBox(
+                  width:
+                      10,
+                ),
+
+                Expanded(
+                  child:
+                      Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines:
+                            1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            TextStyle(
+                          color:
+                              hasFile
+                                  ? textColor
+                                  : secondaryTextColor,
+                          fontSize:
+                              11,
+                          fontWeight:
+                              hasFile
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height:
+                            2,
+                      ),
+
+                      const Text(
+                        'Tap to browse',
+                        style:
+                            TextStyle(
+                          color:
+                              hintColor,
+                          fontSize:
+                              9,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Icon(
+                  Icons.upload_rounded,
+                  color:
+                      secondaryTextColor,
+                  size:
+                      17,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // TOOLBAR
+  // ============================================================
+
+  Widget _buildEditorToolbar() {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal:
+            5,
+        vertical:
+            5,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            fieldBackground,
+        borderRadius:
+            BorderRadius.circular(
+          10,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child:
+          Row(
+        children: [
+          _toolbarButton(
+            icon:
+                Icons.format_bold,
+            active:
+                isBold,
+            onPressed:
+                () {
+              setState(() {
+                isBold =
+                    !isBold;
+              });
+            },
+          ),
+
+          _toolbarButton(
+            icon:
+                Icons.format_italic,
+            active:
+                isItalic,
+            onPressed:
+                () {
+              setState(() {
+                isItalic =
+                    !isItalic;
+              });
+            },
+          ),
+
+          _toolbarButton(
+            icon:
+                Icons.format_underlined,
+            active:
+                isUnderline,
+            onPressed:
+                () {
+              setState(() {
+                isUnderline =
+                    !isUnderline;
+              });
+            },
+          ),
+
+          const Spacer(),
+
+          InkWell(
+            onTap:
+                () {
+              contentController.clear();
+
+              setState(() {});
+            },
+            borderRadius:
+                BorderRadius.circular(
+              7,
+            ),
+            child:
+                const Padding(
+              padding:
+                  EdgeInsets.symmetric(
+                horizontal:
+                    8,
+                vertical:
+                    8,
+              ),
+              child:
+                  Row(
+                children: [
+                  Icon(
+                    Icons.delete_outline,
+                    color:
+                        red,
+                    size:
+                        15,
+                  ),
+                  SizedBox(
+                    width:
+                        4,
+                  ),
+                  Text(
+                    'Clear',
+                    style:
+                        TextStyle(
+                      color:
+                          red,
+                      fontSize:
+                          10,
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toolbarButton({
+    required IconData icon,
+    required bool active,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      margin:
+          const EdgeInsets.only(
+        right:
+            4,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            active
+                ? gold.withOpacity(
+                    0.12,
+                  )
+                : Colors.transparent,
+        borderRadius:
+            BorderRadius.circular(
+          7,
+        ),
+      ),
+      child:
+          IconButton(
+        constraints:
+            const BoxConstraints(
+          minWidth:
+              34,
+          minHeight:
+              34,
+        ),
+        padding:
+            EdgeInsets.zero,
+        onPressed:
+            onPressed,
+        icon:
+            Icon(
+          icon,
+          color:
+              active
+                  ? gold
+                  : secondaryTextColor,
+          size:
+              18,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // TRACKING
+  // ============================================================
+
+  Widget _buildTrackingSwitch() {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal:
+            11,
+        vertical:
+            8,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            fieldBackground,
+        borderRadius:
+            BorderRadius.circular(
+          10,
+        ),
+        border:
+            Border.all(
+          color:
+              borderColor,
+        ),
+      ),
+      child:
+          Row(
+        children: [
+          Container(
+            width:
+                38,
+            height:
+                38,
+            decoration:
+                BoxDecoration(
+              color:
+                  gold.withOpacity(
+                0.09,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                9,
+              ),
+            ),
+            child:
+                const Icon(
+              Icons.analytics_outlined,
+              color:
+                  gold,
+              size:
+                  18,
+            ),
+          ),
+
+          const SizedBox(
+            width:
+                9,
+          ),
+
+          const Expanded(
+            child:
+                Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Enable Tracking',
+                  style:
+                      TextStyle(
+                    color:
+                        textColor,
+                    fontSize:
+                        11.5,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+
+                SizedBox(
+                  height:
+                      2,
+                ),
+
+                Text(
+                  'Track email opens',
+                  style:
+                      TextStyle(
+                    color:
+                        secondaryTextColor,
+                    fontSize:
+                        9,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Switch.adaptive(
+            value:
+                trackingEnabled,
+            activeColor:
+                gold,
+            activeTrackColor:
+                gold.withOpacity(
+              0.28,
+            ),
+            onChanged:
+                (value) {
+              setState(() {
+                trackingEnabled =
+                    value;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SCHEDULE
+  // ============================================================
+
+  Widget _buildSchedulePicker() {
+    return InkWell(
+      onTap:
+          _selectDateTime,
+      borderRadius:
+          BorderRadius.circular(
+        10,
+      ),
+      child:
+          Container(
+        width:
+            double.infinity,
+        padding:
+            const EdgeInsets.all(
+          11,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              fieldBackground,
+          borderRadius:
+              BorderRadius.circular(
+            10,
+          ),
+          border:
+              Border.all(
+            color:
+                borderColor,
+          ),
+        ),
+        child:
+            Row(
+          children: [
+            Container(
+              width:
+                  38,
+              height:
+                  38,
+              decoration:
+                  BoxDecoration(
+                color:
+                    gold.withOpacity(
+                  0.09,
+                ),
+                borderRadius:
+                    BorderRadius.circular(
+                  9,
+                ),
+              ),
+              child:
+                  const Icon(
+                Icons.calendar_month_outlined,
+                color:
+                    gold,
+                size:
+                    18,
+              ),
+            ),
+
+            const SizedBox(
+              width:
+                  9,
+            ),
+
+            Expanded(
+              child:
+                  Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Scheduled Date & Time',
+                    style:
+                        TextStyle(
+                      color:
+                          secondaryTextColor,
+                      fontSize:
+                          9,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height:
+                        3,
+                  ),
+
+                  Text(
+                    scheduledDateTime ==
+                            null
+                        ? 'Select date and time'
+                        : _formatDateTime(
+                            scheduledDateTime!,
+                          ),
+                    style:
+                        TextStyle(
+                      color:
+                          scheduledDateTime ==
+                                  null
+                              ? hintColor
+                              : textColor,
+                      fontSize:
+                          11.5,
+                      fontWeight:
+                          scheduledDateTime ==
+                                  null
+                              ? FontWeight.w400
+                              : FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(
+              Icons.chevron_right_rounded,
+              color:
+                  secondaryTextColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // NAVIGATION BUTTONS
+  // ============================================================
+
+  Widget _navigationButtons({
+    String? backTitle,
+    required String nextTitle,
+    required IconData nextIcon,
+    VoidCallback? onBack,
+    VoidCallback? onNext,
+  }) {
+    return Row(
+      children: [
+        if (onBack !=
+            null) ...[
+          Expanded(
+            child:
+                SizedBox(
+              height:
+                  48,
+              child:
+                  OutlinedButton.icon(
+                onPressed:
+                    onBack,
+                icon:
+                    const Icon(
+                  Icons.arrow_back_rounded,
+                  size:
+                      17,
+                ),
+                label:
+                    Text(
+                  backTitle ??
+                      'Back',
+                ),
+                style:
+                    OutlinedButton.styleFrom(
+                  foregroundColor:
+                      textColor,
+                  backgroundColor:
+                      cardColor,
+                  side:
+                      const BorderSide(
+                    color:
+                        borderColor,
+                  ),
+                  shape:
+                      RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(
+                      11,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(
+            width:
+                10,
+          ),
+        ],
+
+        Expanded(
+          child:
+              Container(
+            height:
+                48,
+            decoration:
+                BoxDecoration(
+              gradient:
+                  const LinearGradient(
+                colors: [
+                  Color(0xFFF0BA4F),
+                  Color(0xFFD99A25),
+                ],
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                11,
+              ),
+            ),
+            child:
+                ElevatedButton.icon(
+              onPressed:
+                  onNext,
+              icon:
+                  isLoading &&
+                          currentStep ==
+                              3
+                      ? const SizedBox(
+                          width:
+                              16,
+                          height:
+                              16,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth:
+                                2,
+                            color:
+                                Colors.black,
+                          ),
+                        )
+                      : Icon(
+                          nextIcon,
+                          size:
+                              17,
+                        ),
+              label:
+                  Text(
+                isLoading &&
+                        currentStep ==
+                            3
+                    ? 'Publishing...'
+                    : nextTitle,
+                maxLines:
+                    1,
+                overflow:
+                    TextOverflow.ellipsis,
+                style:
+                    const TextStyle(
+                  fontWeight:
+                      FontWeight.w800,
+                  fontSize:
+                      11.5,
+                ),
+              ),
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    Colors.transparent,
+                disabledBackgroundColor:
+                    Colors.transparent,
+                shadowColor:
+                    Colors.transparent,
+                foregroundColor:
+                    Colors.black,
+                disabledForegroundColor:
+                    Colors.black54,
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    11,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // NEXT
+  // ============================================================
+
+  void _nextStep() {
+    FocusScope.of(context)
+        .unfocus();
+
+    if (currentStep ==
+        0) {
+      if (!_validateBasicStep()) {
+        return;
+      }
+    }
+
+    if (currentStep ==
+        1) {
+      if (contentController.text
+          .trim()
+          .isEmpty) {
+        _showMessage(
+          'Please enter email content.',
+          isError:
+              true,
+        );
+
+        return;
+      }
+    }
+
+    if (currentStep <
+        3) {
+      setState(() {
+        currentStep++;
+      });
+    }
+  }
+
+  // ============================================================
+  // PREVIOUS
+  // ============================================================
+
+  void _previousStep() {
+    FocusScope.of(context)
+        .unfocus();
+
+    if (currentStep >
+        0) {
+      setState(() {
+        currentStep--;
+      });
+    }
+  }
+
+  // ============================================================
+  // VALIDATE BASIC
+  // ============================================================
+
+  bool _validateBasicStep() {
+    final step =
+        int.tryParse(
+      stepController.text
+          .trim(),
+    );
+
+    final gap =
+        int.tryParse(
+      gapDaysController.text
+          .trim(),
+    );
+
+    if (step == null ||
+        step <= 0) {
+      _showMessage(
+        'Please enter a valid step.',
+        isError:
+            true,
+      );
+
+      return false;
+    }
+
+    if (gap == null ||
+        gap < 0) {
+      _showMessage(
+        'Please enter valid gap days.',
+        isError:
+            true,
+      );
+
+      return false;
+    }
+
+    if (variantController.text
+        .trim()
+        .isEmpty) {
+      _showMessage(
+        'Variant is required.',
+        isError:
+            true,
+      );
+
+      return false;
+    }
+
+    if (subjectController.text
+        .trim()
+        .isEmpty) {
+      _showMessage(
+        'Email subject is required.',
+        isError:
+            true,
+      );
+
+      return false;
+    }
+
+    return true;
+  }
+
+  // ============================================================
+  // PICK LOGO
+  // ============================================================
+
+  Future<void> _pickLogoFile() async {
+    final result =
+        await FilePicker.platform.pickFiles(
+      type:
+          FileType.image,
+      allowMultiple:
+          false,
+    );
+
+    if (result ==
+            null ||
+        result.files.isEmpty) {
+      return;
+    }
+
+    final file =
+        result.files.first;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      logoController.text =
+          file.path ??
+              file.name;
+    });
+  }
+
+  // ============================================================
+  // PICK HERO
+  // ============================================================
+
+  Future<void> _pickHeroImage() async {
+    final result =
+        await FilePicker.platform.pickFiles(
+      type:
+          FileType.image,
+      allowMultiple:
+          false,
+    );
+
+    if (result ==
+            null ||
+        result.files.isEmpty) {
+      return;
+    }
+
+    final file =
+        result.files.first;
+
+    if (file.size >
+        2 *
+            1024 *
+            1024) {
+      _showMessage(
+        'Hero image must be less than 2 MB.',
+        isError:
+            true,
+      );
+
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      heroImageController.text =
+          file.path ??
+              file.name;
+    });
+  }
+
+  // ============================================================
+  // PICK ATTACHMENT
+  // ============================================================
+
+  Future<void> _pickAttachmentFile() async {
+    final result =
+        await FilePicker.platform.pickFiles(
+      type:
+          FileType.any,
+      allowMultiple:
+          false,
+    );
+
+    if (result ==
+            null ||
+        result.files.isEmpty) {
+      return;
+    }
+
+    final file =
+        result.files.first;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      attachmentNameController.text =
+          file.name;
+
+      attachmentUrlController.text =
+          file.path ??
+              '';
+
+      attachmentMimeController.text =
+          _getMimeType(
+        file.extension,
+      );
+
+      attachmentSizeController.text =
+          file.size.toString();
+    });
+  }
+
+  // ============================================================
+  // MIME
+  // ============================================================
+
+  String _getMimeType(
+    String? extension,
+  ) {
+    switch (extension
+        ?.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+
+      case 'png':
+        return 'image/png';
+
+      case 'gif':
+        return 'image/gif';
+
+      case 'doc':
+        return 'application/msword';
+
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+      case 'xls':
+        return 'application/vnd.ms-excel';
+
+      case 'xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  // ============================================================
+  // DATE
+  // ============================================================
+
+  Future<void> _selectDateTime() async {
+    final now =
+        DateTime.now();
+
+    final selectedDate =
+        await showDatePicker(
+      context:
+          context,
+      initialDate:
+          scheduledDateTime ??
+              now,
+      firstDate:
+          now,
+      lastDate:
+          DateTime(
+        now.year +
+            5,
+      ),
+      builder:
+          (
+        context,
+        child,
+      ) {
+        return Theme(
+          data:
+              Theme.of(context).copyWith(
+            colorScheme:
+                const ColorScheme.dark(
+              primary:
+                  gold,
+              surface:
+                  cardColor2,
+              onSurface:
+                  white,
+            ),
+          ),
+          child:
+              child!,
+        );
+      },
+    );
+
+    if (selectedDate ==
+            null ||
+        !mounted) {
+      return;
+    }
+
+    final selectedTime =
+        await showTimePicker(
+      context:
+          context,
+      initialTime:
+          scheduledDateTime !=
+                  null
+              ? TimeOfDay.fromDateTime(
+                  scheduledDateTime!,
+                )
+              : TimeOfDay.now(),
+      builder:
+          (
+        context,
+        child,
+      ) {
+        return Theme(
+          data:
+              Theme.of(context).copyWith(
+            colorScheme:
+                const ColorScheme.dark(
+              primary:
+                  gold,
+              surface:
+                  cardColor2,
+              onSurface:
+                  white,
+            ),
+          ),
+          child:
+              child!,
+        );
+      },
+    );
+
+    if (selectedTime ==
+            null ||
+        !mounted) {
+      return;
+    }
+
+    setState(() {
+      scheduledDateTime =
+          DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+    });
+  }
+
+  // ============================================================
+  // CREATE
+  // ============================================================
+
+  Future<void> _createSequence() async {
+    FocusScope.of(context)
+        .unfocus();
+
+    if (!_validateBasicStep()) {
+      setState(() {
+        currentStep =
+            0;
+      });
+
+      return;
+    }
+
+    if (contentController.text
+        .trim()
+        .isEmpty) {
+      _showMessage(
+        'Email content is required.',
+        isError:
+            true,
+      );
+
+      setState(() {
+        currentStep =
+            1;
+      });
+
+      return;
+    }
+
+    final step =
+        int.tryParse(
+      stepController.text
+          .trim(),
+    );
+
+    final gapDays =
+        int.tryParse(
+      gapDaysController.text
+          .trim(),
+    );
+
+    if (step ==
+            null ||
+        gapDays ==
+            null) {
+      return;
+    }
+
+    setState(() {
+      isLoading =
+          true;
+    });
+
+    try {
+      final result =
+          await SequenceApi.createSequence(
+        step:
+            step,
+
+        gapDays:
+            gapDays,
+
+        variant:
+            variantController.text
+                .trim(),
+
+        type:
+            selectedType,
+
+        subject:
+            subjectController.text
+                .trim(),
+
+        logoUrl:
+            logoController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : logoController.text
+                    .trim(),
+
+        logoPosition:
+            selectedLogoPosition,
+
+        heroImageUrl:
+            heroImageController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : heroImageController.text
+                    .trim(),
+
+        heroImageLink:
+            heroLinkController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : heroLinkController.text
+                    .trim(),
+
+        content:
+            contentController.text,
+
+        font:
+            selectedFont,
+
+        fontSize:
+            selectedFontSize,
+
+        textColor:
+            selectedTextColor,
+
+        bold:
+            isBold,
+
+        italic:
+            isItalic,
+
+        underline:
+            isUnderline,
+
+        attachmentName:
+            attachmentNameController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : attachmentNameController.text
+                    .trim(),
+
+        attachmentUrl:
+            attachmentUrlController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : attachmentUrlController.text
+                    .trim(),
+
+        attachmentMimeType:
+            attachmentMimeController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : attachmentMimeController.text
+                    .trim(),
+
+        attachmentSize:
+            int.tryParse(
+                  attachmentSizeController.text
+                      .trim(),
+                ) ??
+                0,
+
+        whatsapp:
+            whatsappController.text
+                    .trim()
+                    .isEmpty
+                ? null
+                : whatsappController.text
+                    .trim(),
+
+        trackingEnabled:
+            trackingEnabled,
+
+        status:
+            selectedStatus,
+
+        scheduledAt:
+            scheduledDateTime
+                ?.toIso8601String(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (result['success'] ==
+          true) {
+        _showMessage(
+          result['message']
+                  ?.toString() ??
+              'Sequence created successfully.',
+        );
+
+        await Future.delayed(
+          const Duration(
+            milliseconds:
+                450,
+          ),
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        Navigator.pop(
+          context,
+          true,
+        );
+      } else {
+        _showMessage(
+          result['message']
+                  ?.toString() ??
+              'Unable to create sequence.',
+          isError:
+              true,
+        );
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(
+        'Something went wrong: $e',
+        isError:
+            true,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading =
+              false;
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // EDITOR COLOR
+  // ============================================================
+
+  Color _selectedEditorColor() {
     switch (selectedTextColor) {
       case 'White':
         return Colors.white;
 
       case 'Gray':
-        return const Color(0xFF667085);
+        return const Color(
+          0xFF9CA3AF,
+        );
+
+      case 'Red':
+        return Colors.redAccent;
+
+      case 'Blue':
+        return Colors.blueAccent;
+
+      case 'Green':
+        return Colors.greenAccent;
+
+      case 'Gold':
+        return gold;
+
+      case 'Black':
+      default:
+        // Editor is dark, so black text would disappear.
+        return Colors.white;
+    }
+  }
+
+  // ============================================================
+  // PREVIEW COLOR
+  // ============================================================
+
+  Color _previewTextColor() {
+    switch (selectedTextColor) {
+      case 'White':
+        return const Color(
+          0xFF111827,
+        );
+
+      case 'Gray':
+        return const Color(
+          0xFF667085,
+        );
 
       case 'Red':
         return Colors.red;
@@ -2310,10 +5357,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         return Colors.blue;
 
       case 'Green':
-        return Colors.green;
+        return const Color(
+          0xFF188847,
+        );
 
       case 'Gold':
-        return const Color(0xFFD4AF37);
+        return const Color(
+          0xFFB8860B,
+        );
 
       case 'Black':
       default:
@@ -2322,10 +5373,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // FONT SIZE
+  // EDITOR SIZE
   // ============================================================
 
-  double _getFontSize() {
+  double _selectedEditorSize() {
     switch (selectedFontSize) {
       case '12px':
         return 12;
@@ -2357,427 +5408,118 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // LOGO PICKER
+  // PREVIEW SIZE
   // ============================================================
 
-  Future<void> _pickLogoFile() async {
-    final result =
-        await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
+  double _previewFontSize() {
+    final size =
+        _selectedEditorSize();
 
-    if (result == null ||
-        result.files.isEmpty) {
-      return;
+    if (size >=
+        24) {
+      return 14;
     }
 
-    final file = result.files.first;
+    if (size >=
+        18) {
+      return 13;
+    }
 
-    if (!mounted) return;
-
-    setState(() {
-      logoController.text =
-          file.path ?? file.name;
-    });
+    return 12;
   }
 
   // ============================================================
-  // HERO PICKER
+  // LOGO ALIGNMENT
   // ============================================================
 
-  Future<void> _pickHeroImage() async {
-    final result =
-        await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
+  Alignment _logoAlignment() {
+    switch (selectedLogoPosition) {
+      case 'Left':
+        return Alignment.centerLeft;
 
-    if (result == null ||
-        result.files.isEmpty) {
-      return;
+      case 'Right':
+        return Alignment.centerRight;
+
+      case 'Center':
+      default:
+        return Alignment.center;
     }
-
-    final file = result.files.first;
-
-    if (!mounted) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      _showMessage(
-        'Hero image must be less than 2 MB.',
-        isError: true,
-      );
-      return;
-    }
-
-    setState(() {
-      heroImageController.text =
-          file.path ?? file.name;
-    });
   }
 
   // ============================================================
-  // ATTACHMENT PICKER
+  // STATUS
   // ============================================================
 
-  Future<void> _pickAttachmentFile() async {
-    final result =
-        await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: false,
-    );
+  Color _statusColor() {
+    switch (selectedStatus) {
+      case 'active':
+        return green;
 
-    if (result == null ||
-        result.files.isEmpty) {
-      return;
-    }
+      case 'scheduled':
+        return gold;
 
-    final file = result.files.first;
-
-    if (!mounted) return;
-
-    final String mimeType =
-        _getMimeType(file.extension);
-
-    setState(() {
-      attachmentNameController.text =
-          file.name;
-
-      attachmentUrlController.text =
-          file.path ?? '';
-
-      attachmentMimeController.text =
-          mimeType;
-
-      attachmentSizeController.text =
-          file.size.toString();
-    });
-  }
-
-  String _getMimeType(String? extension) {
-    switch (extension?.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-
-      case 'png':
-        return 'image/png';
-
-      case 'gif':
-        return 'image/gif';
-
-      case 'doc':
-        return 'application/msword';
-
-      case 'docx':
-        return
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-      case 'xls':
-        return 'application/vnd.ms-excel';
-
-      case 'xlsx':
-        return
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case 'paused':
+        return Colors.orangeAccent;
 
       default:
-        return 'application/octet-stream';
+        return secondaryTextColor;
     }
   }
 
   // ============================================================
-  // DATE TIME
+  // CAPITALIZE
   // ============================================================
 
-  Future<void> _selectDateTime() async {
-    final now = DateTime.now();
-
-    final selectedDate =
-        await showDatePicker(
-      context: context,
-      initialDate:
-          scheduledDateTime ?? now,
-      firstDate: now,
-      lastDate: DateTime(
-        now.year + 5,
-      ),
-    );
-
-    if (selectedDate == null ||
-        !mounted) {
-      return;
+  String _capitalize(
+    String value,
+  ) {
+    if (value.isEmpty) {
+      return value;
     }
 
-    final selectedTime =
-        await showTimePicker(
-      context: context,
-      initialTime:
-          scheduledDateTime != null
-              ? TimeOfDay.fromDateTime(
-                  scheduledDateTime!,
-                )
-              : TimeOfDay.now(),
-    );
-
-    if (selectedTime == null ||
-        !mounted) {
-      return;
-    }
-
-    setState(() {
-      scheduledDateTime = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      );
-    });
+    return '${value[0].toUpperCase()}${value.substring(1)}';
   }
+
+  // ============================================================
+  // FORMAT DATE
+  // ============================================================
 
   String _formatDateTime(
-      DateTime dateTime) {
+    DateTime dateTime,
+  ) {
     final day =
-        dateTime.day.toString().padLeft(
+        dateTime.day
+            .toString()
+            .padLeft(
               2,
               '0',
             );
 
     final month =
-        dateTime.month.toString().padLeft(
+        dateTime.month
+            .toString()
+            .padLeft(
               2,
               '0',
             );
 
     final hour =
-        dateTime.hour.toString().padLeft(
+        dateTime.hour
+            .toString()
+            .padLeft(
               2,
               '0',
             );
 
     final minute =
-        dateTime.minute.toString().padLeft(
+        dateTime.minute
+            .toString()
+            .padLeft(
               2,
               '0',
             );
 
-    return '$day/$month/${dateTime.year} '
-        '$hour:$minute';
-  }
-
-  // ============================================================
-  // CREATE SEQUENCE
-  // ============================================================
-
-  Future<void> _createSequence() async {
-    FocusScope.of(context).unfocus();
-
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final step =
-        int.tryParse(
-      stepController.text.trim(),
-    );
-
-    final gapDays =
-        int.tryParse(
-      gapDaysController.text.trim(),
-    );
-
-    if (step == null ||
-        gapDays == null) {
-      _showMessage(
-        'Please enter valid step and gap days.',
-        isError: true,
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final result =
-          await SequenceApi.createSequence(
-        step: step,
-        gapDays: gapDays,
-        variant:
-            variantController.text.trim(),
-        type: selectedType,
-        subject:
-            subjectController.text.trim(),
-
-        logoUrl:
-            logoController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : logoController.text.trim(),
-
-        logoPosition:
-            selectedLogoPosition,
-
-        heroImageUrl:
-            heroImageController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : heroImageController.text
-                    .trim(),
-
-        heroImageLink:
-            heroLinkController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : heroLinkController.text
-                    .trim(),
-
-        content:
-            contentController.text,
-
-        font: selectedFont,
-
-        fontSize:
-            selectedFontSize,
-
-        textColor:
-            selectedTextColor,
-
-        bold: isBold,
-
-        italic: isItalic,
-
-        underline: isUnderline,
-
-        attachmentName:
-            attachmentNameController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : attachmentNameController.text
-                    .trim(),
-
-        attachmentUrl:
-            attachmentUrlController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : attachmentUrlController.text
-                    .trim(),
-
-        attachmentMimeType:
-            attachmentMimeController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : attachmentMimeController.text
-                    .trim(),
-
-        attachmentSize:
-            int.tryParse(
-              attachmentSizeController.text
-                  .trim(),
-            ) ??
-            0,
-
-        whatsapp:
-            whatsappController.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : whatsappController.text
-                    .trim(),
-
-        trackingEnabled:
-            trackingEnabled,
-
-        status:
-            selectedStatus,
-
-        scheduledAt:
-            scheduledDateTime
-                ?.toIso8601String(),
-      );
-
-      if (!mounted) return;
-
-      if (result['success'] == true) {
-        _showMessage(
-          result['message'] ??
-              'Sequence created successfully.',
-        );
-
-        await Future.delayed(
-          const Duration(
-            milliseconds: 500,
-          ),
-        );
-
-        if (!mounted) return;
-
-        Navigator.pop(
-          context,
-          result,
-        );
-      } else {
-        if (result['sessionExpired'] ==
-            true) {
-          _showMessage(
-            'Session expired. Please login again.',
-            isError: true,
-          );
-          return;
-        }
-
-        _showMessage(
-          result['message'] ??
-              'Unable to create sequence.',
-          isError: true,
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      _showMessage(
-        'Something went wrong: $e',
-        isError: true,
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  // ============================================================
-  // SAVE DRAFT
-  // ============================================================
-
-  Future<void> _saveDraft() async {
-    setState(() {
-      selectedStatus = 'draft';
-    });
-
-    await _createSequence();
-  }
-
-  // ============================================================
-  // CANCEL
-  // ============================================================
-
-  void _cancel() {
-    if (isLoading) return;
-
-    Navigator.pop(context);
+    return '$day/$month/${dateTime.year} $hour:$minute';
   }
 
   // ============================================================
@@ -2788,7 +5530,9 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     String message, {
     bool isError = false,
   }) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
@@ -2796,67 +5540,34 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor:
-            isError
-                ? Colors.red
-                : Colors.green,
+        content:
+            Text(
+          message,
+          style:
+              const TextStyle(
+            color:
+                white,
+            fontSize:
+                11.5,
+          ),
+        ),
         behavior:
             SnackBarBehavior.floating,
-      ),
-    );
-  }
-}
-
-// ================================================================
-// RECOMMENDATION ROW
-// ================================================================
-
-class _RecommendationRow
-    extends StatelessWidget {
-  const _RecommendationRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          const EdgeInsets.only(bottom: 5),
-      child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '📌 ',
-            style: TextStyle(
-              fontSize: 12,
-            ),
+        backgroundColor:
+            isError
+                ? const Color(
+                    0xFF38171C,
+                  )
+                : const Color(
+                    0xFF12301F,
+                  ),
+        shape:
+            RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(
+            11,
           ),
-
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              color: Color(0xFF344054),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF667085),
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

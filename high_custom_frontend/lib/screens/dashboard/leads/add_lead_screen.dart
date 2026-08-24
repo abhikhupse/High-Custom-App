@@ -5,7 +5,6 @@ import '../../../services/sequence_api.dart';
 
 // ============================================================
 // ADD LEAD SCREEN
-// Theme matched with LeadsScreen
 // ============================================================
 
 class AddLeadScreen extends StatefulWidget {
@@ -20,27 +19,21 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // COLORS
   // ============================================================
 
-  static const Color pageBackground = Color(0xFFF4F6FA);
+  static const Color pageBackground = Color(0xFF090A0C);
+  static const Color surface = Color(0xFF111216);
+  static const Color surface2 = Color(0xFF15171B);
+  static const Color inputColor = Color(0xFF0D0F14);
 
-  static const Color panelColor = Color(0xFF5B5E66);
+  static const Color borderColor = Color(0xFF2D3037);
 
-  static const Color tableColor = Color(0xFF0D101B);
-
-  static const Color inputColor = Color(0xFF0D101B);
-
-  static const Color gold = Color(0xFFF2C45F);
-
-  static const Color goldDark = Color(0xFFD9A93F);
+  static const Color gold = Color(0xFFF4C451);
+  static const Color goldStrong = Color(0xFFFFC94F);
+  static const Color goldDark = Color(0xFF987425);
 
   static const Color white = Color(0xFFFFFFFF);
-
-  static const Color lightText = Color(0xFFE8EAF0);
-
-  static const Color mutedText = Color(0xFF9CA3AF);
-
-  static const Color border = Color(0xFF777A82);
-
-  static const Color blue = Color(0xFF315BEF);
+  static const Color lightText = Color(0xFFECECEF);
+  static const Color mutedText = Color(0xFF9699A2);
+  static const Color hintText = Color(0xFF737784);
 
   // ============================================================
   // CONTROLLERS
@@ -63,7 +56,6 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // ============================================================
 
   bool isSaving = false;
-
   bool trackingEnabled = true;
 
   String selectedType = 'Email';
@@ -90,27 +82,61 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: pageBackground,
-
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) {
-            final bool isMobile =
-                constraints.maxWidth < 850;
+          builder: (
+            context,
+            constraints,
+          ) {
+            final isMobile =
+                constraints.maxWidth < 700;
 
             return SingleChildScrollView(
+              physics:
+                  const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
-                isMobile ? 14 : 28,
-                isMobile ? 18 : 28,
-                isMobile ? 14 : 28,
-                35,
+                isMobile ? 16 : 28,
+                isMobile ? 16 : 28,
+                isMobile ? 16 : 28,
+                32,
               ),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 900,
+                  constraints:
+                      const BoxConstraints(
+                    maxWidth: 720,
                   ),
-                  child: _buildPageContent(
-                    isMobile,
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .stretch,
+                    children: [
+                      _buildTopBar(
+                        isMobile,
+                      ),
+
+                      SizedBox(
+                        height:
+                            isMobile
+                                ? 20
+                                : 24,
+                      ),
+
+                      _buildHeader(
+                        isMobile,
+                      ),
+
+                      SizedBox(
+                        height:
+                            isMobile
+                                ? 22
+                                : 26,
+                      ),
+
+                      _buildFormCard(
+                        isMobile,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -122,177 +148,353 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   }
 
   // ============================================================
-  // PAGE CONTENT
+  // TOP BAR
   // ============================================================
 
-  Widget _buildPageContent(bool isMobile) {
-    return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.stretch,
+  Widget _buildTopBar(
+    bool isMobile,
+  ) {
+    return Row(
       children: [
-        _buildTopHeader(isMobile),
+        InkWell(
+          onTap:
+              isSaving
+                  ? null
+                  : () {
+                      Navigator.pop(
+                        context,
+                      );
+                    },
+          borderRadius:
+              BorderRadius.circular(
+            12,
+          ),
+          child: Container(
+            width:
+                isMobile ? 46 : 50,
+            height:
+                isMobile ? 46 : 50,
+            decoration:
+                BoxDecoration(
+              color: surface,
+              borderRadius:
+                  BorderRadius.circular(
+                12,
+              ),
+              border:
+                  Border.all(
+                color: borderColor,
+              ),
+            ),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              color: lightText,
+              size: 23,
+            ),
+          ),
+        ),
 
-        const SizedBox(height: 16),
+        const Spacer(),
 
-        _buildFormPanel(isMobile),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 11,
+            vertical: 7,
+          ),
+          decoration:
+              BoxDecoration(
+            color:
+                gold.withOpacity(
+              0.08,
+            ),
+            borderRadius:
+                BorderRadius.circular(
+              20,
+            ),
+            border:
+                Border.all(
+              color:
+                  gold.withOpacity(
+                0.20,
+              ),
+            ),
+          ),
+          child: const Row(
+            mainAxisSize:
+                MainAxisSize.min,
+            children: [
+              Icon(
+                Icons
+                    .person_add_alt_1_rounded,
+                color: gold,
+                size: 16,
+              ),
+              SizedBox(
+                width: 6,
+              ),
+              Text(
+                'New Lead',
+                style:
+                    TextStyle(
+                  color: gold,
+                  fontSize: 11,
+                  fontWeight:
+                      FontWeight
+                          .w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   // ============================================================
-  // TOP HEADER
+  // HEADER
   // ============================================================
 
-  Widget _buildTopHeader(bool isMobile) {
-    return Container(
-      width: double.infinity,
-
-      padding: EdgeInsets.all(
-        isMobile ? 16 : 18,
-      ),
-
-      decoration: BoxDecoration(
-        color: panelColor,
-
-        borderRadius:
-            BorderRadius.circular(22),
-
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 9),
-          ),
-        ],
-      ),
-
-      child: Row(
-        children: [
-          // GOLD ACCENT LINE
-          Container(
-            width: 4,
-            height: 42,
-            decoration: BoxDecoration(
-              color: gold,
-              borderRadius:
-                  BorderRadius.circular(4),
+  Widget _buildHeader(
+    bool isMobile,
+  ) {
+    return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 4,
+          height: 58,
+          decoration:
+              BoxDecoration(
+            color: gold,
+            borderRadius:
+                BorderRadius.circular(
+              8,
             ),
           ),
+        ),
 
-          const SizedBox(width: 12),
+        const SizedBox(
+          width: 14,
+        ),
 
-          // ICON
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: gold.withOpacity(0.12),
-              borderRadius:
-                  BorderRadius.circular(11),
+        Container(
+          width:
+              isMobile ? 54 : 60,
+          height:
+              isMobile ? 54 : 60,
+          decoration:
+              BoxDecoration(
+            color:
+                gold.withOpacity(
+              0.10,
             ),
-            child: const Icon(
-              Icons.person_add_outlined,
-              color: gold,
-              size: 21,
+            borderRadius:
+                BorderRadius.circular(
+              15,
             ),
           ),
+          child: const Icon(
+            Icons.person_add_alt_1_outlined,
+            color: gold,
+            size: 28,
+          ),
+        ),
 
-          const SizedBox(width: 11),
+        const SizedBox(
+          width: 14,
+        ),
 
-          // TITLE
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Add New Lead',
-                  style: TextStyle(
-                    color: lightText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add New Lead',
+                style:
+                    TextStyle(
+                  color: white,
+                  fontSize:
+                      isMobile
+                          ? 24
+                          : 28,
+                  fontWeight:
+                      FontWeight.w800,
+                  letterSpacing: -0.3,
                 ),
+              ),
 
-                const SizedBox(height: 3),
+              const SizedBox(
+                height: 5,
+              ),
 
-                Text(
-                  'Add a new lead to your database',
-                  style: TextStyle(
-                    color: mutedText,
-                    fontSize:
-                        isMobile ? 11 : 12,
-                  ),
+              Text(
+                'Add a new lead to your database',
+                style:
+                    TextStyle(
+                  color: mutedText,
+                  fontSize:
+                      isMobile
+                          ? 12.5
+                          : 14,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          // CLOSE BUTTON
-          IconButton(
-            tooltip: 'Close',
-
-            onPressed: isSaving
-                ? null
-                : () {
-                    Navigator.pop(context);
-                  },
-
-            icon: const Icon(
-              Icons.close,
-              color: lightText,
-              size: 20,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   // ============================================================
-  // FORM PANEL
+  // FORM CARD
   // ============================================================
 
-  Widget _buildFormPanel(bool isMobile) {
+  Widget _buildFormCard(
+    bool isMobile,
+  ) {
     return Container(
-      width: double.infinity,
-
       padding: EdgeInsets.all(
-        isMobile ? 15 : 18,
+        isMobile ? 16 : 22,
       ),
-
-      decoration: BoxDecoration(
-        color: panelColor,
-
+      decoration:
+          BoxDecoration(
+        color: surface,
         borderRadius:
-            BorderRadius.circular(22),
-
+            BorderRadius.circular(
+          18,
+        ),
+        border: Border.all(
+          color: borderColor,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 9),
+            color:
+                Colors.black.withOpacity(
+              0.18,
+            ),
+            blurRadius: 20,
+            offset:
+                const Offset(
+              0,
+              8,
+            ),
           ),
         ],
       ),
-
       child: Column(
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 18,
+          ),
 
-          _buildFormFields(isMobile),
+          _buildInput(
+            controller:
+                emailController,
+            hint: 'Email ID',
+            icon:
+                Icons.email_outlined,
+            keyboardType:
+                TextInputType.emailAddress,
+          ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 12,
+          ),
 
-          _buildTrackingSwitch(),
+          if (isMobile) ...[
+            _buildInput(
+              controller:
+                  firstNameController,
+              hint:
+                  'First Name',
+              icon:
+                  Icons.person_outline,
+            ),
 
-          const SizedBox(height: 18),
+            const SizedBox(
+              height: 12,
+            ),
 
-          _buildActions(isMobile),
+            _buildInput(
+              controller:
+                  lastNameController,
+              hint:
+                  'Last Name',
+              icon:
+                  Icons.person_outline,
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child:
+                      _buildInput(
+                    controller:
+                        firstNameController,
+                    hint:
+                        'First Name',
+                    icon:
+                        Icons.person_outline,
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 12,
+                ),
+
+                Expanded(
+                  child:
+                      _buildInput(
+                    controller:
+                        lastNameController,
+                    hint:
+                        'Last Name',
+                    icon:
+                        Icons.person_outline,
+                  ),
+                ),
+              ],
+            ),
+
+          const SizedBox(
+            height: 12,
+          ),
+
+          _buildInput(
+            controller:
+                companyController,
+            hint:
+                'Company Name',
+            icon:
+                Icons.business_outlined,
+          ),
+
+          const SizedBox(
+            height: 12,
+          ),
+
+          _buildTypeDropdown(),
+
+          const SizedBox(
+            height: 14,
+          ),
+
+          _buildTrackingCard(),
+
+          const SizedBox(
+            height: 18,
+          ),
+
+          _buildActions(
+            isMobile,
+          ),
         ],
       ),
     );
@@ -307,23 +509,30 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       children: [
         Container(
           width: 4,
-          height: 18,
-          decoration: BoxDecoration(
+          height: 26,
+          decoration:
+              BoxDecoration(
             color: gold,
             borderRadius:
-                BorderRadius.circular(4),
+                BorderRadius.circular(
+              8,
+            ),
           ),
         ),
 
-        const SizedBox(width: 10),
-
-        const Icon(
-          Icons.auto_awesome,
-          color: gold,
-          size: 18,
+        const SizedBox(
+          width: 10,
         ),
 
-        const SizedBox(width: 7),
+        const Icon(
+          Icons.auto_awesome_rounded,
+          color: gold,
+          size: 20,
+        ),
+
+        const SizedBox(
+          width: 8,
+        ),
 
         const Expanded(
           child: Column(
@@ -332,18 +541,24 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
             children: [
               Text(
                 'Lead Information',
-                style: TextStyle(
-                  color: lightText,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                style:
+                    TextStyle(
+                  color: white,
+                  fontSize: 16,
+                  fontWeight:
+                      FontWeight
+                          .w700,
                 ),
               ),
 
-              SizedBox(height: 3),
+              SizedBox(
+                height: 3,
+              ),
 
               Text(
-                'Enter the details of the new lead.',
-                style: TextStyle(
+                'Enter the lead details below',
+                style:
+                    TextStyle(
                   color: mutedText,
                   fontSize: 11,
                 ),
@@ -356,182 +571,87 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   }
 
   // ============================================================
-  // FORM FIELDS
+  // INPUT
   // ============================================================
 
-  Widget _buildFormFields(bool isMobile) {
-    return Column(
-      children: [
-        // EMAIL
-        _darkInput(
-          controller: emailController,
-          hint: 'Email ID *',
-          icon: Icons.email_outlined,
-          keyboardType:
-              TextInputType.emailAddress,
-        ),
-
-        const SizedBox(height: 10),
-
-        // NAME
-        if (isMobile)
-          Column(
-            children: [
-              _darkInput(
-                controller:
-                    firstNameController,
-                hint: 'First Name *',
-                icon: Icons.person_outline,
-              ),
-
-              const SizedBox(height: 10),
-
-              _darkInput(
-                controller:
-                    lastNameController,
-                hint: 'Last Name *',
-                icon: Icons.person_outline,
-              ),
-            ],
-          )
-        else
-          Row(
-            children: [
-              Expanded(
-                child: _darkInput(
-                  controller:
-                      firstNameController,
-                  hint: 'First Name *',
-                  icon: Icons.person_outline,
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: _darkInput(
-                  controller:
-                      lastNameController,
-                  hint: 'Last Name *',
-                  icon: Icons.person_outline,
-                ),
-              ),
-            ],
-          ),
-
-        const SizedBox(height: 10),
-
-        // COMPANY
-        _darkInput(
-          controller: companyController,
-          hint: 'Company Name *',
-          icon: Icons.business_outlined,
-        ),
-
-        const SizedBox(height: 10),
-
-        // BUSINESS TYPE
-        _darkDropdown(
-          value: selectedType,
-          items: const [
-            'Email',
-            'WhatsApp',
-          ],
-          hint: 'Select Business Type',
-          onChanged: isSaving
-              ? null
-              : (String? value) {
-                  if (value == null) {
-                    return;
-                  }
-
-                  setState(() {
-                    selectedType = value;
-                  });
-                },
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // DARK INPUT
-  // ============================================================
-
-  Widget _darkInput({
-    required TextEditingController controller,
+  Widget _buildInput({
+    required TextEditingController
+        controller,
     required String hint,
     required IconData icon,
     TextInputType? keyboardType,
   }) {
     return SizedBox(
-      height: 44,
-
+      height: 56,
       child: TextField(
         controller: controller,
-
-        keyboardType: keyboardType,
-
         enabled: !isSaving,
-
-        style: const TextStyle(
-          color: white,
-          fontSize: 12,
-        ),
-
+        keyboardType:
+            keyboardType,
         cursorColor: gold,
-
-        decoration: InputDecoration(
+        style:
+            const TextStyle(
+          color: white,
+          fontSize: 14,
+          fontWeight:
+              FontWeight.w500,
+        ),
+        decoration:
+            InputDecoration(
           hintText: hint,
-
-          hintStyle: const TextStyle(
-            color: Color(0xFF73798B),
-            fontSize: 12,
+          hintStyle:
+              const TextStyle(
+            color: hintText,
+            fontSize: 13,
           ),
-
-          prefixIcon: Icon(
+          prefixIcon:
+              Icon(
             icon,
-            color: const Color(0xFF666D7F),
-            size: 17,
+            color:
+                gold.withOpacity(
+              0.9,
+            ),
+            size: 20,
           ),
-
           filled: true,
-
           fillColor: inputColor,
-
           contentPadding:
               const EdgeInsets.symmetric(
-            horizontal: 10,
+            vertical: 17,
           ),
-
-          border: OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-
           enabledBorder:
               OutlineInputBorder(
             borderRadius:
-                BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+                BorderRadius.circular(
+              12,
+            ),
+            borderSide:
+                const BorderSide(
+              color: borderColor,
+            ),
           ),
-
           focusedBorder:
               OutlineInputBorder(
             borderRadius:
-                BorderRadius.circular(12),
-            borderSide: const BorderSide(
+                BorderRadius.circular(
+              12,
+            ),
+            borderSide:
+                const BorderSide(
               color: gold,
               width: 1,
             ),
           ),
-
           disabledBorder:
               OutlineInputBorder(
             borderRadius:
-                BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+                BorderRadius.circular(
+              12,
+            ),
+            borderSide:
+                const BorderSide(
+              color: borderColor,
+            ),
           ),
         ),
       ),
@@ -539,249 +659,265 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   }
 
   // ============================================================
-  // DARK DROPDOWN
-  //
-  // IMPORTANT:
-  // ValueChanged<String?>? fixes the Flutter error where
-  // a nullable callback was being passed to DropdownButton.
+  // TYPE DROPDOWN
   // ============================================================
 
-  Widget _darkDropdown({
-    required String value,
-    required List<String> items,
-    required String hint,
-    required ValueChanged<String?>? onChanged,
-  }) {
+  Widget _buildTypeDropdown() {
     return Container(
-      height: 44,
-
+      height: 56,
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 12,
+        horizontal: 14,
       ),
-
-      decoration: BoxDecoration(
+      decoration:
+          BoxDecoration(
         color: inputColor,
-
         borderRadius:
-            BorderRadius.circular(12),
-      ),
-
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-
-          isExpanded: true,
-
-          dropdownColor: tableColor,
-
-          icon: const Icon(
-            Icons.keyboard_arrow_down,
-            color: mutedText,
-            size: 18,
-          ),
-
-          style: const TextStyle(
-            color: white,
-            fontSize: 12,
-          ),
-
-          borderRadius:
-              BorderRadius.circular(12),
-
-          items: items.map(
-            (item) {
-              final bool isWhatsApp =
-                  item.toLowerCase() ==
-                      'whatsapp';
-
-              return DropdownMenuItem<String>(
-                value: item,
-
-                child: Row(
-                  children: [
-                    Icon(
-                      isWhatsApp
-                          ? Icons.chat_outlined
-                          : Icons.email_outlined,
-
-                      color: isWhatsApp
-                          ? const Color(
-                              0xFF65E49C,
-                            )
-                          : const Color(
-                              0xFF9AAEFF,
-                            ),
-
-                      size: 15,
-                    ),
-
-                    const SizedBox(width: 8),
-
-                    Text(item),
-                  ],
-                ),
-              );
-            },
-          ).toList(),
-
-          onChanged: onChanged,
+            BorderRadius.circular(
+          12,
         ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // TRACKING
-  // ============================================================
-
-  Widget _buildTrackingSwitch() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF161A27),
-
-        borderRadius:
-            BorderRadius.circular(12),
-
         border: Border.all(
-          color: const Color(0xFF292E3D),
+          color: borderColor,
         ),
       ),
-
-      child: SwitchListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 3,
-        ),
-
-        title: const Text(
-          'Enable Tracking',
-          style: TextStyle(
-            color: white,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-
-        subtitle: const Text(
-          'Track email opens and clicks',
-          style: TextStyle(
+      child:
+          DropdownButtonHideUnderline(
+        child:
+            DropdownButton<String>(
+          value: selectedType,
+          isExpanded: true,
+          dropdownColor: surface2,
+          icon:
+              const Icon(
+            Icons
+                .keyboard_arrow_down_rounded,
             color: mutedText,
-            fontSize: 11,
           ),
+          style:
+              const TextStyle(
+            color: lightText,
+            fontSize: 13,
+            fontWeight:
+                FontWeight.w500,
+          ),
+          items:
+              const [
+            DropdownMenuItem(
+              value: 'Email',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.email_outlined,
+                    color: gold,
+                    size: 19,
+                  ),
+                  SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    'Email',
+                  ),
+                ],
+              ),
+            ),
+            DropdownMenuItem(
+              value:
+                  'WhatsApp',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons
+                        .chat_bubble_outline_rounded,
+                    color:
+                        Color(
+                      0xFF53CF7B,
+                    ),
+                    size: 19,
+                  ),
+                  SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    'WhatsApp',
+                  ),
+                ],
+              ),
+            ),
+          ],
+          onChanged:
+              isSaving
+                  ? null
+                  : (
+                      value,
+                    ) {
+                      if (value ==
+                          null) {
+                        return;
+                      }
+
+                      setState(() {
+                        selectedType =
+                            value;
+                      });
+                    },
         ),
-
-        value: trackingEnabled,
-
-        activeColor: gold,
-
-        activeTrackColor:
-            goldDark.withOpacity(0.55),
-
-        inactiveThumbColor:
-            Color(0xFF777A82),
-
-        inactiveTrackColor:
-            Color(0xFF292E3D),
-
-        onChanged: isSaving
-            ? null
-            : (value) {
-                setState(() {
-                  trackingEnabled =
-                      value;
-                });
-              },
       ),
     );
   }
 
   // ============================================================
-  // ACTION BUTTONS
+  // TRACKING CARD
   // ============================================================
 
-  Widget _buildActions(bool isMobile) {
+  Widget _buildTrackingCard() {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 12,
+      ),
+      decoration:
+          BoxDecoration(
+        color: inputColor,
+        borderRadius:
+            BorderRadius.circular(
+          12,
+        ),
+        border: Border.all(
+          color: borderColor,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration:
+                BoxDecoration(
+              color:
+                  gold.withOpacity(
+                0.10,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                11,
+              ),
+            ),
+            child: const Icon(
+              Icons
+                  .track_changes_rounded,
+              color: gold,
+              size: 20,
+            ),
+          ),
+
+          const SizedBox(
+            width: 12,
+          ),
+
+          const Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Enable Tracking',
+                  style:
+                      TextStyle(
+                    color: white,
+                    fontSize: 14,
+                    fontWeight:
+                        FontWeight.w600,
+                  ),
+                ),
+
+                SizedBox(
+                  height: 3,
+                ),
+
+                Text(
+                  'Track email opens and clicks',
+                  style:
+                      TextStyle(
+                    color: mutedText,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Switch(
+            value: trackingEnabled,
+            activeColor: gold,
+            activeTrackColor:
+                goldDark,
+            inactiveThumbColor:
+                mutedText,
+            inactiveTrackColor:
+                const Color(
+              0xFF292C33,
+            ),
+            onChanged:
+                isSaving
+                    ? null
+                    : (
+                        value,
+                      ) {
+                        setState(
+                          () {
+                            trackingEnabled =
+                                value;
+                          },
+                        );
+                      },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ACTIONS
+  // ============================================================
+
+  Widget _buildActions(
+    bool isMobile,
+  ) {
     if (isMobile) {
       return Column(
         crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+            CrossAxisAlignment
+                .stretch,
         children: [
-          _darkBackButton(),
+          _buildSaveButton(),
 
-          const SizedBox(height: 10),
-
-          _goldSaveButton(
-            expanded: true,
+          const SizedBox(
+            height: 10,
           ),
+
+          _buildCancelButton(),
         ],
       );
     }
 
     return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.end,
       children: [
-        _darkBackButton(),
+        Expanded(
+          child:
+              _buildCancelButton(),
+        ),
 
-        const SizedBox(width: 10),
+        const SizedBox(
+          width: 12,
+        ),
 
-        _goldSaveButton(),
+        Expanded(
+          flex: 2,
+          child:
+              _buildSaveButton(),
+        ),
       ],
-    );
-  }
-
-  // ============================================================
-  // CANCEL BUTTON
-  // ============================================================
-
-  Widget _darkBackButton() {
-    return SizedBox(
-      height: 44,
-
-      child: OutlinedButton.icon(
-        onPressed: isSaving
-            ? null
-            : () {
-                Navigator.pop(context);
-              },
-
-        icon: const Icon(
-          Icons.arrow_back,
-          size: 16,
-        ),
-
-        label: const Text(
-          'Cancel',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-
-        style:
-            OutlinedButton.styleFrom(
-          foregroundColor: lightText,
-
-          side: const BorderSide(
-            color: Color(0xFF858890),
-          ),
-
-          backgroundColor:
-              Colors.transparent,
-
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 16,
-          ),
-
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(12),
-          ),
-        ),
-      ),
     );
   }
 
@@ -789,67 +925,119 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // SAVE BUTTON
   // ============================================================
 
-  Widget _goldSaveButton({
-    bool expanded = false,
-  }) {
+  Widget _buildSaveButton() {
     return SizedBox(
-      height: 44,
-
-      width: expanded
-          ? double.infinity
-          : null,
-
-      child: ElevatedButton.icon(
-        onPressed: isSaving
-            ? null
-            : _saveLead,
-
-        icon: isSaving
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child:
-                    CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Color(0xFF2D2610),
-                ),
-              )
-            : const Icon(
-                Icons.save_outlined,
-                size: 17,
-              ),
-
-        label: Text(
+      height: 52,
+      child:
+          ElevatedButton.icon(
+        onPressed:
+            isSaving
+                ? null
+                : _saveLead,
+        icon:
+            isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child:
+                        CircularProgressIndicator(
+                      strokeWidth:
+                          2,
+                      color:
+                          Color(
+                        0xFF171208,
+                      ),
+                    ),
+                  )
+                : const Icon(
+                    Icons
+                        .save_outlined,
+                    size: 19,
+                  ),
+        label:
+            Text(
           isSaving
               ? 'Saving...'
               : 'Save Lead',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
+          style:
+              const TextStyle(
+            fontSize: 14,
+            fontWeight:
+                FontWeight.w800,
           ),
         ),
-
         style:
             ElevatedButton.styleFrom(
-          backgroundColor: gold,
-
+          backgroundColor:
+              goldStrong,
           foregroundColor:
-              const Color(0xFF2D2610),
-
-          disabledBackgroundColor:
-              const Color(0xFFB89B4C),
-
-          elevation: 0,
-
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 18,
+              const Color(
+            0xFF191406,
           ),
-
+          disabledBackgroundColor:
+              const Color(
+            0xFF967D3C,
+          ),
+          elevation: 0,
           shape:
               RoundedRectangleBorder(
             borderRadius:
-                BorderRadius.circular(12),
+                BorderRadius.circular(
+              12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // CANCEL BUTTON
+  // ============================================================
+
+  Widget _buildCancelButton() {
+    return SizedBox(
+      height: 50,
+      child:
+          OutlinedButton.icon(
+        onPressed:
+            isSaving
+                ? null
+                : () {
+                    Navigator.pop(
+                      context,
+                    );
+                  },
+        icon:
+            const Icon(
+          Icons
+              .arrow_back_rounded,
+          size: 18,
+        ),
+        label:
+            const Text(
+          'Cancel',
+          style:
+              TextStyle(
+            fontSize: 13,
+            fontWeight:
+                FontWeight.w600,
+          ),
+        ),
+        style:
+            OutlinedButton.styleFrom(
+          foregroundColor:
+              lightText,
+          side:
+              const BorderSide(
+            color: borderColor,
+          ),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              12,
+            ),
           ),
         ),
       ),
@@ -873,35 +1061,28 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     final String company =
         companyController.text.trim();
 
-    // ==========================================================
-    // EMAIL REQUIRED
-    // ==========================================================
-
     if (email.isEmpty) {
       _showMessage(
         'Email is required.',
       );
+
       return;
     }
 
-    // ==========================================================
-    // EMAIL VALIDATION
-    // ==========================================================
-
-    final RegExp emailRegex = RegExp(
+    final RegExp emailRegex =
+        RegExp(
       r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
     );
 
-    if (!emailRegex.hasMatch(email)) {
+    if (!emailRegex.hasMatch(
+      email,
+    )) {
       _showMessage(
         'Please enter a valid email address.',
       );
+
       return;
     }
-
-    // ==========================================================
-    // START SAVING
-    // ==========================================================
 
     setState(() {
       isSaving = true;
@@ -922,18 +1103,17 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
         return;
       }
 
-      if (response['success'] == true) {
+      if (response['success'] ==
+          true) {
         Map<String, dynamic>?
             sequenceResponse;
 
-        // ======================================================
-        // RUN EMAIL SEQUENCE
-        // ======================================================
-
         if (trackingEnabled &&
-            selectedType == 'Email') {
+            selectedType ==
+                'Email') {
           sequenceResponse =
-              await SequenceApi.runSequence();
+              await SequenceApi
+                  .runSequence();
         }
 
         if (!mounted) {
@@ -941,8 +1121,10 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
         }
 
         final bool sequenceFailed =
-            sequenceResponse != null &&
-                sequenceResponse['success'] !=
+            sequenceResponse !=
+                    null &&
+                sequenceResponse[
+                        'success'] !=
                     true;
 
         if (sequenceFailed) {
@@ -957,13 +1139,6 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
           );
         }
 
-        // ======================================================
-        // RETURN TO LEADS SCREEN
-        //
-        // true tells LeadsScreen that a lead
-        // was successfully added.
-        // ======================================================
-
         Navigator.pop(
           context,
           true,
@@ -975,7 +1150,11 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
               'Unable to add lead.',
         );
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint(
+        'Add lead error: $error',
+      );
+
       if (mounted) {
         _showMessage(
           'Unable to add lead. Please try again.',
@@ -994,35 +1173,36 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(String message) {
+  void _showMessage(
+    String message,
+  ) {
     if (!mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+    ScaffoldMessenger.of(
+      context,
+    ).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
         ),
-
         behavior:
             SnackBarBehavior.floating,
-
         backgroundColor:
-            const Color(0xFF20242E),
-
+            const Color(
+          0xFF20242E,
+        ),
         shape:
             RoundedRectangleBorder(
           borderRadius:
-              BorderRadius.circular(10),
+              BorderRadius.circular(
+            10,
+          ),
         ),
       ),
     );

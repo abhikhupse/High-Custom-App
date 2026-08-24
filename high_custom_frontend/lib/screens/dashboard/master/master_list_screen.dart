@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'create_sequence_screen.dart';
 import '../../../services/sequence_api.dart';
 
+// ============================================================
+// MASTER / SEQUENCE LIST SCREEN
+// ============================================================
+
 class MasterListScreen extends StatefulWidget {
   const MasterListScreen({super.key});
 
@@ -13,6 +17,31 @@ class MasterListScreen extends StatefulWidget {
 }
 
 class _MasterListScreenState extends State<MasterListScreen> {
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color pageBackground = Color(0xFF050505);
+  static const Color cardBackground = Color(0xFF0C0D0F);
+  static const Color elevatedCard = Color(0xFF111214);
+
+  static const Color borderColor = Color(0xFF292B2F);
+  static const Color borderSoft = Color(0xFF1E2023);
+
+  static const Color gold = Color(0xFFF2C45F);
+  static const Color goldDark = Color(0xFFD9A93F);
+
+  static const Color white = Color(0xFFF5F5F6);
+  static const Color lightText = Color(0xFFD7D8DC);
+  static const Color mutedText = Color(0xFF92959D);
+  static const Color softText = Color(0xFF696D76);
+
+  static const Color green = Color(0xFF4ADE80);
+  static const Color blue = Color(0xFF4C8DFF);
+  static const Color orange = Color(0xFFFFA52F);
+  static const Color purple = Color(0xFF9A63FF);
+  static const Color red = Color(0xFFFF5D68);
+
   // ============================================================
   // CONTROLLERS
   // ============================================================
@@ -38,7 +67,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   List<Map<String, dynamic>> sequences = [];
 
   // ============================================================
-  // STATES
+  // STATE
   // ============================================================
 
   bool isLoading = false;
@@ -136,7 +165,8 @@ class _MasterListScreenState extends State<MasterListScreen> {
           sequences = apiData
               .whereType<Map>()
               .map<Map<String, dynamic>>(
-                (item) => Map<String, dynamic>.from(item),
+                (item) =>
+                    Map<String, dynamic>.from(item),
               )
               .toList();
 
@@ -166,6 +196,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
         _showMessage(
           result['message']?.toString() ??
               'Session expired. Please login again.',
+          isError: true,
         );
       }
     } catch (e) {
@@ -173,7 +204,8 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
       setState(() {
         isLoading = false;
-        errorMessage = 'Unable to load sequences.';
+        errorMessage =
+            'Unable to load sequences.';
       });
 
       debugPrint(
@@ -183,7 +215,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // INTEGER HELPER
+  // INTEGER
   // ============================================================
 
   int _toInt(
@@ -226,10 +258,6 @@ class _MasterListScreenState extends State<MasterListScreen> {
     setState(() {});
   }
 
-  // ============================================================
-  // CLEAR SEARCH
-  // ============================================================
-
   Future<void> _clearSearch() async {
     _searchDebounce?.cancel();
 
@@ -255,18 +283,15 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // CHANGE PAGE
+  // PAGE
   // ============================================================
 
   Future<void> _goToPage(
     int page,
   ) async {
     if (isLoading) return;
-
     if (page < 1) return;
-
     if (page > totalPages) return;
-
     if (page == currentPage) return;
 
     await _loadSequences(
@@ -275,7 +300,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // CHANGE ENTRIES PER PAGE
+  // ENTRIES
   // ============================================================
 
   Future<void> _changeEntriesPerPage(
@@ -301,41 +326,43 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // IMPORTANT:
-    // Use the actual screen width.
-    //
-    // Do NOT use LayoutBuilder constraints here because
-    // MasterListScreen is inside the dashboard/sidebar layout.
-    final double screenWidth =
+    final double width =
         MediaQuery.of(context).size.width;
 
-    final bool isMobile = screenWidth < 600;
+    final bool isMobile = width < 600;
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF5F7FA),
+      backgroundColor: pageBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(
-            isMobile ? 16 : 28,
-          ),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              _buildPageHeader(
-                isMobile,
-              ),
+        child: RefreshIndicator(
+          color: gold,
+          backgroundColor: elevatedCard,
+          onRefresh: _refreshSequences,
+          child: SingleChildScrollView(
+            physics:
+                const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              isMobile ? 18 : 28,
+              isMobile ? 20 : 28,
+              isMobile ? 18 : 28,
+              40,
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                _buildPageHeader(isMobile),
 
-              SizedBox(
-                height:
-                    isMobile ? 24 : 30,
-              ),
+                SizedBox(
+                  height: isMobile ? 24 : 30,
+                ),
 
-              _buildSequenceContainer(
-                isMobile,
-              ),
-            ],
+                if (isMobile)
+                  _buildMobileContent()
+                else
+                  _buildDesktopContent(),
+              ],
+            ),
           ),
         ),
       ),
@@ -343,70 +370,58 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // PAGE HEADER
+  // HEADER
   // ============================================================
 
   Widget _buildPageHeader(
     bool isMobile,
   ) {
-    if (isMobile) {
-      return Column(
+    if (!isMobile) {
+      return Row(
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Sequence List',
-            style: TextStyle(
-              color: Color(0xFF101828),
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
+          const Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sequences',
+                  style: TextStyle(
+                    color: white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Manage your automated email campaigns',
+                  style: TextStyle(
+                    color: mutedText,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
             ),
           ),
 
-          const SizedBox(height: 8),
-
-          const Text(
-            'Manage your automated email campaign sequences',
-            style: TextStyle(
-              color: Color(0xFF667085),
-              fontSize: 15,
-              height: 1.4,
+          ElevatedButton.icon(
+            onPressed:
+                isLoading
+                    ? null
+                    : _addNewSequence,
+            icon: const Icon(
+              Icons.add_rounded,
             ),
-          ),
-
-          const SizedBox(height: 20),
-
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed:
-                  isLoading
-                      ? null
-                      : _addNewSequence,
-              icon: const Icon(
-                Icons.add_circle_outline,
-              ),
-              label: const Text(
-                'Add New Sequence',
-                style: TextStyle(
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    const Color(0xFF315BEF),
-                foregroundColor:
-                    Colors.white,
-                elevation: 0,
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(9),
-                ),
-              ),
+            label: const Text(
+              'New Sequence',
+            ),
+            style:
+                ElevatedButton.styleFrom(
+              backgroundColor: gold,
+              foregroundColor:
+                  Colors.black,
             ),
           ),
         ],
@@ -415,265 +430,217 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
     return Row(
       crossAxisAlignment:
-          CrossAxisAlignment.start,
+          CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Text(
-                'Sequence List',
+              const Text(
+                'Sequences',
                 style: TextStyle(
-                  color:
-                      Color(0xFF101828),
-                  fontSize: 30,
-                  fontWeight:
-                      FontWeight.w800,
+                  color: white,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
                 ),
               ),
-              SizedBox(height: 6),
-              Text(
-                'Manage your automated email campaign sequences',
+
+              const SizedBox(height: 5),
+
+              const Text(
+                'Manage your email sequences',
                 style: TextStyle(
-                  color:
-                      Color(0xFF667085),
-                  fontSize: 15,
+                  color: mutedText,
+                  fontSize: 13.5,
                 ),
               ),
             ],
           ),
         ),
 
-        const SizedBox(width: 20),
+        const SizedBox(width: 12),
 
-        ElevatedButton.icon(
-          onPressed:
+        _headerAction(
+          icon: Icons.refresh_rounded,
+          onTap:
               isLoading
                   ? null
-                  : _addNewSequence,
-          icon: const Icon(
-            Icons.add_circle_outline,
-          ),
-          label: const Text(
-            'Add New Sequence',
-          ),
-          style:
-              ElevatedButton.styleFrom(
-            backgroundColor:
-                const Color(0xFF315BEF),
-            foregroundColor:
-                Colors.white,
-            elevation: 0,
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-            shape:
-                RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(8),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // MAIN CONTAINER
-  // ============================================================
-
-  Widget _buildSequenceContainer(
-    bool isMobile,
-  ) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(
-        isMobile ? 16 : 20,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color:
-                Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset:
-                const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          _buildTableControls(
-            isMobile,
-          ),
-
-          const SizedBox(height: 22),
-
-          if (isLoading)
-            _buildLoadingState()
-          else if (errorMessage != null)
-            _buildErrorState()
-          else if (sequences.isEmpty)
-            _buildEmptyState()
-          else if (isMobile)
-            _buildMobileTable()
-          else
-            _buildDesktopTable(),
-
-          const SizedBox(height: 20),
-
-          _buildPagination(),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // TABLE CONTROLS
-  // ============================================================
-
-  Widget _buildTableControls(
-    bool isMobile,
-  ) {
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Show',
-                style: TextStyle(
-                  color: Color(0xFF344054),
-                  fontSize: 14,
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              _buildEntriesDropdown(),
-
-              const SizedBox(width: 10),
-
-              const Text(
-                'entries',
-                style: TextStyle(
-                  color: Color(0xFF344054),
-                  fontSize: 14,
-                ),
-              ),
-
-              const Spacer(),
-
-              IconButton(
-                tooltip: 'Refresh',
-                onPressed:
-                    isLoading
-                        ? null
-                        : _refreshSequences,
-                icon: const Icon(
-                  Icons.refresh,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          _buildSearchField(
-            isMobile: true,
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        const Text(
-          'Show',
-          style: TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 14,
-          ),
-        ),
-
-        const SizedBox(width: 8),
-
-        _buildEntriesDropdown(),
-
-        const SizedBox(width: 8),
-
-        const Text(
-          'entries',
-          style: TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 14,
-          ),
-        ),
-
-        const Spacer(),
-
-        const Text(
-          'Search:',
-          style: TextStyle(
-            color: Color(0xFF344054),
-            fontSize: 14,
-          ),
+                  : _refreshSequences,
+          outlined: true,
         ),
 
         const SizedBox(width: 10),
 
-        _buildSearchField(
-          isMobile: false,
-        ),
-
-        const SizedBox(width: 8),
-
-        IconButton(
-          tooltip: 'Refresh',
-          onPressed:
+        _headerAction(
+          icon: Icons.add_rounded,
+          onTap:
               isLoading
                   ? null
-                  : _refreshSequences,
-          icon: const Icon(
-            Icons.refresh,
-          ),
+                  : _addNewSequence,
+          outlined: false,
         ),
       ],
     );
   }
 
+  Widget _headerAction({
+    required IconData icon,
+    required VoidCallback? onTap,
+    required bool outlined,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius:
+          BorderRadius.circular(12),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color:
+              outlined
+                  ? elevatedCard
+                  : gold,
+          borderRadius:
+              BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                outlined
+                    ? borderColor
+                    : gold,
+          ),
+          boxShadow:
+              outlined
+                  ? []
+                  : [
+                      BoxShadow(
+                        color:
+                            gold.withOpacity(
+                              0.14,
+                            ),
+                        blurRadius: 16,
+                        offset:
+                            const Offset(
+                              0,
+                              5,
+                            ),
+                      ),
+                    ],
+        ),
+        child: Icon(
+          icon,
+          color:
+              outlined
+                  ? lightText
+                  : Colors.black,
+          size: 25,
+        ),
+      ),
+    );
+  }
+
   // ============================================================
-  // SEARCH FIELD
+  // MOBILE CONTENT
+  // ============================================================
+
+  Widget _buildMobileContent() {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        // ========================================================
+        // SEARCH
+        // ========================================================
+
+        _buildSearchField(
+          isMobile: true,
+        ),
+
+        const SizedBox(height: 12),
+
+        // ========================================================
+        // CONTROLS
+        // ========================================================
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildEntriesControl(),
+            ),
+
+            const SizedBox(width: 10),
+
+            Expanded(
+              child: _buildResultCount(),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // ========================================================
+        // CONTENT
+        // ========================================================
+
+        if (isLoading)
+          _buildLoadingState()
+        else if (errorMessage != null)
+          _buildErrorState()
+        else if (sequences.isEmpty)
+          _buildEmptyState()
+        else
+          _buildMobileCards(),
+
+        if (!isLoading &&
+            errorMessage == null &&
+            totalSequences > 0) ...[
+          const SizedBox(height: 22),
+          _buildPagination(),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // SEARCH
   // ============================================================
 
   Widget _buildSearchField({
     required bool isMobile,
   }) {
-    return SizedBox(
-      width:
-          isMobile
-              ? double.infinity
-              : 260,
-      height: 42,
+    return Container(
+      height: 54,
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: borderColor,
+        ),
+      ),
       child: TextField(
-        controller:
-            searchController,
-        onChanged:
-            _onSearchChanged,
-        decoration:
-            _searchDecoration(
-          'Search sequence...',
-        ).copyWith(
+        controller: searchController,
+        onChanged: _onSearchChanged,
+        cursorColor: gold,
+        style: const TextStyle(
+          color: white,
+          fontSize: 14,
+        ),
+        decoration: InputDecoration(
+          hintText:
+              'Search sequences...',
+          hintStyle:
+              const TextStyle(
+            color: softText,
+            fontSize: 14,
+          ),
+          prefixIcon:
+              const Icon(
+            Icons.search_rounded,
+            color: mutedText,
+            size: 23,
+          ),
           suffixIcon:
               searchController
                       .text
@@ -681,59 +648,94 @@ class _MasterListScreenState extends State<MasterListScreen> {
                   ? IconButton(
                       onPressed:
                           _clearSearch,
-                      icon: const Icon(
-                        Icons.clear,
+                      icon:
+                          const Icon(
+                        Icons
+                            .close_rounded,
+                        color:
+                            mutedText,
                         size: 20,
                       ),
                     )
                   : null,
+          border:
+              InputBorder.none,
+          enabledBorder:
+              InputBorder.none,
+          focusedBorder:
+              InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(
+            vertical: 17,
+          ),
         ),
       ),
     );
   }
 
   // ============================================================
-  // ENTRIES DROPDOWN
+  // ENTRIES CONTROL
   // ============================================================
 
-  Widget _buildEntriesDropdown() {
+  Widget _buildEntriesControl() {
     return Container(
-      height: 40,
+      height: 48,
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 8,
+        horizontal: 14,
       ),
       decoration: BoxDecoration(
-        border: Border.all(
-          color:
-              const Color(0xFFD0D5DD),
-        ),
+        color: cardBackground,
         borderRadius:
-            BorderRadius.circular(8),
+            BorderRadius.circular(11),
+        border: Border.all(
+          color: borderColor,
+        ),
       ),
       child:
           DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: entriesPerPage,
+          dropdownColor:
+              elevatedCard,
+          icon:
+              const Icon(
+            Icons
+                .keyboard_arrow_down_rounded,
+            color: mutedText,
+          ),
+          style:
+              const TextStyle(
+            color: white,
+            fontSize: 13,
+          ),
+          isExpanded: true,
           items: const [
             DropdownMenuItem(
               value: 10,
-              child: Text('10'),
+              child: Text(
+                '10 entries',
+              ),
             ),
             DropdownMenuItem(
               value: 25,
-              child: Text('25'),
+              child: Text(
+                '25 entries',
+              ),
             ),
             DropdownMenuItem(
               value: 50,
-              child: Text('50'),
+              child: Text(
+                '50 entries',
+              ),
             ),
           ],
           onChanged:
               isLoading
                   ? null
                   : (value) {
-                      if (value == null) {
+                      if (value ==
+                          null) {
                         return;
                       }
 
@@ -747,46 +749,1089 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // SEARCH DECORATION
+  // RESULT COUNT
   // ============================================================
 
-  InputDecoration _searchDecoration(
-    String hint,
-  ) {
-    return InputDecoration(
-      hintText: hint,
-      prefixIcon:
-          const Icon(Icons.search),
-      contentPadding:
+  Widget _buildResultCount() {
+    return Container(
+      height: 48,
+      padding:
           const EdgeInsets.symmetric(
-        horizontal: 12,
+        horizontal: 13,
       ),
-      border:
-          OutlineInputBorder(
+      decoration: BoxDecoration(
+        color: cardBackground,
         borderRadius:
-            BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(
-          color: Color(0xFFD0D5DD),
+            BorderRadius.circular(11),
+        border: Border.all(
+          color: borderColor,
         ),
       ),
-      enabledBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(
-          color: Color(0xFFD0D5DD),
+      child: Row(
+        children: [
+          Container(
+            width: 29,
+            height: 29,
+            decoration:
+                BoxDecoration(
+              color:
+                  gold.withOpacity(
+                    0.10,
+                  ),
+              borderRadius:
+                  BorderRadius.circular(
+                8,
+              ),
+            ),
+            child: const Icon(
+              Icons
+                  .format_list_bulleted_rounded,
+              color: gold,
+              size: 16,
+            ),
+          ),
+
+          const SizedBox(width: 9),
+
+          Expanded(
+            child: Text(
+              '$totalSequences sequences',
+              maxLines: 1,
+              overflow:
+                  TextOverflow.ellipsis,
+              style:
+                  const TextStyle(
+                color: lightText,
+                fontSize: 12.5,
+                fontWeight:
+                    FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // MOBILE SEQUENCE CARDS
+  // ============================================================
+
+  Widget _buildMobileCards() {
+    return ListView.separated(
+      itemCount: sequences.length,
+      shrinkWrap: true,
+      physics:
+          const NeverScrollableScrollPhysics(),
+      separatorBuilder:
+          (_, __) =>
+              const SizedBox(
+        height: 12,
+      ),
+      itemBuilder:
+          (context, index) {
+        final sequence =
+            sequences[index];
+
+        return _buildSequenceCard(
+          sequence,
+        );
+      },
+    );
+  }
+
+  Widget _buildSequenceCard(
+    Map<String, dynamic> sequence,
+  ) {
+    final String step =
+        sequence['step']?.toString() ??
+            '-';
+
+    final String gap =
+        sequence['gapDays']
+                ?.toString() ??
+            '0';
+
+    final String variant =
+        sequence['variant']
+                ?.toString() ??
+            '-';
+
+    final String subject =
+        sequence['subject']
+                ?.toString()
+                .trim() ??
+            '';
+
+    final String content =
+        sequence['content']
+                ?.toString()
+                .trim() ??
+            '';
+
+    final String type =
+        sequence['type']
+                ?.toString() ??
+            'Email';
+
+    final String status =
+        sequence['status']
+                ?.toString() ??
+            'draft';
+
+    return InkWell(
+      onTap: () {
+        _viewSequence(sequence);
+      },
+      borderRadius:
+          BorderRadius.circular(14),
+      child: Container(
+        width: double.infinity,
+        padding:
+            const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: cardBackground,
+          borderRadius:
+              BorderRadius.circular(14),
+          border: Border.all(
+            color: borderColor,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            // ==================================================
+            // TOP
+            // ==================================================
+
+            Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                _sequenceIcon(
+                  type,
+                ),
+
+                const SizedBox(
+                  width: 12,
+                ),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        subject.isEmpty
+                            ? 'Untitled Sequence'
+                            : subject,
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color: white,
+                          fontSize: 15.5,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 4,
+                      ),
+
+                      Text(
+                        '$type Sequence',
+                        style:
+                            const TextStyle(
+                          color:
+                              mutedText,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 8,
+                ),
+
+                PopupMenuButton<String>(
+                  color: elevatedCard,
+                  elevation: 12,
+                  surfaceTintColor:
+                      Colors.transparent,
+                  icon:
+                      const Icon(
+                    Icons
+                        .more_vert_rounded,
+                    color: mutedText,
+                    size: 23,
+                  ),
+                  onSelected:
+                      (value) {
+                    switch (value) {
+                      case 'view':
+                        _viewSequence(
+                          sequence,
+                        );
+                        break;
+
+                      case 'edit':
+                        _editSequence(
+                          sequence,
+                        );
+                        break;
+
+                      case 'delete':
+                        _deleteSequence(
+                          sequence,
+                        );
+                        break;
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                    _menuItem(
+                      value: 'view',
+                      icon:
+                          Icons
+                              .visibility_outlined,
+                      title: 'View',
+                    ),
+                    _menuItem(
+                      value: 'edit',
+                      icon:
+                          Icons.edit_outlined,
+                      title: 'Edit',
+                    ),
+                    _menuItem(
+                      value: 'delete',
+                      icon:
+                          Icons
+                              .delete_outline,
+                      title: 'Delete',
+                      danger: true,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 14,
+            ),
+
+            // ==================================================
+            // BADGES
+            // ==================================================
+
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _variantBadge(
+                  variant,
+                ),
+
+                _statusBadge(
+                  status,
+                ),
+
+                _typeBadge(
+                  type,
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 15,
+            ),
+
+            Container(
+              height: 1,
+              color: borderSoft,
+            ),
+
+            const SizedBox(
+              height: 14,
+            ),
+
+            // ==================================================
+            // STEP INFO
+            // ==================================================
+
+            Row(
+              children: [
+                Expanded(
+                  child:
+                      _sequenceMetric(
+                    icon:
+                        Icons
+                            .layers_outlined,
+                    label: 'Step',
+                    value: step,
+                  ),
+                ),
+
+                Container(
+                  width: 1,
+                  height: 42,
+                  color: borderSoft,
+                ),
+
+                Expanded(
+                  child:
+                      _sequenceMetric(
+                    icon:
+                        Icons
+                            .schedule_outlined,
+                    label: 'Gap Days',
+                    value:
+                        '$gap day${gap == '1' ? '' : 's'}',
+                  ),
+                ),
+              ],
+            ),
+
+            if (content.isNotEmpty) ...[
+              const SizedBox(
+                height: 15,
+              ),
+
+              Container(
+                width:
+                    double.infinity,
+                padding:
+                    const EdgeInsets
+                        .all(12),
+                decoration:
+                    BoxDecoration(
+                  color:
+                      const Color(
+                    0xFF090A0C,
+                  ),
+                  borderRadius:
+                      BorderRadius
+                          .circular(
+                    10,
+                  ),
+                  border:
+                      Border.all(
+                    color:
+                        borderSoft,
+                  ),
+                ),
+                child: Text(
+                  content,
+                  maxLines: 2,
+                  overflow:
+                      TextOverflow
+                          .ellipsis,
+                  style:
+                      const TextStyle(
+                    color:
+                        lightText,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(
+              height: 14,
+            ),
+
+            // ==================================================
+            // DATE
+            // ==================================================
+
+            Row(
+              children: [
+                const Icon(
+                  Icons
+                      .calendar_today_outlined,
+                  size: 15,
+                  color: mutedText,
+                ),
+
+                const SizedBox(
+                  width: 7,
+                ),
+
+                Expanded(
+                  child: Text(
+                    _formatDateTime(
+                      sequence[
+                          'createdAt'],
+                    ),
+                    style:
+                        const TextStyle(
+                      color:
+                          mutedText,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+
+                const Icon(
+                  Icons
+                      .chevron_right_rounded,
+                  size: 19,
+                  color: softText,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      focusedBorder:
-          OutlineInputBorder(
+    );
+  }
+
+  // ============================================================
+  // MENU
+  // ============================================================
+
+  PopupMenuItem<String> _menuItem({
+    required String value,
+    required IconData icon,
+    required String title,
+    bool danger = false,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 19,
+            color:
+                danger
+                    ? red
+                    : lightText,
+          ),
+
+          const SizedBox(
+            width: 10,
+          ),
+
+          Text(
+            title,
+            style: TextStyle(
+              color:
+                  danger
+                      ? red
+                      : white,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SEQUENCE ICON
+  // ============================================================
+
+  Widget _sequenceIcon(
+    String type,
+  ) {
+    IconData icon;
+    Color color;
+
+    switch (type.toLowerCase()) {
+      case 'whatsapp':
+        icon =
+            Icons.chat_outlined;
+        color = green;
+        break;
+
+      case 'sms':
+        icon =
+            Icons.sms_outlined;
+        color = purple;
+        break;
+
+      case 'email':
+      default:
+        icon =
+            Icons.email_outlined;
+        color = gold;
+    }
+
+    return Container(
+      width: 46,
+      height: 46,
+      decoration:
+          BoxDecoration(
+        color:
+            color.withOpacity(
+              0.11,
+            ),
         borderRadius:
-            BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(
-          color: Color(0xFF315BEF),
-          width: 1.5,
+            BorderRadius.circular(12),
+      ),
+      child: Icon(
+        icon,
+        color: color,
+        size: 22,
+      ),
+    );
+  }
+
+  // ============================================================
+  // METRIC
+  // ============================================================
+
+  Widget _sequenceMetric({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration:
+              BoxDecoration(
+            color:
+                gold.withOpacity(
+                  0.08,
+                ),
+            borderRadius:
+                BorderRadius.circular(
+              9,
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: gold,
+            size: 17,
+          ),
+        ),
+
+        const SizedBox(
+          width: 9,
+        ),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style:
+                    const TextStyle(
+                  color: mutedText,
+                  fontSize: 10.5,
+                ),
+              ),
+
+              const SizedBox(
+                height: 2,
+              ),
+
+              Text(
+                value,
+                maxLines: 1,
+                overflow:
+                    TextOverflow
+                        .ellipsis,
+                style:
+                    const TextStyle(
+                  color: white,
+                  fontSize: 12.5,
+                  fontWeight:
+                      FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // VARIANT BADGE
+  // ============================================================
+
+  Widget _variantBadge(
+    String variant,
+  ) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color:
+            gold.withOpacity(
+              0.10,
+            ),
+        borderRadius:
+            BorderRadius.circular(7),
+        border: Border.all(
+          color:
+              gold.withOpacity(
+                0.18,
+              ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize:
+            MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons
+                .alt_route_rounded,
+            color: gold,
+            size: 13,
+          ),
+
+          const SizedBox(
+            width: 5,
+          ),
+
+          Text(
+            'Variant $variant',
+            style:
+                const TextStyle(
+              color: gold,
+              fontSize: 11,
+              fontWeight:
+                  FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // STATUS BADGE
+  // ============================================================
+
+  Widget _statusBadge(
+    String status,
+  ) {
+    Color statusColor;
+    IconData icon;
+
+    switch (
+        status.toLowerCase()) {
+      case 'active':
+        statusColor = green;
+        icon =
+            Icons
+                .play_circle_outline;
+        break;
+
+      case 'scheduled':
+        statusColor = blue;
+        icon =
+            Icons.schedule_rounded;
+        break;
+
+      case 'paused':
+        statusColor = orange;
+        icon =
+            Icons
+                .pause_circle_outline;
+        break;
+
+      case 'draft':
+      default:
+        statusColor =
+            mutedText;
+        icon =
+            Icons
+                .edit_note_outlined;
+    }
+
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color:
+            statusColor.withOpacity(
+              0.10,
+            ),
+        borderRadius:
+            BorderRadius.circular(7),
+      ),
+      child: Row(
+        mainAxisSize:
+            MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: statusColor,
+            size: 13,
+          ),
+
+          const SizedBox(
+            width: 5,
+          ),
+
+          Text(
+            _capitalize(status),
+            style: TextStyle(
+              color: statusColor,
+              fontSize: 11,
+              fontWeight:
+                  FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // TYPE BADGE
+  // ============================================================
+
+  Widget _typeBadge(
+    String type,
+  ) {
+    Color typeColor;
+
+    switch (type.toLowerCase()) {
+      case 'whatsapp':
+        typeColor = green;
+        break;
+
+      case 'sms':
+        typeColor = purple;
+        break;
+
+      case 'email':
+      default:
+        typeColor = blue;
+    }
+
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color:
+            typeColor.withOpacity(
+              0.10,
+            ),
+        borderRadius:
+            BorderRadius.circular(7),
+      ),
+      child: Text(
+        type,
+        style: TextStyle(
+          color: typeColor,
+          fontSize: 11,
+          fontWeight:
+              FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // DESKTOP
+  // ============================================================
+
+  Widget _buildDesktopContent() {
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius:
+            BorderRadius.circular(16),
+        border: Border.all(
+          color: borderColor,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildEntriesControl(),
+
+              const Spacer(),
+
+              SizedBox(
+                width: 320,
+                child:
+                    _buildSearchField(
+                  isMobile: false,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 20,
+          ),
+
+          if (isLoading)
+            _buildLoadingState()
+          else if (errorMessage !=
+              null)
+            _buildErrorState()
+          else if (sequences
+              .isEmpty)
+            _buildEmptyState()
+          else
+            _buildDesktopTable(),
+
+          if (totalSequences >
+              0) ...[
+            const SizedBox(
+              height: 20,
+            ),
+            _buildPagination(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // DESKTOP TABLE
+  // ============================================================
+
+  Widget _buildDesktopTable() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: borderColor,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius:
+            BorderRadius.circular(12),
+        child:
+            SingleChildScrollView(
+          scrollDirection:
+              Axis.horizontal,
+          child: DataTable(
+            headingRowColor:
+                WidgetStateProperty.all(
+              elevatedCard,
+            ),
+            dataRowColor:
+                WidgetStateProperty.all(
+              cardBackground,
+            ),
+            headingTextStyle:
+                const TextStyle(
+              color: gold,
+              fontSize: 12,
+              fontWeight:
+                  FontWeight.w700,
+            ),
+            dataTextStyle:
+                const TextStyle(
+              color: lightText,
+              fontSize: 12,
+            ),
+            columns: const [
+              DataColumn(
+                label: Text('STEP'),
+              ),
+              DataColumn(
+                label:
+                    Text('GAP DAYS'),
+              ),
+              DataColumn(
+                label:
+                    Text('VARIANT'),
+              ),
+              DataColumn(
+                label:
+                    Text('SUBJECT'),
+              ),
+              DataColumn(
+                label: Text('TYPE'),
+              ),
+              DataColumn(
+                label:
+                    Text('STATUS'),
+              ),
+              DataColumn(
+                label:
+                    Text('CREATED'),
+              ),
+              DataColumn(
+                label:
+                    Text('ACTIONS'),
+              ),
+            ],
+            rows:
+                sequences.map(
+              (sequence) {
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        sequence[
+                                    'step']
+                                ?.toString() ??
+                            '-',
+                      ),
+                    ),
+
+                    DataCell(
+                      Text(
+                        sequence[
+                                    'gapDays']
+                                ?.toString() ??
+                            '-',
+                      ),
+                    ),
+
+                    DataCell(
+                      _variantBadge(
+                        sequence[
+                                    'variant']
+                                ?.toString() ??
+                            '-',
+                      ),
+                    ),
+
+                    DataCell(
+                      SizedBox(
+                        width: 220,
+                        child: Text(
+                          sequence[
+                                      'subject']
+                                  ?.toString() ??
+                              '-',
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                        ),
+                      ),
+                    ),
+
+                    DataCell(
+                      Text(
+                        sequence[
+                                    'type']
+                                ?.toString() ??
+                            '-',
+                      ),
+                    ),
+
+                    DataCell(
+                      _statusBadge(
+                        sequence[
+                                    'status']
+                                ?.toString() ??
+                            'draft',
+                      ),
+                    ),
+
+                    DataCell(
+                      Text(
+                        _formatDateTime(
+                          sequence[
+                              'createdAt'],
+                        ),
+                      ),
+                    ),
+
+                    DataCell(
+                      PopupMenuButton<
+                          String>(
+                        color:
+                            elevatedCard,
+                        icon:
+                            const Icon(
+                          Icons
+                              .more_vert,
+                          color:
+                              mutedText,
+                        ),
+                        onSelected:
+                            (value) {
+                          if (value ==
+                              'view') {
+                            _viewSequence(
+                              sequence,
+                            );
+                          }
+
+                          if (value ==
+                              'edit') {
+                            _editSequence(
+                              sequence,
+                            );
+                          }
+
+                          if (value ==
+                              'delete') {
+                            _deleteSequence(
+                              sequence,
+                            );
+                          }
+                        },
+                        itemBuilder:
+                            (_) => [
+                          _menuItem(
+                            value:
+                                'view',
+                            icon: Icons
+                                .visibility_outlined,
+                            title:
+                                'View',
+                          ),
+                          _menuItem(
+                            value:
+                                'edit',
+                            icon: Icons
+                                .edit_outlined,
+                            title:
+                                'Edit',
+                          ),
+                          _menuItem(
+                            value:
+                                'delete',
+                            icon: Icons
+                                .delete_outline,
+                            title:
+                                'Delete',
+                            danger:
+                                true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ).toList(),
+          ),
         ),
       ),
     );
@@ -797,15 +1842,17 @@ class _MasterListScreenState extends State<MasterListScreen> {
   // ============================================================
 
   Widget _buildLoadingState() {
-    return const Padding(
+    return Container(
+      width: double.infinity,
       padding:
-          EdgeInsets.symmetric(
-        vertical: 70,
+          const EdgeInsets.symmetric(
+        vertical: 80,
       ),
-      child: Center(
+      child: const Center(
         child:
             CircularProgressIndicator(
-          color: Color(0xFF315BEF),
+          color: gold,
+          strokeWidth: 2.5,
         ),
       ),
     );
@@ -820,698 +1867,90 @@ class _MasterListScreenState extends State<MasterListScreen> {
       width: double.infinity,
       padding:
           const EdgeInsets.symmetric(
-        vertical: 50,
+        vertical: 55,
+        horizontal: 25,
+      ),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius:
+            BorderRadius.circular(14),
+        border: Border.all(
+          color: borderColor,
+        ),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Colors.red,
+          Container(
+            width: 54,
+            height: 54,
+            decoration:
+                BoxDecoration(
+              color:
+                  red.withOpacity(
+                    0.10,
+                  ),
+              borderRadius:
+                  BorderRadius.circular(
+                14,
+              ),
+            ),
+            child: const Icon(
+              Icons
+                  .error_outline_rounded,
+              color: red,
+              size: 28,
+            ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 15,
+          ),
 
           Text(
             errorMessage ??
                 'Something went wrong.',
             textAlign:
                 TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF344054),
-              fontSize: 15,
+            style:
+                const TextStyle(
+              color: lightText,
+              fontSize: 14,
             ),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(
+            height: 18,
+          ),
 
-          ElevatedButton.icon(
+          OutlinedButton.icon(
             onPressed:
                 isLoading
                     ? null
                     : () {
                         _loadSequences(
-                          page: currentPage,
+                          page:
+                              currentPage,
                         );
                       },
             icon:
-                const Icon(Icons.refresh),
+                const Icon(
+              Icons.refresh,
+              size: 18,
+            ),
             label:
-                const Text('Retry'),
+                const Text(
+              'Try Again',
+            ),
             style:
-                ElevatedButton.styleFrom(
-              backgroundColor:
-                  const Color(0xFF315BEF),
-              foregroundColor:
-                  Colors.white,
+                OutlinedButton.styleFrom(
+              foregroundColor: gold,
+              side:
+                  const BorderSide(
+                color: goldDark,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // MOBILE TABLE
-  // ============================================================
-
-  Widget _buildMobileTable() {
-    if (sequences.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: const Color(0xFFE4E7EC),
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowHeight: 46,
-            dataRowMinHeight: 58,
-            dataRowMaxHeight: 70,
-            columnSpacing: 16,
-            horizontalMargin: 12,
-            headingRowColor: WidgetStateProperty.all(
-              const Color(0xFF101828),
-            ),
-            headingTextStyle: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-            dataTextStyle: const TextStyle(
-              color: Color(0xFF344054),
-              fontSize: 12,
-            ),
-            columns: const [
-              DataColumn(label: Text('STEP')),
-              DataColumn(label: Text('GAP DAYS')),
-              DataColumn(label: Text('VARIANT')),
-              DataColumn(label: Text('MESSAGE')),
-              DataColumn(label: Text('SUBJECT')),
-              DataColumn(label: Text('BUSINESS TYPE')),
-              DataColumn(label: Text('WHATSAPP')),
-              DataColumn(label: Text('CREATED AT')),
-              DataColumn(label: Text('UPDATED AT')),
-              DataColumn(label: Text('DELETE')),
-              DataColumn(label: Text('EDIT')),
-              DataColumn(label: Text('VIEW')),
-            ],
-            rows: sequences.map((sequence) {
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Text(
-                      sequence['step']?.toString() ?? '-',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF101828),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      sequence['gapDays']?.toString() ?? '-',
-                    ),
-                  ),
-                  DataCell(
-                    _variantBadge(
-                      sequence['variant']?.toString() ?? '-',
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 220,
-                      child: Text(
-                        sequence['content']?.toString() ?? '-',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 180,
-                      child: Text(
-                        sequence['subject']?.toString() ?? '-',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 140,
-                      child: Text(
-                        sequence['type']?.toString() ?? '-',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 180,
-                      child: Text(
-                        _getWhatsApp(sequence),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      _formatDateTime(sequence['createdAt']),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      _formatDateTime(sequence['updatedAt']),
-                    ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      tooltip: 'Delete sequence',
-                      onPressed: () => _deleteSequence(sequence),
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.red,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    ElevatedButton(
-                      onPressed: () => _editSequence(sequence),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF315BEF),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                      ),
-                      child: const Text(
-                        'Edit',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    OutlinedButton(
-                      onPressed: () => _viewSequence(sequence),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF315BEF),
-                        side: const BorderSide(
-                          color: Color(0xFF315BEF),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                      ),
-                      child: const Text(
-                        'View',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // VARIANT BADGE
-  // ============================================================
-
-  Widget _variantBadge(
-    String variant,
-  ) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color:
-            const Color(0xFFEFF4FF),
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-      child: Text(
-        'Variant $variant',
-        style:
-            const TextStyle(
-          color:
-              Color(0xFF315BEF),
-          fontSize: 12,
-          fontWeight:
-              FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // MOBILE INFO ROW
-  // ============================================================
-
-  Widget _mobileInfoRow(
-    String title,
-    String value,
-    IconData icon,
-  ) {
-    return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color:
-              const Color(0xFF667085),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style:
-                    const TextStyle(
-                  color:
-                      Color(0xFF667085),
-                  fontSize: 12,
-                ),
-              ),
-
-              const SizedBox(height: 3),
-
-              Text(
-                value,
-                maxLines: 3,
-                overflow:
-                    TextOverflow.ellipsis,
-                style:
-                    const TextStyle(
-                  color:
-                      Color(0xFF101828),
-                  fontSize: 14,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // DESKTOP TABLE
-  // ============================================================
-
-  Widget _buildDesktopTable() {
-    if (sequences.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(10),
-        border: Border.all(
-          color:
-              const Color(0xFFE4E7EC),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius:
-            BorderRadius.circular(10),
-        child: SingleChildScrollView(
-          scrollDirection:
-              Axis.horizontal,
-          child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(
-              minWidth: 1500,
-            ),
-            child: DataTable(
-              horizontalMargin: 16,
-              columnSpacing: 24,
-
-              headingRowHeight: 52,
-
-              dataRowMinHeight: 60,
-              dataRowMaxHeight: 90,
-
-              headingRowColor:
-                  WidgetStateProperty.all(
-                const Color(0xFF101828),
-              ),
-
-              headingTextStyle:
-                  const TextStyle(
-                color: Colors.white,
-                fontWeight:
-                    FontWeight.w700,
-                fontSize: 12,
-              ),
-
-              dataTextStyle:
-                  const TextStyle(
-                color:
-                    Color(0xFF344054),
-                fontSize: 13,
-              ),
-
-              // ==================================================
-              // EXACT COLUMN ORDER
-              // ==================================================
-
-              columns: const [
-                DataColumn(
-                  label: Text('STEP'),
-                ),
-                DataColumn(
-                  label: Text('GAP DAYS'),
-                ),
-                DataColumn(
-                  label: Text('VARIANT'),
-                ),
-                DataColumn(
-                  label: Text('MESSAGE'),
-                ),
-                DataColumn(
-                  label: Text('SUBJECT'),
-                ),
-                DataColumn(
-                  label: Text('BUSINESS TYPE'),
-                ),
-                DataColumn(
-                  label: Text('WHATSAPP'),
-                ),
-                DataColumn(
-                  label: Text('CREATED AT'),
-                ),
-                DataColumn(
-                  label: Text('UPDATED AT'),
-                ),
-                DataColumn(
-                  label: Text('DELETE'),
-                ),
-                DataColumn(
-                  label: Text('EDIT'),
-                ),
-                DataColumn(
-                  label: Text('VIEW'),
-                ),
-              ],
-
-              // ==================================================
-              // ROWS
-              // ==================================================
-
-              rows: sequences.map<DataRow>(
-                (sequence) {
-                  return DataRow(
-                    cells: [
-                      // STEP
-                      DataCell(
-                        Text(
-                          sequence['step']
-                                  ?.toString() ??
-                              '-',
-                          style:
-                              const TextStyle(
-                            fontWeight:
-                                FontWeight.w700,
-                            color:
-                                Color(0xFF101828),
-                          ),
-                        ),
-                      ),
-
-                      // GAP DAYS
-                      DataCell(
-                        Text(
-                          sequence['gapDays']
-                                  ?.toString() ??
-                              '-',
-                        ),
-                      ),
-
-                      // VARIANT
-                      DataCell(
-                        _variantBadge(
-                          sequence['variant']
-                                  ?.toString() ??
-                              '-',
-                        ),
-                      ),
-
-                      // MESSAGE
-                      DataCell(
-                        SizedBox(
-                          width: 250,
-                          child: Text(
-                            sequence['content']
-                                    ?.toString() ??
-                                '-',
-                            maxLines: 2,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                          ),
-                        ),
-                      ),
-
-                      // SUBJECT
-                      DataCell(
-                        SizedBox(
-                          width: 220,
-                          child: Text(
-                            sequence['subject']
-                                    ?.toString() ??
-                                '-',
-                            maxLines: 2,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                          ),
-                        ),
-                      ),
-
-                      // BUSINESS TYPE
-                      DataCell(
-                        SizedBox(
-                          width: 140,
-                          child: Text(
-                            sequence['type']
-                                    ?.toString() ??
-                                '-',
-                            maxLines: 1,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                          ),
-                        ),
-                      ),
-
-                      // WHATSAPP
-                      DataCell(
-                        SizedBox(
-                          width: 180,
-                          child: Text(
-                            _getWhatsApp(
-                              sequence,
-                            ),
-                            maxLines: 2,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                          ),
-                        ),
-                      ),
-
-                      // CREATED AT
-                      DataCell(
-                        Text(
-                          _formatDateTime(
-                            sequence[
-                                'createdAt'],
-                          ),
-                        ),
-                      ),
-
-                      // UPDATED AT
-                      DataCell(
-                        Text(
-                          _formatDateTime(
-                            sequence[
-                                'updatedAt'],
-                          ),
-                        ),
-                      ),
-
-                      // DELETE
-                      DataCell(
-                        IconButton(
-                          tooltip:
-                              'Delete sequence',
-                          onPressed: () {
-                            _deleteSequence(
-                              sequence,
-                            );
-                          },
-                          icon:
-                              const Icon(
-                            Icons
-                                .delete_outline,
-                            color:
-                                Colors.red,
-                            size: 21,
-                          ),
-                        ),
-                      ),
-
-                      // EDIT
-                      DataCell(
-                        ElevatedButton(
-                          onPressed: () {
-                            _editSequence(
-                              sequence,
-                            );
-                          },
-                          style:
-                              ElevatedButton
-                                  .styleFrom(
-                            backgroundColor:
-                                const Color(
-                              0xFF315BEF,
-                            ),
-                            foregroundColor:
-                                Colors.white,
-                            elevation: 0,
-                            padding:
-                                const EdgeInsets
-                                    .symmetric(
-                              horizontal: 18,
-                              vertical: 10,
-                            ),
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                7,
-                              ),
-                            ),
-                          ),
-                          child:
-                              const Text(
-                            'Edit',
-                            style:
-                                TextStyle(
-                              fontSize: 13,
-                              fontWeight:
-                                  FontWeight
-                                      .w600,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // VIEW
-                      DataCell(
-                        OutlinedButton(
-                          onPressed: () {
-                            _viewSequence(
-                              sequence,
-                            );
-                          },
-                          style:
-                              OutlinedButton
-                                  .styleFrom(
-                            foregroundColor:
-                                const Color(
-                              0xFF315BEF,
-                            ),
-                            side:
-                                const BorderSide(
-                              color:
-                                  Color(
-                                0xFF315BEF,
-                              ),
-                            ),
-                            padding:
-                                const EdgeInsets
-                                    .symmetric(
-                              horizontal: 18,
-                              vertical: 10,
-                            ),
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                7,
-                              ),
-                            ),
-                          ),
-                          child:
-                              const Text(
-                            'View',
-                            style:
-                                TextStyle(
-                              fontSize: 13,
-                              fontWeight:
-                                  FontWeight
-                                      .w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ).toList(),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1530,41 +1969,99 @@ class _MasterListScreenState extends State<MasterListScreen> {
       width: double.infinity,
       padding:
           const EdgeInsets.symmetric(
-        vertical: 50,
+        vertical: 65,
+        horizontal: 25,
+      ),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius:
+            BorderRadius.circular(14),
+        border: Border.all(
+          color: borderColor,
+        ),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.email_outlined,
-            size: 45,
-            color:
-                Color(0xFF98A2B3),
+          Container(
+            width: 58,
+            height: 58,
+            decoration:
+                BoxDecoration(
+              color:
+                  gold.withOpacity(
+                    0.08,
+                  ),
+              borderRadius:
+                  BorderRadius.circular(
+                16,
+              ),
+            ),
+            child: const Icon(
+              Icons.email_outlined,
+              size: 27,
+              color: gold,
+            ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 16,
+          ),
 
           Text(
             searching
                 ? 'No sequences found'
-                : 'No sequences available',
-            style: const TextStyle(
-              color:
-                  Color(0xFF344054),
+                : 'No sequences yet',
+            style:
+                const TextStyle(
+              color: white,
               fontSize: 16,
               fontWeight:
-                  FontWeight.w600,
+                  FontWeight.w700,
             ),
           ),
 
-          if (searching) ...[
-            const SizedBox(height: 6),
+          const SizedBox(
+            height: 6,
+          ),
 
-            const Text(
-              'Try changing your search.',
-              style: TextStyle(
-                color:
-                    Color(0xFF667085),
-                fontSize: 13,
+          Text(
+            searching
+                ? 'Try changing your search.'
+                : 'Create your first email sequence to get started.',
+            textAlign:
+                TextAlign.center,
+            style:
+                const TextStyle(
+              color: mutedText,
+              fontSize: 12.5,
+              height: 1.4,
+            ),
+          ),
+
+          if (!searching) ...[
+            const SizedBox(
+              height: 18,
+            ),
+
+            ElevatedButton.icon(
+              onPressed:
+                  _addNewSequence,
+              icon:
+                  const Icon(
+                Icons.add,
+                size: 18,
+              ),
+              label:
+                  const Text(
+                'New Sequence',
+              ),
+              style:
+                  ElevatedButton
+                      .styleFrom(
+                backgroundColor:
+                    gold,
+                foregroundColor:
+                    Colors.black,
               ),
             ),
           ],
@@ -1587,476 +2084,176 @@ class _MasterListScreenState extends State<MasterListScreen> {
                 entriesPerPage) +
             1;
 
+    final int calculatedEnd =
+        currentPage *
+            entriesPerPage;
+
     final int end =
-        ((currentPage *
-                    entriesPerPage) >
-                totalSequences)
+        calculatedEnd >
+                totalSequences
             ? totalSequences
-            : currentPage *
-                entriesPerPage;
+            : calculatedEnd;
 
-    return LayoutBuilder(
-      builder: (
-        context,
-        constraints,
-      ) {
-        final bool isMobile =
-            constraints.maxWidth < 600;
-
-        return Container(
-          margin:
-              const EdgeInsets.only(
-            top: 8,
-          ),
-          padding:
-              const EdgeInsets.only(
-            top: 20,
-          ),
-          decoration:
-              const BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color:
-                    Color(0xFFE4E7EC),
-              ),
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius:
+            BorderRadius.circular(13),
+        border: Border.all(
+          color: borderColor,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Showing $start–$end of $totalSequences',
+            style:
+                const TextStyle(
+              color: mutedText,
+              fontSize: 12,
             ),
           ),
-          child: isMobile
-              ? _buildMobilePagination(
-                  start,
-                  end,
-                )
-              : _buildDesktopPagination(
-                  start,
-                  end,
+
+          const SizedBox(
+            height: 14,
+          ),
+
+          Row(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+            children: [
+              _paginationButton(
+                icon:
+                    Icons
+                        .chevron_left_rounded,
+                enabled:
+                    currentPage > 1 &&
+                        !isLoading,
+                onTap: () {
+                  _goToPage(
+                    currentPage - 1,
+                  );
+                },
+              ),
+
+              const SizedBox(
+                width: 10,
+              ),
+
+              Container(
+                height: 40,
+                constraints:
+                    const BoxConstraints(
+                  minWidth: 44,
                 ),
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // DESKTOP PAGINATION
-  // ============================================================
-
-  Widget _buildDesktopPagination(
-    int start,
-    int end,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Showing $start–$end of $totalSequences entries',
-            style: const TextStyle(
-              color:
-                  Color(0xFF667085),
-              fontSize: 13,
-              fontWeight:
-                  FontWeight.w500,
-            ),
-          ),
-        ),
-
-        Row(
-          mainAxisSize:
-              MainAxisSize.min,
-          children: [
-            _paginationIconButton(
-              icon: Icons
-                  .keyboard_double_arrow_left_rounded,
-              tooltip: 'First page',
-              enabled:
-                  currentPage > 1 &&
-                      !isLoading,
-              onPressed: () {
-                _goToPage(1);
-              },
-            ),
-
-            const SizedBox(width: 6),
-
-            _paginationIconButton(
-              icon:
-                  Icons.chevron_left_rounded,
-              tooltip: 'Previous',
-              enabled:
-                  currentPage > 1 &&
-                      !isLoading,
-              onPressed: () {
-                _goToPage(
-                  currentPage - 1,
-                );
-              },
-            ),
-
-            const SizedBox(width: 8),
-
-            _buildImprovedPageNumbers(),
-
-            const SizedBox(width: 8),
-
-            _paginationIconButton(
-              icon:
-                  Icons.chevron_right_rounded,
-              tooltip: 'Next',
-              enabled:
-                  currentPage <
-                          totalPages &&
-                      !isLoading,
-              onPressed: () {
-                _goToPage(
-                  currentPage + 1,
-                );
-              },
-            ),
-
-            const SizedBox(width: 6),
-
-            _paginationIconButton(
-              icon: Icons
-                  .keyboard_double_arrow_right_rounded,
-              tooltip: 'Last page',
-              enabled:
-                  currentPage <
-                          totalPages &&
-                      !isLoading,
-              onPressed: () {
-                _goToPage(
-                  totalPages,
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // MOBILE PAGINATION
-  // ============================================================
-
-  Widget _buildMobilePagination(
-    int start,
-    int end,
-  ) {
-    return Column(
-      children: [
-        Text(
-          'Showing $start–$end of $totalSequences',
-          style: const TextStyle(
-            color:
-                Color(0xFF667085),
-            fontSize: 13,
-            fontWeight:
-                FontWeight.w500,
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        Row(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
-          children: [
-            _paginationIconButton(
-              icon:
-                  Icons.chevron_left_rounded,
-              tooltip: 'Previous',
-              enabled:
-                  currentPage > 1 &&
-                      !isLoading,
-              onPressed: () {
-                _goToPage(
-                  currentPage - 1,
-                );
-              },
-            ),
-
-            const SizedBox(width: 8),
-
-            _currentPageIndicator(),
-
-            const SizedBox(width: 8),
-
-            _paginationIconButton(
-              icon:
-                  Icons.chevron_right_rounded,
-              tooltip: 'Next',
-              enabled:
-                  currentPage <
-                          totalPages &&
-                      !isLoading,
-              onPressed: () {
-                _goToPage(
-                  currentPage + 1,
-                );
-              },
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 8),
-
-        Text(
-          'Page $currentPage of $totalPages',
-          style: const TextStyle(
-            color:
-                Color(0xFF98A2B3),
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // PAGE NUMBERS
-  // ============================================================
-
-  Widget _buildImprovedPageNumbers() {
-    final List<int?> pages = [];
-
-    if (totalPages <= 7) {
-      for (
-        int i = 1;
-        i <= totalPages;
-        i++
-      ) {
-        pages.add(i);
-      }
-    } else {
-      pages.add(1);
-
-      if (currentPage > 4) {
-        pages.add(null);
-      }
-
-      int start =
-          currentPage - 1;
-
-      int end =
-          currentPage + 1;
-
-      if (currentPage <= 4) {
-        start = 2;
-        end = 5;
-      }
-
-      if (currentPage >=
-          totalPages - 3) {
-        start =
-            totalPages - 4;
-        end =
-            totalPages - 1;
-      }
-
-      for (
-        int i = start;
-        i <= end;
-        i++
-      ) {
-        if (i > 1 &&
-            i < totalPages) {
-          pages.add(i);
-        }
-      }
-
-      if (currentPage <
-          totalPages - 3) {
-        pages.add(null);
-      }
-
-      pages.add(totalPages);
-    }
-
-    return Row(
-      mainAxisSize:
-          MainAxisSize.min,
-      children:
-          pages.map((page) {
-        if (page == null) {
-          return const Padding(
-            padding:
-                EdgeInsets.symmetric(
-              horizontal: 5,
-            ),
-            child: Text(
-              '•••',
-              style: TextStyle(
-                color:
-                    Color(0xFF98A2B3),
-                fontSize: 12,
-                fontWeight:
-                    FontWeight.w600,
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+                  horizontal: 14,
+                ),
+                alignment:
+                    Alignment.center,
+                decoration:
+                    BoxDecoration(
+                  color: gold,
+                  borderRadius:
+                      BorderRadius
+                          .circular(
+                    10,
+                  ),
+                ),
+                child: Text(
+                  '$currentPage',
+                  style:
+                      const TextStyle(
+                    color:
+                        Colors.black,
+                    fontSize: 14,
+                    fontWeight:
+                        FontWeight
+                            .w800,
+                  ),
+                ),
               ),
-            ),
-          );
-        }
 
-        return Padding(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 3,
+              const SizedBox(
+                width: 10,
+              ),
+
+              _paginationButton(
+                icon:
+                    Icons
+                        .chevron_right_rounded,
+                enabled:
+                    currentPage <
+                            totalPages &&
+                        !isLoading,
+                onTap: () {
+                  _goToPage(
+                    currentPage + 1,
+                  );
+                },
+              ),
+            ],
           ),
-          child:
-              _pageNumberButton(
-            page,
+
+          const SizedBox(
+            height: 10,
           ),
-        );
-      }).toList(),
+
+          Text(
+            'Page $currentPage of $totalPages',
+            style:
+                const TextStyle(
+              color: softText,
+              fontSize: 11.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // ============================================================
-  // PAGE NUMBER BUTTON
-  // ============================================================
-
-  Widget _pageNumberButton(
-    int page,
-  ) {
-    final bool selected =
-        page == currentPage;
-
+  Widget _paginationButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap:
-          selected || isLoading
-              ? null
-              : () {
-                  _goToPage(page);
-                },
+          enabled ? onTap : null,
       borderRadius:
-          BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration:
-            const Duration(
-          milliseconds: 180,
-        ),
-        width: 38,
-        height: 38,
+          BorderRadius.circular(10),
+      child: Container(
+        width: 40,
+        height: 40,
         alignment:
             Alignment.center,
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(
-                  0xFF315BEF,
-                )
-              : Colors.white,
+          color: enabled
+              ? elevatedCard
+              : const Color(
+                  0xFF090A0B,
+                ),
           borderRadius:
-              BorderRadius.circular(8),
+              BorderRadius.circular(10),
           border: Border.all(
-            color: selected
-                ? const Color(
-                    0xFF315BEF,
-                  )
-                : const Color(
-                    0xFFD0D5DD,
-                  ),
+            color:
+                enabled
+                    ? borderColor
+                    : borderSoft,
           ),
         ),
-        child: Text(
-          '$page',
-          style: TextStyle(
-            color: selected
-                ? Colors.white
-                : const Color(
-                    0xFF344054,
-                  ),
-            fontSize: 13,
-            fontWeight: selected
-                ? FontWeight.w700
-                : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // PAGINATION ICON
-  // ============================================================
-
-  Widget _paginationIconButton({
-    required IconData icon,
-    required String tooltip,
-    required bool enabled,
-    required VoidCallback onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap:
-            enabled
-                ? onPressed
-                : null,
-        borderRadius:
-            BorderRadius.circular(8),
-        child: Container(
-          width: 38,
-          height: 38,
-          alignment:
-              Alignment.center,
-          decoration: BoxDecoration(
-            color: enabled
-                ? Colors.white
-                : const Color(
-                    0xFFF9FAFB,
-                  ),
-            borderRadius:
-                BorderRadius.circular(8),
-            border: Border.all(
-              color: enabled
-                  ? const Color(
-                      0xFFD0D5DD,
-                    )
-                  : const Color(
-                      0xFFE4E7EC,
-                    ),
-            ),
-          ),
-          child: Icon(
-            icon,
-            size: 19,
-            color: enabled
-                ? const Color(
-                    0xFF344054,
-                  )
-                : const Color(
-                    0xFFD0D5DD,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // CURRENT PAGE
-  // ============================================================
-
-  Widget _currentPageIndicator() {
-    return Container(
-      height: 38,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 18,
-      ),
-      alignment:
-          Alignment.center,
-      decoration: BoxDecoration(
-        color:
-            const Color(0xFF315BEF),
-        borderRadius:
-            BorderRadius.circular(8),
-      ),
-      child: Text(
-        '$currentPage',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight:
-              FontWeight.w700,
+        child: Icon(
+          icon,
+          size: 20,
+          color:
+              enabled
+                  ? lightText
+                  : softText,
         ),
       ),
     );
@@ -2069,72 +2266,96 @@ class _MasterListScreenState extends State<MasterListScreen> {
   void _viewSequence(
     Map<String, dynamic> sequence,
   ) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: true,
-      builder:
-          (dialogContext) {
-        return Dialog(
-          backgroundColor:
-              Colors.transparent,
-          insetPadding:
-              const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(
-              maxWidth: 850,
-              maxHeight: 750,
-            ),
-            child: Container(
+      isScrollControlled: true,
+      backgroundColor:
+          Colors.transparent,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.86,
+          minChildSize: 0.55,
+          maxChildSize: 0.95,
+          expand: false,
+          builder:
+              (
+                context,
+                scrollController,
+              ) {
+            return Container(
               decoration:
-                  BoxDecoration(
-                color: Colors.white,
+                  const BoxDecoration(
+                color:
+                    pageBackground,
                 borderRadius:
-                    BorderRadius.circular(
-                  20,
+                    BorderRadius.vertical(
+                  top:
+                      Radius.circular(
+                    24,
+                  ),
+                ),
+                border: Border(
+                  top:
+                      BorderSide(
+                    color:
+                        borderColor,
+                  ),
                 ),
               ),
-              child: Column(
-                children: [
-                  // HEADER
-                  Container(
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
-                      horizontal: 26,
-                      vertical: 22,
-                    ),
-                    decoration:
-                        const BoxDecoration(
-                      color:
-                          Color(0xFF101828),
-                      borderRadius:
-                          BorderRadius.only(
-                        topLeft:
-                            Radius.circular(
-                          20,
-                        ),
-                        topRight:
-                            Radius.circular(
-                          20,
+              child:
+                  SingleChildScrollView(
+                controller:
+                    scrollController,
+                padding:
+                    const EdgeInsets
+                        .fromLTRB(
+                  20,
+                  12,
+                  20,
+                  30,
+                ),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    Center(
+                      child:
+                          Container(
+                        width: 44,
+                        height: 4,
+                        decoration:
+                            BoxDecoration(
+                          color:
+                              borderColor,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            10,
+                          ),
                         ),
                       ),
                     ),
-                    child: Row(
+
+                    const SizedBox(
+                      height: 22,
+                    ),
+
+                    Row(
                       children: [
-                        const Icon(
-                          Icons.email_outlined,
-                          color:
-                              Color(0xFF7C9AFF),
-                          size: 28,
+                        _sequenceIcon(
+                          sequence[
+                                      'type']
+                                  ?.toString() ??
+                              'Email',
                         ),
 
                         const SizedBox(
-                            width: 14),
+                          width: 12,
+                        ),
 
                         Expanded(
-                          child:
-                              Column(
+                          child: Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment
                                     .start,
@@ -2144,545 +2365,320 @@ class _MasterListScreenState extends State<MasterListScreen> {
                                 style:
                                     TextStyle(
                                   color:
-                                      Colors.white,
+                                      white,
                                   fontSize:
                                       20,
                                   fontWeight:
-                                      FontWeight.w700,
+                                      FontWeight
+                                          .w800,
                                 ),
                               ),
 
                               const SizedBox(
-                                  height: 4),
+                                height: 3,
+                              ),
 
                               Text(
                                 'Step ${sequence['step'] ?? '-'} • Variant ${sequence['variant'] ?? '-'}',
                                 style:
                                     const TextStyle(
                                   color:
-                                      Color(0xFF98A2B3),
+                                      mutedText,
                                   fontSize:
-                                      13,
+                                      12,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-
-                        _dialogStatus(
-                          sequence['status']
-                                  ?.toString() ??
-                              '-',
                         ),
 
                         IconButton(
-                          onPressed:
-                              () {
+                          onPressed: () {
                             Navigator.pop(
-                              dialogContext,
+                              sheetContext,
                             );
                           },
                           icon:
                               const Icon(
-                            Icons.close,
+                            Icons
+                                .close_rounded,
                             color:
-                                Colors.white,
+                                lightText,
                           ),
                         ),
                       ],
                     ),
-                  ),
 
-                  // BODY
-                  Expanded(
-                    child:
-                        SingleChildScrollView(
-                      padding:
-                          const EdgeInsets.all(
-                        26,
-                      ),
-                      child:
-                          Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-                        children: [
-                          const Text(
-                            'Sequence Information',
-                            style:
-                                TextStyle(
-                              fontSize: 16,
-                              fontWeight:
-                                  FontWeight.w700,
-                            ),
-                          ),
-
-                          const SizedBox(
-                              height: 14),
-
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              _sequenceInfoCard(
-                                icon: Icons
-                                    .layers_outlined,
-                                title:
-                                    'Step',
-                                value:
-                                    sequence['step']
-                                            ?.toString() ??
-                                        '-',
-                              ),
-
-                              _sequenceInfoCard(
-                                icon: Icons
-                                    .schedule_outlined,
-                                title:
-                                    'Gap Days',
-                                value:
-                                    '${sequence['gapDays'] ?? 0} Day(s)',
-                              ),
-
-                              _sequenceInfoCard(
-                                icon: Icons
-                                    .alt_route_outlined,
-                                title:
-                                    'Variant',
-                                value:
-                                    sequence['variant']
-                                            ?.toString() ??
-                                        '-',
-                              ),
-
-                              _sequenceInfoCard(
-                                icon: Icons
-                                    .business_outlined,
-                                title:
-                                    'Business Type',
-                                value:
-                                    sequence['type']
-                                            ?.toString() ??
-                                        '-',
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(
-                              height: 28),
-
-                          const Text(
-                            'Email Details',
-                            style:
-                                TextStyle(
-                              fontSize: 16,
-                              fontWeight:
-                                  FontWeight.w700,
-                            ),
-                          ),
-
-                          const SizedBox(
-                              height: 14),
-
-                          _emailDetailContainer(
-                            title:
-                                'Subject',
-                            icon: Icons
-                                .subject_outlined,
-                            child:
-                                Text(
-                              sequence['subject']
-                                      ?.toString() ??
-                                  '-',
-                              style:
-                                  const TextStyle(
-                                fontSize:
-                                    15,
-                                fontWeight:
-                                    FontWeight
-                                        .w600,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(
-                              height: 14),
-
-                          _emailDetailContainer(
-                            title:
-                                'Message',
-                            icon: Icons
-                                .message_outlined,
-                            child:
-                                Container(
-                              width:
-                                  double.infinity,
-                              padding:
-                                  const EdgeInsets
-                                      .all(
-                                16,
-                              ),
-                              decoration:
-                                  BoxDecoration(
-                                color:
-                                    const Color(
-                                  0xFFF9FAFB,
-                                ),
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  10,
-                                ),
-                              ),
-                              child:
-                                  Text(
-                                sequence['content']
-                                        ?.toString() ??
-                                    '-',
-                                style:
-                                    const TextStyle(
-                                  color:
-                                      Color(
-                                    0xFF344054,
-                                  ),
-                                  fontSize:
-                                      14,
-                                  height:
-                                      1.6,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(
-                              height: 28),
-
-                          Container(
-                            width:
-                                double.infinity,
-                            padding:
-                                const EdgeInsets
-                                    .all(
-                              18,
-                            ),
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  const Color(
-                                0xFFF9FAFB,
-                              ),
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                12,
-                              ),
-                            ),
-                            child:
-                                Column(
-                              children: [
-                                _detailRow(
-                                  'Business Type',
-                                  sequence['type']
-                                          ?.toString() ??
-                                      '-',
-                                  Icons
-                                      .business_outlined,
-                                ),
-
-                                const Divider(
-                                  height: 24,
-                                ),
-
-                                _detailRow(
-                                  'WhatsApp',
-                                  _getWhatsApp(
-                                    sequence,
-                                  ),
-                                  Icons
-                                      .chat_outlined,
-                                ),
-
-                                const Divider(
-                                  height: 24,
-                                ),
-
-                                _detailRow(
-                                  'Created At',
-                                  _formatDateTime(
-                                    sequence[
-                                        'createdAt'],
-                                  ),
-                                  Icons
-                                      .calendar_today_outlined,
-                                ),
-
-                                const Divider(
-                                  height: 24,
-                                ),
-
-                                _detailRow(
-                                  'Updated At',
-                                  _formatDateTime(
-                                    sequence[
-                                        'updatedAt'],
-                                  ),
-                                  Icons
-                                      .update_outlined,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(
+                      height: 24,
                     ),
-                  ),
 
-                  // FOOTER
-                  Container(
-                    padding:
-                        const EdgeInsets.all(
-                      18,
-                    ),
-                    child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.end,
+                    _detailsSection(
+                      title:
+                          'Sequence Information',
                       children: [
-                        OutlinedButton(
-                          onPressed:
-                              () {
-                            Navigator.pop(
-                              dialogContext,
-                            );
-                          },
-                          child:
-                              const Text(
-                            'Close',
-                          ),
+                        _detailRow(
+                          'Step',
+                          sequence['step']
+                                  ?.toString() ??
+                              '-',
+                          Icons
+                              .layers_outlined,
                         ),
 
-                        const SizedBox(
-                            width: 12),
+                        _detailDivider(),
 
-                        ElevatedButton.icon(
-                          onPressed:
-                              () {
-                            Navigator.pop(
-                              dialogContext,
-                            );
+                        _detailRow(
+                          'Gap Days',
+                          '${sequence['gapDays'] ?? 0}',
+                          Icons
+                              .schedule_outlined,
+                        ),
 
-                            _editSequence(
-                              sequence,
-                            );
-                          },
-                          icon:
-                              const Icon(
-                            Icons.edit_outlined,
-                          ),
-                          label:
-                              const Text(
-                            'Edit Sequence',
-                          ),
+                        _detailDivider(),
+
+                        _detailRow(
+                          'Variant',
+                          sequence['variant']
+                                  ?.toString() ??
+                              '-',
+                          Icons
+                              .alt_route_outlined,
+                        ),
+
+                        _detailDivider(),
+
+                        _detailRow(
+                          'Type',
+                          sequence['type']
+                                  ?.toString() ??
+                              '-',
+                          Icons
+                              .email_outlined,
+                        ),
+
+                        _detailDivider(),
+
+                        _detailRow(
+                          'Status',
+                          sequence['status']
+                                  ?.toString() ??
+                              'draft',
+                          Icons
+                              .info_outline_rounded,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    _detailsSection(
+                      title:
+                          'Email Subject',
+                      children: [
+                        Text(
+                          sequence[
+                                      'subject']
+                                  ?.toString() ??
+                              '-',
                           style:
-                              ElevatedButton
-                                  .styleFrom(
-                            backgroundColor:
-                                const Color(
-                              0xFF315BEF,
-                            ),
-                            foregroundColor:
-                                Colors.white,
+                              const TextStyle(
+                            color:
+                                white,
+                            fontSize:
+                                14,
+                            height: 1.45,
+                            fontWeight:
+                                FontWeight
+                                    .w600,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    _detailsSection(
+                      title:
+                          'Message',
+                      children: [
+                        Text(
+                          sequence[
+                                      'content']
+                                  ?.toString() ??
+                              '-',
+                          style:
+                              const TextStyle(
+                            color:
+                                lightText,
+                            fontSize:
+                                13,
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(
+                      height: 16,
+                    ),
+
+                    _detailsSection(
+                      title:
+                          'Additional Information',
+                      children: [
+                        _detailRow(
+                          'WhatsApp',
+                          _getWhatsApp(
+                            sequence,
+                          ),
+                          Icons
+                              .chat_outlined,
+                        ),
+
+                        _detailDivider(),
+
+                        _detailRow(
+                          'Created',
+                          _formatDateTime(
+                            sequence[
+                                'createdAt'],
+                          ),
+                          Icons
+                              .calendar_today_outlined,
+                        ),
+
+                        _detailDivider(),
+
+                        _detailRow(
+                          'Updated',
+                          _formatDateTime(
+                            sequence[
+                                'updatedAt'],
+                          ),
+                          Icons
+                              .update_outlined,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(
+                      height: 24,
+                    ),
+
+                    SizedBox(
+                      width:
+                          double.infinity,
+                      height: 50,
+                      child:
+                          ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(
+                            sheetContext,
+                          );
+
+                          _editSequence(
+                            sequence,
+                          );
+                        },
+                        icon:
+                            const Icon(
+                          Icons
+                              .edit_outlined,
+                          size: 18,
+                        ),
+                        label:
+                            const Text(
+                          'Edit Sequence',
+                          style:
+                              TextStyle(
+                            fontWeight:
+                                FontWeight
+                                    .w700,
+                          ),
+                        ),
+                        style:
+                            ElevatedButton
+                                .styleFrom(
+                          backgroundColor:
+                              gold,
+                          foregroundColor:
+                              Colors.black,
+                          elevation: 0,
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(
+                              12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
 
   // ============================================================
-  // DIALOG STATUS
+  // DETAILS SECTION
   // ============================================================
 
-  Widget _dialogStatus(
-    String status,
-  ) {
-    final bool active =
-        status.toLowerCase() ==
-            'active';
-
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 7,
-      ),
-      decoration: BoxDecoration(
-        color: active
-            ? const Color(
-                0xFF12B76A,
-              ).withOpacity(0.15)
-            : Colors.white
-                .withOpacity(0.08),
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: active
-              ? const Color(
-                  0xFF32D583,
-                )
-              : const Color(
-                  0xFF98A2B3,
-                ),
-          fontSize: 12,
-          fontWeight:
-              FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // INFO CARD
-  // ============================================================
-
-  Widget _sequenceInfoCard({
-    required IconData icon,
+  Widget _detailsSection({
     required String title,
-    required String value,
-  }) {
-    return SizedBox(
-      width: 175,
-      child: Container(
-        padding:
-            const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color:
-              const Color(0xFFF9FAFB),
-          borderRadius:
-              BorderRadius.circular(12),
-          border: Border.all(
-            color:
-                const Color(0xFFE4E7EC),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color:
-                  const Color(0xFF315BEF),
-              size: 20,
-            ),
-
-            const SizedBox(width: 10),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
-                children: [
-                  Text(
-                    title,
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF667085),
-                      fontSize: 11,
-                    ),
-                  ),
-
-                  const SizedBox(
-                      height: 4),
-
-                  Text(
-                    value,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
-                      color:
-                          Color(0xFF101828),
-                      fontSize: 14,
-                      fontWeight:
-                          FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // EMAIL DETAIL
-  // ============================================================
-
-  Widget _emailDetailContainer({
-    required String title,
-    required IconData icon,
-    required Widget child,
+    required List<Widget> children,
   }) {
     return Container(
       width: double.infinity,
       padding:
-          const EdgeInsets.all(18),
+          const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBackground,
         borderRadius:
-            BorderRadius.circular(12),
+            BorderRadius.circular(14),
         border: Border.all(
-          color:
-              const Color(0xFFE4E7EC),
+          color: borderColor,
         ),
       ),
       child: Column(
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 19,
-                color:
-                    const Color(0xFF667085),
-              ),
-
-              const SizedBox(width: 8),
-
-              Text(
-                title,
-                style:
-                    const TextStyle(
-                  color:
-                      Color(0xFF344054),
-                  fontSize: 13,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-            ],
+          Text(
+            title,
+            style:
+                const TextStyle(
+              color: gold,
+              fontSize: 12.5,
+              fontWeight:
+                  FontWeight.w700,
+            ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 14,
+          ),
 
-          child,
+          ...children,
         ],
       ),
+    );
+  }
+
+  Widget _detailDivider() {
+    return const Divider(
+      height: 24,
+      color: borderSoft,
     );
   }
 
@@ -2696,38 +2692,40 @@ class _MasterListScreenState extends State<MasterListScreen> {
     IconData icon,
   ) {
     return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
         Icon(
           icon,
-          size: 19,
-          color:
-              const Color(0xFF667085),
+          size: 18,
+          color: mutedText,
         ),
 
         const SizedBox(width: 10),
 
-        Expanded(
+        SizedBox(
+          width: 86,
           child: Text(
             title,
             style:
                 const TextStyle(
-              color:
-                  Color(0xFF667085),
-              fontSize: 13,
+              color: mutedText,
+              fontSize: 12,
             ),
           ),
         ),
 
-        Flexible(
+        const SizedBox(width: 8),
+
+        Expanded(
           child: Text(
             value,
             textAlign:
                 TextAlign.right,
             style:
                 const TextStyle(
-              color:
-                  Color(0xFF101828),
-              fontSize: 13,
+              color: white,
+              fontSize: 12.5,
               fontWeight:
                   FontWeight.w600,
             ),
@@ -2738,7 +2736,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // ADD NEW SEQUENCE
+  // ADD SEQUENCE
   // ============================================================
 
   Future<void> _addNewSequence() async {
@@ -2753,7 +2751,9 @@ class _MasterListScreenState extends State<MasterListScreen> {
       ),
     );
 
-    if (result == true) {
+    // CreateSequenceForm currently returns a result map,
+    // so check for non-null instead of only `result == true`.
+    if (result != null) {
       await _loadSequences(
         page: currentPage,
       );
@@ -2761,7 +2761,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // EDIT SEQUENCE
+  // EDIT
   // ============================================================
 
   Future<void> _editSequence(
@@ -2778,7 +2778,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
       ),
     );
 
-    if (result == true) {
+    if (result != null) {
       await _loadSequences(
         page: currentPage,
       );
@@ -2794,14 +2794,49 @@ class _MasterListScreenState extends State<MasterListScreen> {
   ) {
     showDialog(
       context: context,
-      builder:
-          (dialogContext) {
+      builder: (dialogContext) {
         return AlertDialog(
-          title: const Text(
-            'Delete Sequence',
+          backgroundColor:
+              elevatedCard,
+          surfaceTintColor:
+              Colors.transparent,
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(18),
+            side:
+                const BorderSide(
+              color: borderColor,
+            ),
+          ),
+          title:
+              const Row(
+            children: [
+              Icon(
+                Icons
+                    .delete_outline_rounded,
+                color: red,
+              ),
+              SizedBox(width: 10),
+              Text(
+                'Delete Sequence',
+                style: TextStyle(
+                  color: white,
+                  fontSize: 18,
+                  fontWeight:
+                      FontWeight.w700,
+                ),
+              ),
+            ],
           ),
           content: Text(
             'Are you sure you want to delete Step ${sequence['step'] ?? '-'}?',
+            style:
+                const TextStyle(
+              color: lightText,
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
           actions: [
             TextButton(
@@ -2811,7 +2846,12 @@ class _MasterListScreenState extends State<MasterListScreen> {
                 );
               },
               child:
-                  const Text('Cancel'),
+                  const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: mutedText,
+                ),
+              ),
             ),
 
             ElevatedButton(
@@ -2823,10 +2863,12 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
                   totalSequences =
                       totalSequences > 0
-                          ? totalSequences - 1
+                          ? totalSequences -
+                              1
                           : 0;
 
-                  if (sequences.isEmpty &&
+                  if (sequences
+                          .isEmpty &&
                       currentPage > 1) {
                     currentPage--;
                   }
@@ -2841,14 +2883,17 @@ class _MasterListScreenState extends State<MasterListScreen> {
                 );
               },
               style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.red,
+                  ElevatedButton
+                      .styleFrom(
+                backgroundColor: red,
                 foregroundColor:
                     Colors.white,
+                elevation: 0,
               ),
               child:
-                  const Text('Delete'),
+                  const Text(
+                'Delete',
+              ),
             ),
           ],
         );
@@ -2876,31 +2921,6 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }
 
   // ============================================================
-  // DATE
-  // ============================================================
-
-  String _formatDate(
-    dynamic value,
-  ) {
-    if (value == null) {
-      return '-';
-    }
-
-    try {
-      final date =
-          DateTime.parse(
-        value.toString(),
-      );
-
-      return '${date.day.toString().padLeft(2, '0')}-'
-          '${date.month.toString().padLeft(2, '0')}-'
-          '${date.year}';
-    } catch (_) {
-      return value.toString();
-    }
-  }
-
-  // ============================================================
   // DATE TIME
   // ============================================================
 
@@ -2912,34 +2932,91 @@ class _MasterListScreenState extends State<MasterListScreen> {
     }
 
     try {
-      final date =
-          DateTime.parse(
+      final date = DateTime.parse(
         value.toString(),
-      );
+      ).toLocal();
 
-      return '${date.day.toString().padLeft(2, '0')}-'
-          '${date.month.toString().padLeft(2, '0')}-'
-          '${date.year} '
-          '${date.hour.toString().padLeft(2, '0')}:'
-          '${date.minute.toString().padLeft(2, '0')}';
+      final String day =
+          date.day
+              .toString()
+              .padLeft(2, '0');
+
+      final String month =
+          date.month
+              .toString()
+              .padLeft(2, '0');
+
+      final String hour =
+          date.hour
+              .toString()
+              .padLeft(2, '0');
+
+      final String minute =
+          date.minute
+              .toString()
+              .padLeft(2, '0');
+
+      return '$day-$month-${date.year}  $hour:$minute';
     } catch (_) {
       return value.toString();
     }
   }
 
   // ============================================================
-  // MESSAGE
+  // CAPITALIZE
+  // ============================================================
+
+  String _capitalize(
+    String value,
+  ) {
+    if (value.trim().isEmpty) {
+      return value;
+    }
+
+    final String text =
+        value.trim();
+
+    return '${text[0].toUpperCase()}${text.substring(1).toLowerCase()}';
+  }
+
+  // ============================================================
+  // SNACKBAR
   // ============================================================
 
   void _showMessage(
-    String message,
-  ) {
+    String message, {
+    bool isError = false,
+  }) {
     if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style:
+              const TextStyle(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor:
+            isError
+                ? const Color(
+                    0xFF7F1D1D,
+                  )
+                : const Color(
+                    0xFF17191C,
+                  ),
+        behavior:
+            SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(12),
+        ),
       ),
     );
   }
