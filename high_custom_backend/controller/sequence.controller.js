@@ -19,7 +19,11 @@ const { processSequencesForUser } = require("../jobs/sequence.job");
 
 exports.createSequence = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    // ==========================================================
+    // AUTH USER
+    // ==========================================================
+
+    const userId = req.user?.id || req.user?._id;
 
     if (!userId) {
       return res.status(401).json({
@@ -28,11 +32,18 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // BODY
+    // ==========================================================
+
     const {
       step,
       gapDays,
       variant,
+
+      // Custom business type from Flutter
       type,
+
       subject,
       brand,
       heroImage,
@@ -47,6 +58,24 @@ exports.createSequence = async (req, res) => {
     } = req.body;
 
     // ==========================================================
+    // PARSE JSON MULTIPART FIELDS
+    // ==========================================================
+
+    const parsedBrand = parseJsonField(brand, {});
+
+    const parsedHeroImage = parseJsonField(heroImage, {});
+
+    const parsedEditor = parseJsonField(editor, {});
+
+    const parsedAttachment = parseJsonField(attachment, {});
+
+    const parsedActionLinks = parseJsonField(actionLinks, {});
+
+    const parsedTracking = parseJsonField(tracking, {});
+
+    const parsedStatistics = parseJsonField(statistics, {});
+
+    // ==========================================================
     // FILES
     // ==========================================================
 
@@ -57,7 +86,7 @@ exports.createSequence = async (req, res) => {
     const attachmentFile = req.files?.attachment?.[0] || null;
 
     // ==========================================================
-    // VALIDATION
+    // STEP VALIDATION
     // ==========================================================
 
     if (step === undefined || step === null || step === "") {
@@ -76,7 +105,14 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    const gapDaysNumber = Number(gapDays || 0);
+    // ==========================================================
+    // GAP DAYS
+    // ==========================================================
+
+    const gapDaysNumber =
+      gapDays === undefined || gapDays === null || gapDays === ""
+        ? 0
+        : Number(gapDays);
 
     if (!Number.isInteger(gapDaysNumber) || gapDaysNumber < 0) {
       return res.status(400).json({
@@ -85,7 +121,11 @@ exports.createSequence = async (req, res) => {
       });
     }
 
-    if (!variant || typeof variant !== "string") {
+    // ==========================================================
+    // VARIANT
+    // ==========================================================
+
+    if (!variant || typeof variant !== "string" || variant.trim() === "") {
       return res.status(400).json({
         success: false,
         message: "Variant is required",
@@ -94,12 +134,36 @@ exports.createSequence = async (req, res) => {
 
     const formattedVariant = variant.trim().toUpperCase();
 
-    if (!type || type === "Select Type") {
+    // ==========================================================
+    // BUSINESS TYPE
+    // ==========================================================
+
+    if (!type || typeof type !== "string" || type.trim() === "") {
       return res.status(400).json({
         success: false,
-        message: "Sequence type is required",
+        message: "Business type is required",
       });
     }
+
+    const formattedBusinessType = type.trim();
+
+    if (formattedBusinessType.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Business type must contain at least 2 characters",
+      });
+    }
+
+    if (formattedBusinessType.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Business type cannot exceed 100 characters",
+      });
+    }
+
+    // ==========================================================
+    // SUBJECT
+    // ==========================================================
 
     if (!subject || typeof subject !== "string" || subject.trim() === "") {
       return res.status(400).json({
@@ -110,7 +174,16 @@ exports.createSequence = async (req, res) => {
 
     const formattedSubject = subject.trim();
 
-    if (content === undefined || content === null) {
+    // ==========================================================
+    // CONTENT
+    // ==========================================================
+
+    if (
+      content === undefined ||
+      content === null ||
+      typeof content !== "string" ||
+      content.trim() === ""
+    ) {
       return res.status(400).json({
         success: false,
         message: "Email content is required",
@@ -130,7 +203,7 @@ exports.createSequence = async (req, res) => {
     if (existingSequence) {
       return res.status(409).json({
         success: false,
-        message: "Sequence already exists",
+        message: "A sequence with this step and variant already exists",
       });
     }
 
@@ -141,7 +214,7 @@ exports.createSequence = async (req, res) => {
     const baseUrl = `${req.protocol}://${req.get("host")}`;
 
     // ==========================================================
-    // LOGO
+    // BRAND / LOGO
     // ==========================================================
 
     let logoUrl = null;
@@ -152,8 +225,14 @@ exports.createSequence = async (req, res) => {
 
     const logoEnabled = Boolean(brandLogoFile);
 
+    const logoPosition = ["Left", "Center", "Right"].includes(
+      parsedBrand?.logoPosition,
+    )
+      ? parsedBrand.logoPosition
+      : "Center";
+
     // ==========================================================
-    // HERO
+    // HERO IMAGE
     // ==========================================================
 
     let heroUrl = null;
@@ -163,6 +242,19 @@ exports.createSequence = async (req, res) => {
     }
 
     const heroEnabled = Boolean(heroImageFile);
+
+    let heroLink = null;
+
+    if (typeof parsedHeroImage?.link === "string") {
+      const cleanedHeroLink = parsedHeroImage.link.trim();
+
+      if (
+        cleanedHeroLink.startsWith("https://") ||
+        cleanedHeroLink.startsWith("http://")
+      ) {
+        heroLink = cleanedHeroLink;
+      }
+    }
 
     // ==========================================================
     // ATTACHMENT
@@ -179,14 +271,18 @@ exports.createSequence = async (req, res) => {
     if (attachmentFile) {
       attachmentData = {
         enabled: true,
-
         name: attachmentFile.originalname,
-
         url: `${baseUrl}/uploads/attachments/${attachmentFile.filename}`,
-
         mimeType: attachmentFile.mimetype,
-
         size: attachmentFile.size,
+      };
+    } else if (parsedAttachment && typeof parsedAttachment === "object") {
+      attachmentData = {
+        enabled: false,
+        name: parsedAttachment?.name || null,
+        url: null,
+        mimeType: parsedAttachment?.mimeType || null,
+        size: Number(parsedAttachment?.size || 0),
       };
     }
 
@@ -196,13 +292,20 @@ exports.createSequence = async (req, res) => {
 
     let whatsappUrl = null;
 
-    if (typeof actionLinks?.whatsapp === "string") {
-      const cleanedWhatsapp = actionLinks.whatsapp.trim();
+    let whatsappValue = null;
+
+    if (typeof parsedActionLinks?.whatsapp === "string") {
+      whatsappValue = parsedActionLinks.whatsapp;
+    } else if (typeof parsedActionLinks?.whatsapp?.url === "string") {
+      whatsappValue = parsedActionLinks.whatsapp.url;
+    }
+
+    if (whatsappValue) {
+      const cleanedWhatsapp = whatsappValue.trim();
 
       if (
-        cleanedWhatsapp !== "" &&
-        (cleanedWhatsapp.startsWith("https://") ||
-          cleanedWhatsapp.startsWith("http://"))
+        cleanedWhatsapp.startsWith("https://") ||
+        cleanedWhatsapp.startsWith("http://")
       ) {
         whatsappUrl = cleanedWhatsapp;
       }
@@ -220,15 +323,15 @@ exports.createSequence = async (req, res) => {
       url: null,
     };
 
-    if (actionLinks?.cta && typeof actionLinks.cta === "object") {
+    if (parsedActionLinks?.cta && typeof parsedActionLinks.cta === "object") {
       const ctaText =
-        typeof actionLinks.cta.text === "string"
-          ? actionLinks.cta.text.trim()
+        typeof parsedActionLinks.cta.text === "string"
+          ? parsedActionLinks.cta.text.trim()
           : "";
 
       const ctaUrl =
-        typeof actionLinks.cta.url === "string"
-          ? actionLinks.cta.url.trim()
+        typeof parsedActionLinks.cta.url === "string"
+          ? parsedActionLinks.cta.url.trim()
           : "";
 
       if (
@@ -244,7 +347,60 @@ exports.createSequence = async (req, res) => {
     }
 
     // ==========================================================
-    // CREATE
+    // EDITOR
+    // ==========================================================
+
+    const editorData = {
+      font: parsedEditor?.font || "Arial",
+
+      fontSize: parsedEditor?.fontSize || "16px",
+
+      textColor: parsedEditor?.textColor || "Black",
+
+      bold: toBoolean(parsedEditor?.bold, false),
+
+      italic: toBoolean(parsedEditor?.italic, false),
+
+      underline: toBoolean(parsedEditor?.underline, false),
+    };
+
+    // ==========================================================
+    // TRACKING
+    // ==========================================================
+
+    const trackingEnabled = toBoolean(parsedTracking?.enabled, true);
+
+    // ==========================================================
+    // STATUS
+    // ==========================================================
+
+    const allowedStatuses = ["draft", "scheduled", "active", "paused"];
+
+    const formattedStatus = allowedStatuses.includes(status) ? status : "draft";
+
+    // ==========================================================
+    // SCHEDULE DATE
+    // ==========================================================
+
+    let formattedScheduledAt = null;
+
+    if (scheduledAt && typeof scheduledAt === "string") {
+      const scheduleDate = new Date(scheduledAt);
+
+      if (!Number.isNaN(scheduleDate.getTime())) {
+        formattedScheduledAt = scheduleDate;
+      }
+    }
+
+    if (formattedStatus === "scheduled" && !formattedScheduledAt) {
+      return res.status(400).json({
+        success: false,
+        message: "Scheduled date and time is required when status is scheduled",
+      });
+    }
+
+    // ==========================================================
+    // CREATE SEQUENCE
     // ==========================================================
 
     const sequence = await SEQUENCE_COLLECTION.create({
@@ -256,7 +412,11 @@ exports.createSequence = async (req, res) => {
 
       variant: formattedVariant,
 
-      type,
+      // ======================================================
+      // CUSTOM BUSINESS TYPE
+      // ======================================================
+
+      type: formattedBusinessType,
 
       subject: formattedSubject,
 
@@ -269,11 +429,11 @@ exports.createSequence = async (req, res) => {
 
         logoUrl,
 
-        logoPosition: brand?.logoPosition || "Center",
+        logoPosition,
       },
 
       // ======================================================
-      // HERO
+      // HERO IMAGE
       // ======================================================
 
       heroImage: {
@@ -281,32 +441,20 @@ exports.createSequence = async (req, res) => {
 
         url: heroUrl,
 
-        link: heroEnabled && heroImage?.link ? heroImage.link : null,
+        link: heroLink,
       },
 
       // ======================================================
       // CONTENT
       // ======================================================
 
-      content,
+      content: content,
 
       // ======================================================
       // EDITOR
       // ======================================================
 
-      editor: {
-        font: editor?.font || "Arial",
-
-        fontSize: editor?.fontSize || "16px",
-
-        textColor: editor?.textColor || "Black",
-
-        bold: editor?.bold ?? false,
-
-        italic: editor?.italic ?? false,
-
-        underline: editor?.underline ?? false,
-      },
+      editor: editorData,
 
       // ======================================================
       // ATTACHMENT
@@ -333,41 +481,55 @@ exports.createSequence = async (req, res) => {
       // ======================================================
 
       tracking: {
-        enabled: tracking?.enabled ?? true,
+        enabled: trackingEnabled,
 
-        trackingId: tracking?.trackingId || crypto.randomUUID(),
+        trackingId: parsedTracking?.trackingId || crypto.randomUUID(),
       },
 
-      status: status || "draft",
+      // ======================================================
+      // STATUS
+      // ======================================================
 
-      scheduledAt: scheduledAt || null,
+      status: formattedStatus,
+
+      scheduledAt: formattedScheduledAt,
+
+      // ======================================================
+      // STATISTICS
+      // ======================================================
 
       statistics: {
-        sent: statistics?.sent || 0,
+        sent: Number(parsedStatistics?.sent || 0),
 
-        delivered: statistics?.delivered || 0,
+        delivered: Number(parsedStatistics?.delivered || 0),
 
-        opened: statistics?.opened || 0,
+        opened: Number(parsedStatistics?.opened || 0),
 
-        clicked: statistics?.clicked || 0,
+        clicked: Number(parsedStatistics?.clicked || 0),
 
-        failed: statistics?.failed || 0,
+        failed: Number(parsedStatistics?.failed || 0),
 
-        interested: statistics?.interested || 0,
+        interested: Number(parsedStatistics?.interested || 0),
 
-        notInterested: statistics?.notInterested || 0,
+        notInterested: Number(parsedStatistics?.notInterested || 0),
       },
     });
 
+    // ==========================================================
+    // RESPONSE
+    // ==========================================================
+
     return res.status(201).json({
       success: true,
-
       message: "Sequence Created Successfully",
-
       data: sequence,
     });
   } catch (error) {
     console.error("Error while creating Sequence:", error);
+
+    // ==========================================================
+    // MULTER
+    // ==========================================================
 
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
@@ -390,12 +552,20 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // DUPLICATE
+    // ==========================================================
+
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: "A sequence with this step and variant already exists",
       });
     }
+
+    // ==========================================================
+    // MONGOOSE VALIDATION
+    // ==========================================================
 
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors || {}).map(
@@ -409,12 +579,20 @@ exports.createSequence = async (req, res) => {
       });
     }
 
+    // ==========================================================
+    // CAST ERROR
+    // ==========================================================
+
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
         message: `Invalid value for ${error.path}`,
       });
     }
+
+    // ==========================================================
+    // INTERNAL ERROR
+    // ==========================================================
 
     return res.status(500).json({
       success: false,
@@ -423,6 +601,56 @@ exports.createSequence = async (req, res) => {
     });
   }
 };
+
+// ============================================================
+// PARSE JSON FIELD
+// ============================================================
+
+function parseJsonField(value, fallback = {}) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  if (typeof value === "object") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+// ============================================================
+// BOOLEAN CONVERTER
+// ============================================================
+
+function toBoolean(value, defaultValue = false) {
+  if (value === undefined || value === null) {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    if (value.toLowerCase() === "true") {
+      return true;
+    }
+
+    if (value.toLowerCase() === "false") {
+      return false;
+    }
+  }
+
+  return Boolean(value);
+}
 
 // ============================================================
 // GET SEQUENCES

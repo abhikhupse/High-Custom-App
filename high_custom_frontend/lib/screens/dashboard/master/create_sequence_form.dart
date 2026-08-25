@@ -20,26 +20,6 @@ class CreateSequenceForm extends StatefulWidget {
 }
 
 // ============================================================
-// TYPE MODEL
-// ============================================================
-
-class _SequenceTypeOption {
-  final String value;
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color color;
-
-  const _SequenceTypeOption({
-    required this.value,
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.color,
-  });
-}
-
-// ============================================================
 // STATE
 // ============================================================
 
@@ -82,8 +62,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // FORM
   // ============================================================
 
-  final GlobalKey<FormState> _formKey =
-      GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // ============================================================
   // CURRENT STEP
@@ -148,10 +127,16 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       TextEditingController();
 
   // ============================================================
-  // SELECTIONS
+  // BUSINESS TYPE
   // ============================================================
 
-  String selectedType = 'Email';
+  String selectedBusinessType = '';
+
+  final List<String> businessTypes = [];
+
+  // ============================================================
+  // SELECTIONS
+  // ============================================================
 
   String selectedLogoPosition = 'Center';
 
@@ -234,28 +219,19 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         key: _formKey,
         child: Column(
           children: [
-            // ==================================================
-            // TOP STEPPER
-            // ==================================================
-
             _buildStepper(),
-
-            // ==================================================
-            // PAGE
-            // ==================================================
 
             Expanded(
               child: AnimatedSwitcher(
-                duration:
-                    const Duration(milliseconds: 220),
+                duration: const Duration(
+                  milliseconds: 220,
+                ),
                 child: SingleChildScrollView(
                   key: ValueKey<int>(
                     currentStep,
                   ),
-                  physics:
-                      const BouncingScrollPhysics(),
-                  padding:
-                      const EdgeInsets.fromLTRB(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
                     14,
                     16,
                     14,
@@ -315,137 +291,113 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           ),
         ),
       ),
-      child: Column(
-        children: [
-          Row(
-            children:
-                List.generate(
-              4,
-              (index) {
-                return Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                if (index <
-                                    currentStep) {
+      child: Row(
+        children: List.generate(
+          stepTitles.length,
+          (index) {
+            final bool completed =
+                index < currentStep;
+
+            final bool active =
+                index == currentStep;
+
+            return Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: completed
+                              ? () {
                                   setState(() {
-                                    currentStep =
-                                        index;
+                                    currentStep = index;
                                   });
                                 }
-                              },
-                              child: AnimatedContainer(
-                                duration:
-                                    const Duration(
-                                  milliseconds:
-                                      200,
-                                ),
-                                width: 32,
-                                height: 32,
-                                alignment:
-                                    Alignment.center,
-                                decoration:
-                                    BoxDecoration(
-                                  color: index <
-                                          currentStep
-                                      ? green
-                                      : index ==
-                                              currentStep
-                                          ? gold
-                                          : fieldBackground,
-                                  shape:
-                                      BoxShape.circle,
-                                  border:
-                                      Border.all(
-                                    color: index <=
-                                            currentStep
-                                        ? index <
-                                                currentStep
-                                            ? green
-                                            : gold
+                              : null,
+                          child: AnimatedContainer(
+                            duration: const Duration(
+                              milliseconds: 200,
+                            ),
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: completed
+                                  ? green
+                                  : active
+                                      ? gold
+                                      : fieldBackground,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: completed
+                                    ? green
+                                    : active
+                                        ? gold
                                         : borderColor,
+                              ),
+                            ),
+                            child: completed
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    size: 16,
+                                    color: Colors.black,
+                                  )
+                                : Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      color: active
+                                          ? Colors.black
+                                          : secondaryTextColor,
+                                      fontWeight:
+                                          FontWeight.w800,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                                child: index <
-                                        currentStep
-                                    ? const Icon(
-                                        Icons
-                                            .check_rounded,
-                                        size: 16,
-                                        color: Colors
-                                            .black,
-                                      )
-                                    : Text(
-                                        '${index + 1}',
-                                        style:
-                                            TextStyle(
-                                          color: index ==
-                                                  currentStep
-                                              ? Colors
-                                                  .black
-                                              : secondaryTextColor,
-                                          fontWeight:
-                                              FontWeight
-                                                  .w800,
-                                          fontSize:
-                                              12,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 7,
-                            ),
-                            Text(
-                              stepTitles[index],
-                              textAlign:
-                                  TextAlign.center,
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow
-                                      .ellipsis,
-                              style: TextStyle(
-                                color: index ==
-                                        currentStep
-                                    ? gold
-                                    : index <
-                                            currentStep
-                                        ? textColor
-                                        : secondaryTextColor,
-                                fontSize: 9.5,
-                                fontWeight: index ==
-                                        currentStep
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (index != 3)
-                        Container(
-                          width: 16,
-                          height: 1,
-                          margin:
-                              const EdgeInsets.only(
-                            bottom: 22,
                           ),
-                          color: index <
-                                  currentStep
-                              ? green
-                              : borderColor,
                         ),
-                    ],
+
+                        const SizedBox(height: 7),
+
+                        Text(
+                          stepTitles[index],
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: active
+                                ? gold
+                                : completed
+                                    ? textColor
+                                    : secondaryTextColor,
+                            fontSize: 9.5,
+                            fontWeight: active
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+
+                  if (index !=
+                      stepTitles.length - 1)
+                    Container(
+                      width: 16,
+                      height: 1,
+                      margin: const EdgeInsets.only(
+                        bottom: 22,
+                      ),
+                      color: completed
+                          ? green
+                          : borderColor,
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -458,8 +410,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     return Column(
       children: [
         _stepHeader(
-          icon: Icons
-              .description_outlined,
+          icon: Icons.description_outlined,
           title: 'Basic Information',
           subtitle:
               'Set up your sequence details.',
@@ -467,98 +418,104 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         const SizedBox(height: 16),
 
+        // ========================================================
+        // SEQUENCE DETAILS
+        // ========================================================
+
         _buildCard(
           title: 'Sequence Details',
           subtitle:
               'Configure the main campaign information.',
-          icon:
-              Icons.tune_rounded,
+          icon: Icons.tune_rounded,
           child: Column(
             children: [
-              Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller:
-                          stepController,
-                      label: 'Step',
-                      hint: '1',
-                      keyboardType:
-                          TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter
-                            .digitsOnly,
+              // =================================================
+              // STEP + GAP
+              // =================================================
+
+              LayoutBuilder(
+                builder: (
+                  context,
+                  constraints,
+                ) {
+                  if (constraints.maxWidth < 330) {
+                    return Column(
+                      children: [
+                        _buildTextField(
+                          controller: stepController,
+                          label: 'Step',
+                          hint: '1',
+                          keyboardType:
+                              TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter
+                                .digitsOnly,
+                          ],
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _buildTextField(
+                          controller:
+                              gapDaysController,
+                          label: 'Gap Days',
+                          hint: '0',
+                          keyboardType:
+                              TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter
+                                .digitsOnly,
+                          ],
+                        ),
                       ],
-                      validator: (value) {
-                        if (value == null ||
-                            value
-                                .trim()
-                                .isEmpty) {
-                          return 'Required';
-                        }
+                    );
+                  }
 
-                        final parsed =
-                            int.tryParse(
-                          value.trim(),
-                        );
+                  return Row(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller:
+                              stepController,
+                          label: 'Step',
+                          hint: '1',
+                          keyboardType:
+                              TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter
+                                .digitsOnly,
+                          ],
+                        ),
+                      ),
 
-                        if (parsed == null ||
-                            parsed <= 0) {
-                          return 'Invalid';
-                        }
+                      const SizedBox(width: 10),
 
-                        return null;
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(
-                    width: 10,
-                  ),
-
-                  Expanded(
-                    child: _buildTextField(
-                      controller:
-                          gapDaysController,
-                      label:
-                          'Gap Days',
-                      hint: '0',
-                      keyboardType:
-                          TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter
-                            .digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (value == null ||
-                            value
-                                .trim()
-                                .isEmpty) {
-                          return 'Required';
-                        }
-
-                        final parsed =
-                            int.tryParse(
-                          value.trim(),
-                        );
-
-                        if (parsed == null ||
-                            parsed < 0) {
-                          return 'Invalid';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
+                      Expanded(
+                        child: _buildTextField(
+                          controller:
+                              gapDaysController,
+                          label: 'Gap Days',
+                          hint: '0',
+                          keyboardType:
+                              TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter
+                                .digitsOnly,
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
+
+              // =================================================
+              // VARIANT
+              // =================================================
 
               _buildTextField(
                 controller:
@@ -566,49 +523,31 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 label: 'Variant',
                 hint: 'Example: A',
                 textCapitalization:
-                    TextCapitalization
-                        .characters,
-                validator: (value) {
-                  if (value == null ||
-                      value
-                          .trim()
-                          .isEmpty) {
-                    return 'Variant is required';
-                  }
-
-                  return null;
-                },
+                    TextCapitalization.characters,
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
-              _buildTypeSelector(),
+              // =================================================
+              // BUSINESS TYPE
+              // =================================================
 
-              const SizedBox(
-                height: 16,
-              ),
+              _buildBusinessTypeSelector(),
+
+              const SizedBox(height: 16),
+
+              // =================================================
+              // SUBJECT
+              // =================================================
 
               _buildTextField(
                 controller:
                     subjectController,
-                label:
-                    'Email Subject',
+                label: 'Email Subject',
                 hint:
                     'Enter your email subject',
                 prefixIcon:
                     Icons.subject_rounded,
-                validator: (value) {
-                  if (value == null ||
-                      value
-                          .trim()
-                          .isEmpty) {
-                    return 'Subject is required';
-                  }
-
-                  return null;
-                },
               ),
             ],
           ),
@@ -616,12 +555,15 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         const SizedBox(height: 14),
 
+        // ========================================================
+        // BRAND
+        // ========================================================
+
         _buildCard(
           title: 'Brand Identity',
           subtitle:
               'Upload your company logo or banner.',
-          icon:
-              Icons.business_outlined,
+          icon: Icons.business_outlined,
           child: Column(
             children: [
               _buildFilePicker(
@@ -631,19 +573,16 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     logoController.text,
                 emptyText:
                     'Upload logo or banner',
-                icon: Icons
-                    .cloud_upload_outlined,
+                icon:
+                    Icons.cloud_upload_outlined,
                 onTap:
                     _pickLogoFile,
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               _buildDropdown(
-                label:
-                    'Logo Position',
+                label: 'Logo Position',
                 value:
                     selectedLogoPosition,
                 items: const [
@@ -668,12 +607,15 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         const SizedBox(height: 14),
 
+        // ========================================================
+        // HERO
+        // ========================================================
+
         _buildCard(
           title: 'Hero Image',
           subtitle:
               'Add your campaign promotional image.',
-          icon:
-              Icons.image_outlined,
+          icon: Icons.image_outlined,
           child: Column(
             children: [
               _goldInfoBox(
@@ -683,25 +625,22 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     '1200 × 400 px • Maximum 2 MB',
               ),
 
-              const SizedBox(
-                height: 14,
-              ),
+              const SizedBox(height: 14),
 
               _buildFilePicker(
-                label: 'Hero Image',
+                label:
+                    'Hero Image',
                 value:
                     heroImageController.text,
                 emptyText:
                     'Upload hero image',
-                icon: Icons
-                    .add_photo_alternate_outlined,
+                icon:
+                    Icons.add_photo_alternate_outlined,
                 onTap:
                     _pickHeroImage,
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               _buildTextField(
                 controller:
@@ -722,18 +661,833 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 18),
 
         _navigationButtons(
-          nextTitle:
-              'Continue',
+          nextTitle: 'Continue',
           nextIcon:
               Icons.arrow_forward_rounded,
-          onNext: _nextStep,
+          onNext:
+              _nextStep,
         ),
       ],
     );
   }
 
   // ============================================================
-  // STEP 2 - EMAIL
+  // BUSINESS TYPE SELECTOR
+  // ============================================================
+
+  Widget _buildBusinessTypeSelector() {
+    final bool hasType =
+        selectedBusinessType.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Business Type',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(height: 7),
+
+        InkWell(
+          onTap: isLoading
+              ? null
+              : _showBusinessTypeSelector,
+          borderRadius:
+              BorderRadius.circular(10),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: fieldBackground,
+              borderRadius:
+                  BorderRadius.circular(10),
+              border: Border.all(
+                color: hasType
+                    ? gold
+                    : borderColor,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color:
+                        gold.withOpacity(0.09),
+                    borderRadius:
+                        BorderRadius.circular(9),
+                  ),
+                  child: Icon(
+                    hasType
+                        ? Icons.storefront_outlined
+                        : Icons.add_business_outlined,
+                    color: gold,
+                    size: 19,
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasType
+                            ? selectedBusinessType
+                            : 'Add Business Type',
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: hasType
+                              ? textColor
+                              : gold,
+                          fontSize: 12,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(height: 2),
+
+                      Text(
+                        hasType
+                            ? 'Business category for this sequence'
+                            : 'Create your own business category',
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color:
+                              secondaryTextColor,
+                          fontSize: 9.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Icon(
+                  Icons
+                      .keyboard_arrow_down_rounded,
+                  color:
+                      secondaryTextColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // BUSINESS TYPE SHEET
+  // ============================================================
+
+  Future<void> _showBusinessTypeSelector() async {
+    String draftBusinessType = '';
+    String? validationMessage;
+
+    final String? selected =
+        await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor:
+          Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            sheetSetState,
+          ) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(
+                  sheetContext,
+                ).viewInsets.bottom,
+              ),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight:
+                      MediaQuery.of(
+                            sheetContext,
+                          ).size.height *
+                          0.82,
+                ),
+                decoration:
+                    const BoxDecoration(
+                  color:
+                      Color(0xFF0B0E13),
+                  borderRadius:
+                      BorderRadius.vertical(
+                    top:
+                        Radius.circular(22),
+                  ),
+                ),
+                child:
+                    SingleChildScrollView(
+                  physics:
+                      const BouncingScrollPhysics(),
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                    16,
+                    10,
+                    16,
+                    20,
+                  ),
+                  child: Column(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      // =========================================
+                      // HANDLE
+                      // =========================================
+
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration:
+                              BoxDecoration(
+                            color:
+                                borderColor,
+                            borderRadius:
+                                BorderRadius.circular(
+                              20,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 18,
+                      ),
+
+                      // =========================================
+                      // HEADER
+                      // =========================================
+
+                      Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration:
+                                BoxDecoration(
+                              color:
+                                  gold.withOpacity(
+                                0.09,
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(
+                                10,
+                              ),
+                            ),
+                            child:
+                                const Icon(
+                              Icons
+                                  .storefront_outlined,
+                              color: gold,
+                              size: 20,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 10,
+                          ),
+
+                          const Expanded(
+                            child:
+                                Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+                              children: [
+                                Text(
+                                  'Business Type',
+                                  style:
+                                      TextStyle(
+                                    color:
+                                        textColor,
+                                    fontSize:
+                                        17,
+                                    fontWeight:
+                                        FontWeight
+                                            .w800,
+                                  ),
+                                ),
+
+                                SizedBox(
+                                  height: 2,
+                                ),
+
+                                Text(
+                                  'Choose an existing type or add your own.',
+                                  style:
+                                      TextStyle(
+                                    color:
+                                        secondaryTextColor,
+                                    fontSize:
+                                        10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 18,
+                      ),
+
+                      // =========================================
+                      // EXISTING TYPES
+                      // =========================================
+
+                      if (businessTypes
+                          .isNotEmpty) ...[
+                        const Text(
+                          'Saved Business Types',
+                          style:
+                              TextStyle(
+                            color:
+                                textColor,
+                            fontSize:
+                                11,
+                            fontWeight:
+                                FontWeight
+                                    .w700,
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 9,
+                        ),
+
+                        ...businessTypes.map(
+                          (type) {
+                            final bool
+                                isSelected =
+                                selectedBusinessType ==
+                                    type;
+
+                            return Padding(
+                              padding:
+                                  const EdgeInsets
+                                      .only(
+                                bottom:
+                                    8,
+                              ),
+                              child:
+                                  InkWell(
+                                onTap:
+                                    () {
+                                  Navigator.of(
+                                    sheetContext,
+                                  ).pop(
+                                    type,
+                                  );
+                                },
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                  11,
+                                ),
+                                child:
+                                    Container(
+                                  width:
+                                      double.infinity,
+                                  padding:
+                                      const EdgeInsets
+                                          .all(
+                                    11,
+                                  ),
+                                  decoration:
+                                      BoxDecoration(
+                                    color:
+                                        isSelected
+                                            ? gold.withOpacity(
+                                                0.08,
+                                              )
+                                            : fieldBackground,
+                                    borderRadius:
+                                        BorderRadius
+                                            .circular(
+                                      11,
+                                    ),
+                                    border:
+                                        Border.all(
+                                      color:
+                                          isSelected
+                                              ? gold
+                                              : borderColor,
+                                    ),
+                                  ),
+                                  child:
+                                      Row(
+                                    children: [
+                                      Container(
+                                        width:
+                                            38,
+                                        height:
+                                            38,
+                                        decoration:
+                                            BoxDecoration(
+                                          color:
+                                              gold.withOpacity(
+                                            0.09,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(
+                                            9,
+                                          ),
+                                        ),
+                                        child:
+                                            const Icon(
+                                          Icons
+                                              .storefront_outlined,
+                                          color:
+                                              gold,
+                                          size:
+                                              18,
+                                        ),
+                                      ),
+
+                                      const SizedBox(
+                                        width:
+                                            10,
+                                      ),
+
+                                      Expanded(
+                                        child:
+                                            Text(
+                                          type,
+                                          maxLines:
+                                              1,
+                                          overflow:
+                                              TextOverflow.ellipsis,
+                                          style:
+                                              const TextStyle(
+                                            color:
+                                                textColor,
+                                            fontSize:
+                                                12,
+                                            fontWeight:
+                                                FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons
+                                              .check_circle_rounded,
+                                          color:
+                                              gold,
+                                          size:
+                                              19,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(
+                          height: 8,
+                        ),
+
+                        const Divider(
+                          color:
+                              softBorder,
+                          height: 1,
+                        ),
+
+                        const SizedBox(
+                          height: 16,
+                        ),
+                      ],
+
+                      // =========================================
+                      // EMPTY STATE
+                      // =========================================
+
+                      if (businessTypes.isEmpty)
+                        Container(
+                          width:
+                              double.infinity,
+                          padding:
+                              const EdgeInsets
+                                  .symmetric(
+                            horizontal:
+                                14,
+                            vertical:
+                                18,
+                          ),
+                          decoration:
+                              BoxDecoration(
+                            color:
+                                fieldBackground,
+                            borderRadius:
+                                BorderRadius.circular(
+                              11,
+                            ),
+                            border:
+                                Border.all(
+                              color:
+                                  borderColor,
+                            ),
+                          ),
+                          child:
+                              const Column(
+                            children: [
+                              Icon(
+                                Icons
+                                    .storefront_outlined,
+                                color:
+                                    secondaryTextColor,
+                                size:
+                                    27,
+                              ),
+
+                              SizedBox(
+                                height:
+                                    7,
+                              ),
+
+                              Text(
+                                'No Business Type Added',
+                                style:
+                                    TextStyle(
+                                  color:
+                                      textColor,
+                                  fontSize:
+                                      12,
+                                  fontWeight:
+                                      FontWeight.w700,
+                                ),
+                              ),
+
+                              SizedBox(
+                                height:
+                                    3,
+                              ),
+
+                              Text(
+                                'Add your first business type below.',
+                                textAlign:
+                                    TextAlign.center,
+                                style:
+                                    TextStyle(
+                                  color:
+                                      secondaryTextColor,
+                                  fontSize:
+                                      9.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      if (businessTypes
+                          .isEmpty)
+                        const SizedBox(
+                          height: 16,
+                        ),
+
+                      // =========================================
+                      // ADD TYPE
+                      // =========================================
+
+                      const Text(
+                        'Add Business Type',
+                        style:
+                            TextStyle(
+                          color:
+                              textColor,
+                          fontSize:
+                              11,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 7,
+                      ),
+
+                      TextField(
+                        textCapitalization:
+                            TextCapitalization
+                                .words,
+                        cursorColor:
+                            gold,
+                        style:
+                            const TextStyle(
+                          color:
+                              textColor,
+                          fontSize:
+                              12,
+                        ),
+                        onChanged: (value) {
+                          draftBusinessType =
+                              value;
+
+                          if (validationMessage !=
+                              null) {
+                            sheetSetState(
+                              () {
+                                validationMessage =
+                                    null;
+                              },
+                            );
+                          }
+                        },
+                        decoration:
+                            InputDecoration(
+                          hintText:
+                              'Example: B2B',
+                          hintStyle:
+                              const TextStyle(
+                            color:
+                                hintColor,
+                            fontSize:
+                                10.5,
+                          ),
+                          prefixIcon:
+                              const Icon(
+                            Icons
+                                .add_business_outlined,
+                            color:
+                                secondaryTextColor,
+                            size:
+                                18,
+                          ),
+                          filled:
+                              true,
+                          fillColor:
+                              fieldBackground,
+                          contentPadding:
+                              const EdgeInsets
+                                  .symmetric(
+                            horizontal:
+                                12,
+                            vertical:
+                                12,
+                          ),
+                          border:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(
+                              10,
+                            ),
+                            borderSide:
+                                const BorderSide(
+                              color:
+                                  borderColor,
+                            ),
+                          ),
+                          enabledBorder:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(
+                              10,
+                            ),
+                            borderSide:
+                                const BorderSide(
+                              color:
+                                  borderColor,
+                            ),
+                          ),
+                          focusedBorder:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(
+                              10,
+                            ),
+                            borderSide:
+                                const BorderSide(
+                              color:
+                                  gold,
+                            ),
+                          ),
+                          errorText:
+                              validationMessage,
+                          errorStyle:
+                              const TextStyle(
+                            color:
+                                red,
+                            fontSize:
+                                9.5,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 11,
+                      ),
+
+                      // =========================================
+                      // ADD BUTTON
+                      // =========================================
+
+                      SizedBox(
+                        width:
+                            double.infinity,
+                        height:
+                            46,
+                        child:
+                            ElevatedButton.icon(
+                          onPressed:
+                              () {
+                            final String
+                                value =
+                                draftBusinessType
+                                    .trim();
+
+                            if (value.isEmpty) {
+                              sheetSetState(
+                                () {
+                                  validationMessage =
+                                      'Please enter a business type';
+                                },
+                              );
+
+                              return;
+                            }
+
+                            if (value.length <
+                                2) {
+                              sheetSetState(
+                                () {
+                                  validationMessage =
+                                      'Business type is too short';
+                                },
+                              );
+
+                              return;
+                            }
+
+                            final int
+                                existingIndex =
+                                businessTypes
+                                    .indexWhere(
+                              (
+                                element,
+                              ) =>
+                                  element
+                                      .toLowerCase() ==
+                                  value
+                                      .toLowerCase(),
+                            );
+
+                            String
+                                finalValue;
+
+                            if (existingIndex != -1) {
+                              finalValue =
+                                  businessTypes[
+                                      existingIndex];
+                            } else {
+                              finalValue =
+                                  value;
+                            }
+
+                            Navigator.of(
+                              sheetContext,
+                            ).pop(
+                              finalValue,
+                            );
+                          },
+                          icon:
+                              const Icon(
+                            Icons
+                                .add_rounded,
+                            size:
+                                18,
+                          ),
+                          label:
+                              const Text(
+                            'Add & Select Business Type',
+                            style:
+                                TextStyle(
+                              fontSize:
+                                  11.5,
+                              fontWeight:
+                                  FontWeight.w800,
+                            ),
+                          ),
+                          style:
+                              ElevatedButton
+                                  .styleFrom(
+                            backgroundColor:
+                                gold,
+                            foregroundColor:
+                                Colors.black,
+                            elevation:
+                                0,
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(
+                                10,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (selected != null &&
+        selected.trim().isNotEmpty) {
+      setState(() {
+        final bool alreadyExists =
+            businessTypes.any(
+          (type) =>
+              type.toLowerCase() ==
+              selected.toLowerCase(),
+        );
+
+        if (!alreadyExists) {
+          businessTypes.add(selected);
+        }
+
+        selectedBusinessType =
+            selected;
+      });
+    }
+  }
+
+  // ============================================================
+  // STEP 2
   // ============================================================
 
   Widget _buildEmailStep() {
@@ -748,6 +1502,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         const SizedBox(height: 16),
 
+        // ========================================================
+        // EDITOR SETTINGS
+        // ========================================================
+
         _buildCard(
           title: 'Editor Settings',
           subtitle:
@@ -756,12 +1514,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               Icons.text_fields_rounded,
           child: Column(
             children: [
-              // =================================================
-              // IMPORTANT:
-              // No Row containing 3 large dropdowns here.
-              // This fixes the right overflow on mobile.
-              // =================================================
-
               _buildDropdown(
                 label: 'Font',
                 value:
@@ -786,83 +1538,176 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 },
               ),
 
-              const SizedBox(
-                height: 14,
-              ),
+              const SizedBox(height: 14),
 
-              Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildDropdown(
-                      label:
-                          'Font Size',
-                      value:
-                          selectedFontSize,
-                      items: const [
-                        '12px',
-                        '14px',
-                        '16px',
-                        '18px',
-                        '20px',
-                        '24px',
-                        '28px',
-                        '32px',
+              // =================================================
+              // MOBILE SAFE DROPDOWNS
+              // =================================================
+
+              LayoutBuilder(
+                builder: (
+                  context,
+                  constraints,
+                ) {
+                  if (constraints.maxWidth <
+                      320) {
+                    return Column(
+                      children: [
+                        _buildDropdown(
+                          label:
+                              'Font Size',
+                          value:
+                              selectedFontSize,
+                          items: const [
+                            '12px',
+                            '14px',
+                            '16px',
+                            '18px',
+                            '20px',
+                            '24px',
+                            '28px',
+                            '32px',
+                          ],
+                          onChanged:
+                              (value) {
+                            if (value ==
+                                null) {
+                              return;
+                            }
+
+                            setState(
+                              () {
+                                selectedFontSize =
+                                    value;
+                              },
+                            );
+                          },
+                        ),
+
+                        const SizedBox(
+                          height: 14,
+                        ),
+
+                        _buildDropdown(
+                          label:
+                              'Text Color',
+                          value:
+                              selectedTextColor,
+                          items: const [
+                            'Black',
+                            'White',
+                            'Gray',
+                            'Red',
+                            'Blue',
+                            'Green',
+                            'Gold',
+                          ],
+                          onChanged:
+                              (value) {
+                            if (value ==
+                                null) {
+                              return;
+                            }
+
+                            setState(
+                              () {
+                                selectedTextColor =
+                                    value;
+                              },
+                            );
+                          },
+                        ),
                       ],
-                      onChanged: (value) {
-                        if (value ==
-                            null) {
-                          return;
-                        }
+                    );
+                  }
 
-                        setState(() {
-                          selectedFontSize =
-                              value;
-                        });
-                      },
-                    ),
-                  ),
+                  return Row(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child:
+                            _buildDropdown(
+                          label:
+                              'Font Size',
+                          value:
+                              selectedFontSize,
+                          items: const [
+                            '12px',
+                            '14px',
+                            '16px',
+                            '18px',
+                            '20px',
+                            '24px',
+                            '28px',
+                            '32px',
+                          ],
+                          onChanged:
+                              (value) {
+                            if (value ==
+                                null) {
+                              return;
+                            }
 
-                  const SizedBox(
-                    width: 10,
-                  ),
+                            setState(
+                              () {
+                                selectedFontSize =
+                                    value;
+                              },
+                            );
+                          },
+                        ),
+                      ),
 
-                  Expanded(
-                    child: _buildDropdown(
-                      label:
-                          'Text Color',
-                      value:
-                          selectedTextColor,
-                      items: const [
-                        'Black',
-                        'White',
-                        'Gray',
-                        'Red',
-                        'Blue',
-                        'Green',
-                        'Gold',
-                      ],
-                      onChanged: (value) {
-                        if (value ==
-                            null) {
-                          return;
-                        }
+                      const SizedBox(
+                        width: 10,
+                      ),
 
-                        setState(() {
-                          selectedTextColor =
-                              value;
-                        });
-                      },
-                    ),
-                  ),
-                ],
+                      Expanded(
+                        child:
+                            _buildDropdown(
+                          label:
+                              'Text Color',
+                          value:
+                              selectedTextColor,
+                          items: const [
+                            'Black',
+                            'White',
+                            'Gray',
+                            'Red',
+                            'Blue',
+                            'Green',
+                            'Gold',
+                          ],
+                          onChanged:
+                              (value) {
+                            if (value ==
+                                null) {
+                              return;
+                            }
+
+                            setState(
+                              () {
+                                selectedTextColor =
+                                    value;
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
         ),
 
         const SizedBox(height: 14),
+
+        // ========================================================
+        // MESSAGE
+        // ========================================================
 
         _buildCard(
           title: 'Message',
@@ -876,22 +1721,18 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             children: [
               _buildEditorToolbar(),
 
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
 
               Container(
                 width: double.infinity,
-                decoration:
-                    BoxDecoration(
+                decoration: BoxDecoration(
                   color:
                       fieldBackground,
                   borderRadius:
                       BorderRadius.circular(
                     12,
                   ),
-                  border:
-                      Border.all(
+                  border: Border.all(
                     color:
                         borderColor,
                   ),
@@ -900,21 +1741,17 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     TextFormField(
                   controller:
                       contentController,
-
-                  minLines: 10,
-                  maxLines: 16,
-
+                  minLines:
+                      10,
+                  maxLines:
+                      16,
                   keyboardType:
-                      TextInputType
-                          .multiline,
-
+                      TextInputType.multiline,
                   textCapitalization:
                       TextCapitalization
                           .sentences,
-
                   cursorColor:
                       gold,
-
                   style:
                       TextStyle(
                     color:
@@ -923,24 +1760,17 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         _selectedEditorSize(),
                     fontWeight:
                         isBold
-                            ? FontWeight
-                                .bold
-                            : FontWeight
-                                .normal,
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                     fontStyle:
                         isItalic
-                            ? FontStyle
-                                .italic
-                            : FontStyle
-                                .normal,
+                            ? FontStyle.italic
+                            : FontStyle.normal,
                     decoration:
                         isUnderline
-                            ? TextDecoration
-                                .underline
-                            : TextDecoration
-                                .none,
+                            ? TextDecoration.underline
+                            : TextDecoration.none,
                   ),
-
                   decoration:
                       const InputDecoration(
                     hintText:
@@ -959,43 +1789,27 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       14,
                     ),
                   ),
-
-                  validator:
-                      (value) {
-                    if (value ==
-                            null ||
-                        value
-                            .trim()
-                            .isEmpty) {
-                      return 'Email content is required';
-                    }
-
-                    return null;
-                  },
-
-                  onChanged: (_) {
+                  onChanged:
+                      (_) {
                     setState(() {});
                   },
                 ),
               ),
 
-              const SizedBox(
-                height: 11,
-              ),
+              const SizedBox(height: 11),
 
               const Row(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons
-                        .auto_awesome_rounded,
+                    Icons.auto_awesome_rounded,
                     size: 15,
                     color: gold,
                   ),
-                  SizedBox(
-                    width: 7,
-                  ),
+
+                  SizedBox(width: 7),
+
                   Expanded(
                     child: Text(
                       'Variables: {{firstName}}, {{lastName}}, {{email}}',
@@ -1017,6 +1831,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         ),
 
         const SizedBox(height: 14),
+
+        // ========================================================
+        // ATTACHMENT
+        // ========================================================
 
         _buildCard(
           title: 'Attachment',
@@ -1069,7 +1887,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                           borderColor,
                     ),
                   ),
-                  child: Row(
+                  child:
+                      Row(
                     children: [
                       const Icon(
                         Icons
@@ -1081,16 +1900,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       ),
 
                       const SizedBox(
-                        width:
-                            9,
+                        width: 9,
                       ),
 
                       Expanded(
                         child:
                             Column(
                           crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                              CrossAxisAlignment.start,
                           children: [
                             Text(
                               attachmentNameController
@@ -1098,8 +1915,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                               maxLines:
                                   1,
                               overflow:
-                                  TextOverflow
-                                      .ellipsis,
+                                  TextOverflow.ellipsis,
                               style:
                                   const TextStyle(
                                 color:
@@ -1107,8 +1923,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                                 fontSize:
                                     11.5,
                                 fontWeight:
-                                    FontWeight
-                                        .w600,
+                                    FontWeight.w600,
                               ),
                             ),
 
@@ -1120,6 +1935,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                             Text(
                               attachmentMimeController
                                       .text
+                                      .trim()
                                       .isEmpty
                                   ? 'Attachment'
                                   : attachmentMimeController
@@ -1167,21 +1983,29 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     return Column(
       children: [
         _stepHeader(
-          icon: Icons.ads_click_rounded,
-          title: 'Action Links',
+          icon:
+              Icons.ads_click_rounded,
+          title:
+              'Action Links',
           subtitle:
               'Add CTA buttons and campaign actions.',
         ),
 
         const SizedBox(height: 16),
 
+        // ========================================================
+        // PRIMARY CTA
+        // ========================================================
+
         _buildCard(
-          title: 'Primary CTA',
+          title:
+              'Primary CTA',
           subtitle:
               'Add your main campaign button.',
           icon:
               Icons.touch_app_outlined,
-          child: Column(
+          child:
+              Column(
             children: [
               _buildTextField(
                 controller:
@@ -1216,13 +2040,19 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         const SizedBox(height: 14),
 
+        // ========================================================
+        // WHATSAPP LINK
+        // ========================================================
+
         _buildCard(
-          title: 'WhatsApp',
+          title:
+              'WhatsApp',
           subtitle:
               'Add a WhatsApp communication link.',
           icon:
               Icons.chat_outlined,
-          child: _buildTextField(
+          child:
+              _buildTextField(
             controller:
                 whatsappController,
             label:
@@ -1238,16 +2068,23 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         const SizedBox(height: 14),
 
+        // ========================================================
+        // CAMPAIGN SETTINGS
+        // ========================================================
+
         _buildCard(
-          title: 'Campaign Settings',
+          title:
+              'Campaign Settings',
           subtitle:
               'Configure status, tracking and scheduling.',
           icon:
               Icons.settings_outlined,
-          child: Column(
+          child:
+              Column(
             children: [
               _buildDropdown(
-                label: 'Status',
+                label:
+                    'Status',
                 value:
                     selectedStatus,
                 items: const [
@@ -1256,8 +2093,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   'active',
                   'paused',
                 ],
-                onChanged: (value) {
-                  if (value == null) {
+                onChanged:
+                    (value) {
+                  if (value ==
+                      null) {
                     return;
                   }
 
@@ -1291,7 +2130,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       Alignment.centerRight,
                   child:
                       TextButton.icon(
-                    onPressed: () {
+                    onPressed:
+                        () {
                       setState(() {
                         scheduledDateTime =
                             null;
@@ -1300,16 +2140,20 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     icon:
                         const Icon(
                       Icons.close,
-                      color: red,
-                      size: 15,
+                      color:
+                          red,
+                      size:
+                          15,
                     ),
                     label:
                         const Text(
                       'Clear Schedule',
                       style:
                           TextStyle(
-                        color: red,
-                        fontSize: 11,
+                        color:
+                            red,
+                        fontSize:
+                            11,
                       ),
                     ),
                   ),
@@ -1322,7 +2166,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 18),
 
         _navigationButtons(
-          backTitle: 'Back',
+          backTitle:
+              'Back',
           nextTitle:
               'Review Sequence',
           nextIcon:
@@ -1367,122 +2212,100 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               'Sequence Overview',
           editStep:
               0,
-          child: Column(
+          child:
+              Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child:
-                        _overviewItem(
-                      icon:
-                          Icons.layers_outlined,
-                      title:
-                          'Step',
-                      value: stepController
-                              .text
-                              .trim()
-                              .isEmpty
+              _responsiveReviewRow(
+                first:
+                    _overviewItem(
+                  icon:
+                      Icons.layers_outlined,
+                  title:
+                      'Step',
+                  value:
+                      stepController.text.trim().isEmpty
                           ? '-'
-                          : stepController
-                              .text
-                              .trim(),
-                    ),
-                  ),
-
-                  Expanded(
-                    child:
-                        _overviewItem(
-                      icon:
-                          Icons.schedule_outlined,
-                      title:
-                          'Gap Days',
-                      value:
-                          '${gapDaysController.text.trim().isEmpty ? '0' : gapDaysController.text.trim()} Days',
-                    ),
-                  ),
-                ],
+                          : stepController.text.trim(),
+                ),
+                second:
+                    _overviewItem(
+                  icon:
+                      Icons.schedule_outlined,
+                  title:
+                      'Gap Days',
+                  value:
+                      '${gapDaysController.text.trim().isEmpty ? '0' : gapDaysController.text.trim()} Days',
+                ),
               ),
 
               const Divider(
-                color: softBorder,
-                height: 28,
+                color:
+                    softBorder,
+                height:
+                    28,
               ),
 
-              Row(
-                children: [
-                  Expanded(
-                    child:
-                        _overviewItem(
-                      icon:
-                          Icons.alt_route_outlined,
-                      title:
-                          'Variant',
-                      value: variantController
-                              .text
-                              .trim()
-                              .isEmpty
+              _responsiveReviewRow(
+                first:
+                    _overviewItem(
+                  icon:
+                      Icons.alt_route_outlined,
+                  title:
+                      'Variant',
+                  value:
+                      variantController.text.trim().isEmpty
                           ? '-'
-                          : variantController
-                              .text
-                              .trim(),
-                    ),
-                  ),
-
-                  Expanded(
-                    child:
-                        _overviewItem(
-                      icon:
-                          Icons.email_outlined,
-                      title:
-                          'Type',
-                      value:
-                          selectedType,
-                    ),
-                  ),
-                ],
+                          : variantController.text.trim(),
+                ),
+                second:
+                    _overviewItem(
+                  icon:
+                      Icons.storefront_outlined,
+                  title:
+                      'Business Type',
+                  value:
+                      selectedBusinessType.trim().isEmpty
+                          ? '-'
+                          : selectedBusinessType,
+                ),
               ),
 
               const Divider(
-                color: softBorder,
-                height: 28,
+                color:
+                    softBorder,
+                height:
+                    28,
               ),
 
-              Row(
-                children: [
-                  Expanded(
-                    child:
-                        _overviewItem(
-                      icon:
-                          Icons.circle,
-                      iconColor:
-                          _statusColor(),
-                      title:
-                          'Status',
-                      value:
-                          _capitalize(
-                        selectedStatus,
-                      ),
-                      valueColor:
-                          _statusColor(),
-                    ),
+              _responsiveReviewRow(
+                first:
+                    _overviewItem(
+                  icon:
+                      Icons.circle,
+                  iconColor:
+                      _statusColor(),
+                  title:
+                      'Status',
+                  value:
+                      _capitalize(
+                    selectedStatus,
                   ),
-
-                  Expanded(
-                    child:
-                        _overviewItem(
-                      icon: Icons
-                          .calendar_month_outlined,
-                      title:
-                          'Schedule',
-                      value: scheduledDateTime ==
-                              null
+                  valueColor:
+                      _statusColor(),
+                ),
+                second:
+                    _overviewItem(
+                  icon:
+                      Icons.calendar_month_outlined,
+                  title:
+                      'Schedule',
+                  value:
+                      scheduledDateTime == null
                           ? 'Not scheduled'
                           : _formatDateTime(
                               scheduledDateTime!,
                             ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -1491,7 +2314,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 14),
 
         // ========================================================
-        // CONTENT
+        // EMAIL CONTENT
         // ========================================================
 
         _reviewCard(
@@ -1503,7 +2326,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               'Email Content',
           editStep:
               1,
-          child: Column(
+          child:
+              Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
@@ -1519,8 +2343,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               ),
 
               const SizedBox(
-                height:
-                    5,
+                height: 5,
               ),
 
               Text(
@@ -1528,8 +2351,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         .trim()
                         .isEmpty
                     ? 'No subject'
-                    : subjectController
-                        .text
+                    : subjectController.text
                         .trim(),
                 style:
                     const TextStyle(
@@ -1561,8 +2383,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               ),
 
               const SizedBox(
-                height:
-                    7,
+                height: 7,
               ),
 
               Text(
@@ -1570,8 +2391,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         .trim()
                         .isEmpty
                     ? 'No email content'
-                    : contentController
-                        .text
+                    : contentController.text
                         .trim(),
                 maxLines:
                     7,
@@ -1594,7 +2414,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 14),
 
         // ========================================================
-        // LINKS
+        // ACTION LINKS
         // ========================================================
 
         _reviewCard(
@@ -1606,27 +2426,20 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               'Action Links',
           editStep:
               2,
-          child: Column(
+          child:
+              Column(
             children: [
               _reviewLinkRow(
                 label:
                     'Primary CTA',
-                title: ctaTextController
-                        .text
-                        .trim()
-                        .isEmpty
-                    ? 'Not configured'
-                    : ctaTextController
-                        .text
-                        .trim(),
-                url: ctaUrlController
-                        .text
-                        .trim()
-                        .isEmpty
-                    ? '-'
-                    : ctaUrlController
-                        .text
-                        .trim(),
+                title:
+                    ctaTextController.text.trim().isEmpty
+                        ? 'Not configured'
+                        : ctaTextController.text.trim(),
+                url:
+                    ctaUrlController.text.trim().isEmpty
+                        ? '-'
+                        : ctaUrlController.text.trim(),
               ),
 
               const Divider(
@@ -1639,20 +2452,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               _reviewLinkRow(
                 label:
                     'WhatsApp',
-                title: whatsappController
-                        .text
-                        .trim()
-                        .isEmpty
-                    ? 'Not configured'
-                    : 'WhatsApp Link',
-                url: whatsappController
-                        .text
-                        .trim()
-                        .isEmpty
-                    ? '-'
-                    : whatsappController
-                        .text
-                        .trim(),
+                title:
+                    whatsappController.text.trim().isEmpty
+                        ? 'Not configured'
+                        : 'WhatsApp Link',
+                url:
+                    whatsappController.text.trim().isEmpty
+                        ? '-'
+                        : whatsappController.text.trim(),
               ),
 
               const Divider(
@@ -1673,8 +2480,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   ),
 
                   const SizedBox(
-                    width:
-                        10,
+                    width: 10,
                   ),
 
                   const Expanded(
@@ -1706,22 +2512,26 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   ),
 
                   const SizedBox(
-                    width:
-                        5,
+                    width: 5,
                   ),
 
-                  Text(
-                    trackingEnabled
-                        ? 'Enabled'
-                        : 'Disabled',
-                    style:
-                        TextStyle(
-                      color:
-                          trackingEnabled
-                              ? green
-                              : secondaryTextColor,
-                      fontSize:
-                          10,
+                  Flexible(
+                    child:
+                        Text(
+                      trackingEnabled
+                          ? 'Enabled'
+                          : 'Disabled',
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style:
+                          TextStyle(
+                        color:
+                            trackingEnabled
+                                ? green
+                                : secondaryTextColor,
+                        fontSize:
+                            10,
+                      ),
                     ),
                   ),
                 ],
@@ -1733,7 +2543,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 14),
 
         // ========================================================
-        // PREVIEW CARD
+        // EMAIL PREVIEW
         // ========================================================
 
         _buildReviewPreviewCard(),
@@ -1768,25 +2578,62 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // REVIEW PREVIEW CARD
+  // RESPONSIVE REVIEW ROW
+  // ============================================================
+
+  Widget _responsiveReviewRow({
+    required Widget first,
+    required Widget second,
+  }) {
+    return LayoutBuilder(
+      builder: (
+        context,
+        constraints,
+      ) {
+        if (constraints.maxWidth <
+            300) {
+          return Column(
+            children: [
+              first,
+              const SizedBox(height: 16),
+              second,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: first,
+            ),
+
+            const SizedBox(width: 8),
+
+            Expanded(
+              child: second,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // REVIEW PREVIEW
   // ============================================================
 
   Widget _buildReviewPreviewCard() {
     return Container(
-      width:
-          double.infinity,
+      width: double.infinity,
       padding:
-          const EdgeInsets.all(
-        16,
-      ),
-      decoration:
-          BoxDecoration(
+          const EdgeInsets.all(16),
+      decoration: BoxDecoration(
         color:
             cardColor,
         borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
+            BorderRadius.circular(16),
         border:
             Border.all(
           color:
@@ -1833,10 +2680,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 ),
               ),
 
-              const SizedBox(
-                width:
-                    11,
-              ),
+              const SizedBox(width: 11),
 
               const Expanded(
                 child:
@@ -1857,10 +2701,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       ),
                     ),
 
-                    SizedBox(
-                      height:
-                          2,
-                    ),
+                    SizedBox(height: 2),
 
                     Text(
                       'Preview your final email.',
@@ -1876,77 +2717,22 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 ),
               ),
 
-              InkWell(
-                onTap:
+              IconButton(
+                onPressed:
                     _showEmailPreview,
-                borderRadius:
-                    BorderRadius.circular(
-                  8,
-                ),
-                child:
-                    Container(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal:
-                        10,
-                    vertical:
-                        7,
-                  ),
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        gold.withOpacity(
-                      0.08,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      8,
-                    ),
-                    border:
-                        Border.all(
-                      color:
-                          gold.withOpacity(
-                        0.35,
-                      ),
-                    ),
-                  ),
-                  child:
-                      const Row(
-                    children: [
-                      Icon(
-                        Icons.open_in_full_rounded,
-                        color:
-                            gold,
-                        size:
-                            14,
-                      ),
-                      SizedBox(
-                        width:
-                            5,
-                      ),
-                      Text(
-                        'Open',
-                        style:
-                            TextStyle(
-                          color:
-                              gold,
-                          fontSize:
-                              10,
-                          fontWeight:
-                              FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                icon:
+                    const Icon(
+                  Icons.open_in_full_rounded,
+                  color:
+                      gold,
+                  size:
+                      19,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(
-            height:
-                16,
-          ),
+          const SizedBox(height: 14),
 
           const Divider(
             height:
@@ -1955,10 +2741,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 softBorder,
           ),
 
-          const SizedBox(
-            height:
-                16,
-          ),
+          const SizedBox(height: 14),
 
           Container(
             width:
@@ -1980,7 +2763,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   CrossAxisAlignment.stretch,
               children: [
                 // ===============================================
-                // EMAIL HEADER
+                // SUBJECT
                 // ===============================================
 
                 Container(
@@ -2020,8 +2803,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       ),
 
                       const SizedBox(
-                        height:
-                            5,
+                        height: 5,
                       ),
 
                       Text(
@@ -2029,8 +2811,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                                 .trim()
                                 .isEmpty
                             ? 'Your email subject'
-                            : subjectController
-                                .text
+                            : subjectController.text
                                 .trim(),
                         maxLines:
                             2,
@@ -2051,125 +2832,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 ),
 
                 // ===============================================
-                // LOGO
-                // ===============================================
-
-                if (logoController
-                    .text
-                    .trim()
-                    .isNotEmpty)
-                  Container(
-                    height:
-                        62,
-                    padding:
-                        const EdgeInsets.all(
-                      12,
-                    ),
-                    alignment:
-                        _logoAlignment(),
-                    child:
-                        Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal:
-                            10,
-                        vertical:
-                            7,
-                      ),
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            const Color(
-                          0xFFF4F4F5,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(
-                          7,
-                        ),
-                      ),
-                      child:
-                          const Row(
-                        mainAxisSize:
-                            MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.diamond_outlined,
-                            color:
-                                Colors.black,
-                            size:
-                                18,
-                          ),
-                          SizedBox(
-                            width:
-                                5,
-                          ),
-                          Text(
-                            'Brand Logo',
-                            style:
-                                TextStyle(
-                              color:
-                                  Colors.black,
-                              fontSize:
-                                  10,
-                              fontWeight:
-                                  FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // ===============================================
-                // HERO
-                // ===============================================
-
-                if (heroImageController
-                    .text
-                    .trim()
-                    .isNotEmpty)
-                  Container(
-                    width:
-                        double.infinity,
-                    height:
-                        95,
-                    color:
-                        const Color(
-                      0xFFF2F3F5,
-                    ),
-                    child:
-                        const Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_outlined,
-                          color:
-                              Color(0xFF777777),
-                          size:
-                              27,
-                        ),
-
-                        SizedBox(
-                          height:
-                              5,
-                        ),
-
-                        Text(
-                          'Hero Image',
-                          style:
-                              TextStyle(
-                            color:
-                                Color(0xFF777777),
-                            fontSize:
-                                9,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // ===============================================
                 // BODY
                 // ===============================================
 
@@ -2188,8 +2850,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                                 .trim()
                                 .isEmpty
                             ? 'Your email content will appear here.'
-                            : contentController
-                                .text
+                            : contentController.text
                                 .trim(),
                         maxLines:
                             8,
@@ -2223,15 +2884,17 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                           .trim()
                           .isNotEmpty) ...[
                         const SizedBox(
-                          height:
-                              18,
+                          height: 18,
                         ),
 
-                        Align(
-                          alignment:
-                              Alignment.center,
+                        Center(
                           child:
                               Container(
+                            constraints:
+                                const BoxConstraints(
+                              maxWidth:
+                                  220,
+                            ),
                             padding:
                                 const EdgeInsets.symmetric(
                               horizontal:
@@ -2250,13 +2913,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                             ),
                             child:
                                 Text(
-                              ctaTextController
-                                  .text
+                              ctaTextController.text
                                   .trim(),
                               maxLines:
                                   1,
                               overflow:
                                   TextOverflow.ellipsis,
+                              textAlign:
+                                  TextAlign.center,
                               style:
                                   const TextStyle(
                                 color:
@@ -2280,9 +2944,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                               16,
                         ),
 
-                        const Align(
-                          alignment:
-                              Alignment.center,
+                        const Center(
                           child:
                               Row(
                             mainAxisSize:
@@ -2295,10 +2957,9 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                                 size:
                                     15,
                               ),
-                              SizedBox(
-                                width:
-                                    5,
-                              ),
+
+                              SizedBox(width: 5),
+
                               Text(
                                 'Contact on WhatsApp',
                                 style:
@@ -2322,10 +2983,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             ),
           ),
 
-          const SizedBox(
-            height:
-                14,
-          ),
+          const SizedBox(height: 14),
 
           SizedBox(
             width:
@@ -2371,168 +3029,159 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // SHOW FULL PREVIEW
+  // FULL EMAIL PREVIEW
   // ============================================================
 
   void _showEmailPreview() {
-    showModalBottomSheet(
-      context:
-          context,
+    showModalBottomSheet<void>(
+      context: context,
       isScrollControlled:
+          true,
+      useSafeArea:
           true,
       backgroundColor:
           Colors.transparent,
       builder:
           (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize:
-              0.90,
-          minChildSize:
-              0.60,
-          maxChildSize:
-              0.96,
-          builder:
-              (
-            context,
-            scrollController,
-          ) {
-            return Container(
-              decoration:
-                  const BoxDecoration(
-                color:
-                    background,
-                borderRadius:
-                    BorderRadius.vertical(
-                  top:
-                      Radius.circular(
-                    22,
+        return Container(
+          height:
+              MediaQuery.of(sheetContext)
+                      .size
+                      .height *
+                  0.92,
+          decoration:
+              const BoxDecoration(
+            color:
+                background,
+            borderRadius:
+                BorderRadius.vertical(
+              top:
+                  Radius.circular(
+                22,
+              ),
+            ),
+          ),
+          child:
+              Column(
+            children: [
+              const SizedBox(
+                height: 9,
+              ),
+
+              Container(
+                width:
+                    40,
+                height:
+                    4,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      borderColor,
+                  borderRadius:
+                      BorderRadius.circular(
+                    20,
                   ),
                 ),
               ),
-              child:
-                  Column(
-                children: [
-                  const SizedBox(
-                    height:
-                        9,
-                  ),
 
-                  Container(
-                    width:
-                        40,
-                    height:
-                        4,
-                    decoration:
-                        BoxDecoration(
-                      color:
-                          borderColor,
-                      borderRadius:
-                          BorderRadius.circular(
-                        20,
-                      ),
-                    ),
-                  ),
-
-                  Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(
-                      16,
-                      14,
-                      8,
-                      10,
-                    ),
-                    child:
-                        Row(
-                      children: [
-                        const Expanded(
-                          child:
-                              Text(
-                            'Email Preview',
-                            style:
-                                TextStyle(
-                              color:
-                                  textColor,
-                              fontSize:
-                                  17,
-                              fontWeight:
-                                  FontWeight.w800,
-                            ),
-                          ),
-                        ),
-
-                        IconButton(
-                          onPressed:
-                              () {
-                            Navigator.pop(
-                              sheetContext,
-                            );
-                          },
-                          icon:
-                              const Icon(
-                            Icons.close_rounded,
-                            color:
-                                secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const Divider(
-                    height:
-                        1,
-                    color:
-                        softBorder,
-                  ),
-
-                  Expanded(
-                    child:
-                        SingleChildScrollView(
-                      controller:
-                          scrollController,
-                      padding:
-                          const EdgeInsets.all(
-                        14,
-                      ),
+              Padding(
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  8,
+                  10,
+                ),
+                child:
+                    Row(
+                  children: [
+                    const Expanded(
                       child:
-                          CreateSequencePreview(
-                        subjectController:
-                            subjectController,
-                        logoController:
-                            logoController,
-                        heroImageController:
-                            heroImageController,
-                        heroLinkController:
-                            heroLinkController,
-                        emailContentController:
-                            contentController,
-                        whatsappController:
-                            whatsappController,
-                        ctaTextController:
-                            ctaTextController,
-                        ctaUrlController:
-                            ctaUrlController,
-                        selectedLogoPosition:
-                            selectedLogoPosition,
-                        selectedFont:
-                            selectedFont,
-                        selectedTextColor:
-                            selectedTextColor,
-                        selectedFontSize:
-                            selectedFontSize,
-                        isBold:
-                            isBold,
-                        isItalic:
-                            isItalic,
-                        isUnderline:
-                            isUnderline,
+                          Text(
+                        'Email Preview',
+                        style:
+                            TextStyle(
+                          color:
+                              textColor,
+                          fontSize:
+                              17,
+                          fontWeight:
+                              FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+
+                    IconButton(
+                      onPressed:
+                          () {
+                        Navigator.of(
+                          sheetContext,
+                        ).pop();
+                      },
+                      icon:
+                          const Icon(
+                        Icons.close_rounded,
+                        color:
+                            secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
+
+              const Divider(
+                height:
+                    1,
+                color:
+                    softBorder,
+              ),
+
+              Expanded(
+                child:
+                    SingleChildScrollView(
+                  physics:
+                      const BouncingScrollPhysics(),
+                  padding:
+                      const EdgeInsets.all(
+                    14,
+                  ),
+                  child:
+                      CreateSequencePreview(
+                    subjectController:
+                        subjectController,
+                    logoController:
+                        logoController,
+                    heroImageController:
+                        heroImageController,
+                    heroLinkController:
+                        heroLinkController,
+                    emailContentController:
+                        contentController,
+                    whatsappController:
+                        whatsappController,
+                    ctaTextController:
+                        ctaTextController,
+                    ctaUrlController:
+                        ctaUrlController,
+                    selectedLogoPosition:
+                        selectedLogoPosition,
+                    selectedFont:
+                        selectedFont,
+                    selectedTextColor:
+                        selectedTextColor,
+                    selectedFontSize:
+                        selectedFontSize,
+                    isBold:
+                        isBold,
+                    isItalic:
+                        isItalic,
+                    isUnderline:
+                        isUnderline,
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -2605,8 +3254,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           ),
 
           const SizedBox(
-            width:
-                12,
+            width: 12,
           ),
 
           Expanded(
@@ -2629,8 +3277,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 ),
 
                 const SizedBox(
-                  height:
-                      3,
+                  height: 3,
                 ),
 
                 Text(
@@ -2890,10 +3537,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             ],
           ),
 
-          const SizedBox(
-            height:
-                14,
-          ),
+          const SizedBox(height: 14),
 
           const Divider(
             height:
@@ -2902,10 +3546,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 softBorder,
           ),
 
-          const SizedBox(
-            height:
-                15,
-          ),
+          const SizedBox(height: 15),
 
           child,
         ],
@@ -3079,7 +3720,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // GOLD INFO
+  // GOLD INFO BOX
   // ============================================================
 
   Widget _goldInfoBox({
@@ -3174,7 +3815,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // FIELD
+  // TEXT FIELD
   // ============================================================
 
   Widget _buildTextField({
@@ -3183,7 +3824,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required String hint,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
     IconData? prefixIcon,
     TextCapitalization textCapitalization =
         TextCapitalization.none,
@@ -3217,8 +3857,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               keyboardType,
           inputFormatters:
               inputFormatters,
-          validator:
-              validator,
           textCapitalization:
               textCapitalization,
           cursorColor:
@@ -3304,37 +3942,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     1.2,
               ),
             ),
-            errorBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    red,
-              ),
-            ),
-            focusedErrorBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    red,
-              ),
-            ),
-            errorStyle:
-                const TextStyle(
-              color:
-                  red,
-              fontSize:
-                  9.5,
-            ),
           ),
         ),
       ],
@@ -3387,32 +3994,29 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 secondaryTextColor,
           ),
           items:
-              items
-                  .map(
-                    (
-                      item,
-                    ) =>
-                        DropdownMenuItem<String>(
-                      value:
-                          item,
-                      child:
-                          Text(
-                        item,
-                        maxLines:
-                            1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(
-                          color:
-                              textColor,
-                          fontSize:
-                              11.5,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
+              items.map(
+            (item) {
+              return DropdownMenuItem<String>(
+                value:
+                    item,
+                child:
+                    Text(
+                  item,
+                  maxLines:
+                      1,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(
+                    color:
+                        textColor,
+                    fontSize:
+                        11,
+                  ),
+                ),
+              );
+            },
+          ).toList(),
           onChanged:
               onChanged,
           decoration:
@@ -3424,7 +4028,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             contentPadding:
                 const EdgeInsets.symmetric(
               horizontal:
-                  12,
+                  10,
               vertical:
                   5,
             ),
@@ -3471,460 +4075,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // TYPE SELECTOR
-  // ============================================================
-
-  Widget _buildTypeSelector() {
-    final option =
-        _typeOption(
-      selectedType,
-    );
-
-    return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Type',
-          style:
-              TextStyle(
-            color:
-                textColor,
-            fontSize:
-                11,
-            fontWeight:
-                FontWeight.w600,
-          ),
-        ),
-
-        const SizedBox(
-          height:
-              7,
-        ),
-
-        InkWell(
-          onTap:
-              _showTypeSelector,
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
-          child:
-              Container(
-            width:
-                double.infinity,
-            padding:
-                const EdgeInsets.all(
-              11,
-            ),
-            decoration:
-                BoxDecoration(
-              color:
-                  fieldBackground,
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              border:
-                  Border.all(
-                color:
-                    borderColor,
-              ),
-            ),
-            child:
-                Row(
-              children: [
-                Container(
-                  width:
-                      38,
-                  height:
-                      38,
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        option.color.withOpacity(
-                      0.12,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      9,
-                    ),
-                  ),
-                  child:
-                      Icon(
-                    option.icon,
-                    color:
-                        option.color,
-                    size:
-                        19,
-                  ),
-                ),
-
-                const SizedBox(
-                  width:
-                      10,
-                ),
-
-                Expanded(
-                  child:
-                      Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        option.title,
-                        style:
-                            const TextStyle(
-                          color:
-                              textColor,
-                          fontSize:
-                              12,
-                          fontWeight:
-                              FontWeight.w700,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height:
-                            2,
-                      ),
-
-                      Text(
-                        option.description,
-                        maxLines:
-                            1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(
-                          color:
-                              secondaryTextColor,
-                          fontSize:
-                              9.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color:
-                      secondaryTextColor,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // TYPE OPTION
-  // ============================================================
-
-  _SequenceTypeOption _typeOption(
-    String value,
-  ) {
-    switch (value) {
-      case 'WhatsApp':
-        return const _SequenceTypeOption(
-          value:
-              'WhatsApp',
-          title:
-              'WhatsApp',
-          description:
-              'WhatsApp campaign message',
-          icon:
-              Icons.chat_outlined,
-          color:
-              green,
-        );
-
-      case 'SMS':
-        return const _SequenceTypeOption(
-          value:
-              'SMS',
-          title:
-              'SMS',
-          description:
-              'SMS campaign message',
-          icon:
-              Icons.sms_outlined,
-          color:
-              purpleLight,
-        );
-
-      case 'Email':
-      default:
-        return const _SequenceTypeOption(
-          value:
-              'Email',
-          title:
-              'Email',
-          description:
-              'Email campaign message',
-          icon:
-              Icons.email_outlined,
-          color:
-              gold,
-        );
-    }
-  }
-
-  // ============================================================
-  // TYPE SHEET
-  // ============================================================
-
-  Future<void> _showTypeSelector() async {
-    final selected =
-        await showModalBottomSheet<String>(
-      context:
-          context,
-      backgroundColor:
-          Colors.transparent,
-      builder:
-          (
-        sheetContext,
-      ) {
-        return SafeArea(
-          child:
-              Container(
-            padding:
-                const EdgeInsets.fromLTRB(
-              16,
-              10,
-              16,
-              20,
-            ),
-            decoration:
-                const BoxDecoration(
-              color:
-                  Color(0xFF0B0E13),
-              borderRadius:
-                  BorderRadius.vertical(
-                top:
-                    Radius.circular(
-                  22,
-                ),
-              ),
-            ),
-            child:
-                Column(
-              mainAxisSize:
-                  MainAxisSize.min,
-              children: [
-                Container(
-                  width:
-                      40,
-                  height:
-                      4,
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        borderColor,
-                    borderRadius:
-                        BorderRadius.circular(
-                      20,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(
-                  height:
-                      18,
-                ),
-
-                const Align(
-                  alignment:
-                      Alignment.centerLeft,
-                  child:
-                      Text(
-                    'Select Sequence Type',
-                    style:
-                        TextStyle(
-                      color:
-                          textColor,
-                      fontSize:
-                          17,
-                      fontWeight:
-                          FontWeight.w800,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(
-                  height:
-                      14,
-                ),
-
-                ...[
-                  'Email',
-                  'WhatsApp',
-                  'SMS',
-                ].map(
-                  (
-                    value,
-                  ) {
-                    final option =
-                        _typeOption(
-                      value,
-                    );
-
-                    final isSelected =
-                        selectedType ==
-                            value;
-
-                    return Padding(
-                      padding:
-                          const EdgeInsets.only(
-                        bottom:
-                            9,
-                      ),
-                      child:
-                          InkWell(
-                        onTap:
-                            () {
-                          Navigator.pop(
-                            sheetContext,
-                            value,
-                          );
-                        },
-                        borderRadius:
-                            BorderRadius.circular(
-                          11,
-                        ),
-                        child:
-                            Container(
-                          padding:
-                              const EdgeInsets.all(
-                            11,
-                          ),
-                          decoration:
-                              BoxDecoration(
-                            color:
-                                isSelected
-                                    ? gold.withOpacity(
-                                        0.08,
-                                      )
-                                    : fieldBackground,
-                            borderRadius:
-                                BorderRadius.circular(
-                              11,
-                            ),
-                            border:
-                                Border.all(
-                              color:
-                                  isSelected
-                                      ? gold
-                                      : borderColor,
-                            ),
-                          ),
-                          child:
-                              Row(
-                            children: [
-                              Container(
-                                width:
-                                    40,
-                                height:
-                                    40,
-                                decoration:
-                                    BoxDecoration(
-                                  color:
-                                      option.color.withOpacity(
-                                    0.12,
-                                  ),
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                    9,
-                                  ),
-                                ),
-                                child:
-                                    Icon(
-                                  option.icon,
-                                  color:
-                                      option.color,
-                                  size:
-                                      20,
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    10,
-                              ),
-
-                              Expanded(
-                                child:
-                                    Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      option.title,
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            textColor,
-                                        fontSize:
-                                            12,
-                                        fontWeight:
-                                            FontWeight.w700,
-                                      ),
-                                    ),
-
-                                    const SizedBox(
-                                      height:
-                                          3,
-                                    ),
-
-                                    Text(
-                                      option.description,
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            secondaryTextColor,
-                                        fontSize:
-                                            9.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              if (isSelected)
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color:
-                                      gold,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selected !=
-            null &&
-        mounted) {
-      setState(() {
-        selectedType =
-            selected;
-      });
-    }
-  }
-
-  // ============================================================
-  // FILE PICKER
+  // FILE PICKER UI
   // ============================================================
 
   Widget _buildFilePicker({
@@ -3934,10 +4085,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final hasFile =
+    final bool hasFile =
         value.trim().isNotEmpty;
 
-    final displayName =
+    final String displayName =
         hasFile
             ? value
                 .split('\\')
@@ -4095,7 +4246,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // TOOLBAR
+  // EDITOR TOOLBAR
   // ============================================================
 
   Widget _buildEditorToolbar() {
@@ -4186,12 +4337,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               padding:
                   EdgeInsets.symmetric(
                 horizontal:
-                    8,
+                    7,
                 vertical:
                     8,
               ),
               child:
                   Row(
+                mainAxisSize:
+                    MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.delete_outline,
@@ -4200,10 +4353,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     size:
                         15,
                   ),
+
                   SizedBox(
                     width:
                         4,
                   ),
+
                   Text(
                     'Clear',
                     style:
@@ -4496,6 +4651,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         : _formatDateTime(
                             scheduledDateTime!,
                           ),
+                    maxLines:
+                        2,
+                    overflow:
+                        TextOverflow.ellipsis,
                     style:
                         TextStyle(
                       color:
@@ -4504,7 +4663,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                               ? hintColor
                               : textColor,
                       fontSize:
-                          11.5,
+                          11,
                       fontWeight:
                           scheduledDateTime ==
                                   null
@@ -4540,8 +4699,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }) {
     return Row(
       children: [
-        if (onBack !=
-            null) ...[
+        if (onBack != null) ...[
           Expanded(
             child:
                 SizedBox(
@@ -4561,6 +4719,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     Text(
                   backTitle ??
                       'Back',
+                  maxLines:
+                      1,
+                  overflow:
+                      TextOverflow.ellipsis,
                 ),
                 style:
                     OutlinedButton.styleFrom(
@@ -4652,7 +4814,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   fontWeight:
                       FontWeight.w800,
                   fontSize:
-                      11.5,
+                      11,
                 ),
               ),
               style:
@@ -4667,6 +4829,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                     Colors.black,
                 disabledForegroundColor:
                     Colors.black54,
+                padding:
+                    const EdgeInsets.symmetric(
+                  horizontal:
+                      8,
+                ),
                 shape:
                     RoundedRectangleBorder(
                   borderRadius:
@@ -4683,22 +4850,19 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // NEXT
+  // NEXT STEP
   // ============================================================
 
   void _nextStep() {
-    FocusScope.of(context)
-        .unfocus();
+    FocusScope.of(context).unfocus();
 
-    if (currentStep ==
-        0) {
+    if (currentStep == 0) {
       if (!_validateBasicStep()) {
         return;
       }
     }
 
-    if (currentStep ==
-        1) {
+    if (currentStep == 1) {
       if (contentController.text
           .trim()
           .isEmpty) {
@@ -4712,8 +4876,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       }
     }
 
-    if (currentStep <
-        3) {
+    if (currentStep < 3) {
       setState(() {
         currentStep++;
       });
@@ -4721,15 +4884,13 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // PREVIOUS
+  // PREVIOUS STEP
   // ============================================================
 
   void _previousStep() {
-    FocusScope.of(context)
-        .unfocus();
+    FocusScope.of(context).unfocus();
 
-    if (currentStep >
-        0) {
+    if (currentStep > 0) {
       setState(() {
         currentStep--;
       });
@@ -4741,16 +4902,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   bool _validateBasicStep() {
-    final step =
+    final int? step =
         int.tryParse(
-      stepController.text
-          .trim(),
+      stepController.text.trim(),
     );
 
-    final gap =
+    final int? gap =
         int.tryParse(
-      gapDaysController.text
-          .trim(),
+      gapDaysController.text.trim(),
     );
 
     if (step == null ||
@@ -4787,6 +4946,18 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       return false;
     }
 
+    if (selectedBusinessType
+        .trim()
+        .isEmpty) {
+      _showMessage(
+        'Please add and select a business type.',
+        isError:
+            true,
+      );
+
+      return false;
+    }
+
     if (subjectController.text
         .trim()
         .isEmpty) {
@@ -4815,8 +4986,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           false,
     );
 
-    if (result ==
-            null ||
+    if (result == null ||
         result.files.isEmpty) {
       return;
     }
@@ -4848,8 +5018,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           false,
     );
 
-    if (result ==
-            null ||
+    if (result == null ||
         result.files.isEmpty) {
       return;
     }
@@ -4858,9 +5027,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         result.files.first;
 
     if (file.size >
-        2 *
-            1024 *
-            1024) {
+        2 * 1024 * 1024) {
       _showMessage(
         'Hero image must be less than 2 MB.',
         isError:
@@ -4894,8 +5061,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           false,
     );
 
-    if (result ==
-            null ||
+    if (result == null ||
         result.files.isEmpty) {
       return;
     }
@@ -4965,7 +5131,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // DATE
+  // SELECT DATE TIME
   // ============================================================
 
   Future<void> _selectDateTime() async {
@@ -4980,11 +5146,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           scheduledDateTime ??
               now,
       firstDate:
-          now,
+          DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ),
       lastDate:
           DateTime(
-        now.year +
-            5,
+        now.year + 5,
       ),
       builder:
           (
@@ -5010,8 +5179,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       },
     );
 
-    if (selectedDate ==
-            null ||
+    if (selectedDate == null ||
         !mounted) {
       return;
     }
@@ -5021,8 +5189,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       context:
           context,
       initialTime:
-          scheduledDateTime !=
-                  null
+          scheduledDateTime != null
               ? TimeOfDay.fromDateTime(
                   scheduledDateTime!,
                 )
@@ -5051,36 +5218,48 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       },
     );
 
-    if (selectedTime ==
-            null ||
+    if (selectedTime == null ||
         !mounted) {
+      return;
+    }
+
+    final DateTime newDate =
+        DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    if (newDate.isBefore(
+      DateTime.now(),
+    )) {
+      _showMessage(
+        'Please select a future date and time.',
+        isError:
+            true,
+      );
+
       return;
     }
 
     setState(() {
       scheduledDateTime =
-          DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      );
+          newDate;
     });
   }
 
   // ============================================================
-  // CREATE
+  // CREATE SEQUENCE
   // ============================================================
 
   Future<void> _createSequence() async {
-    FocusScope.of(context)
-        .unfocus();
+    FocusScope.of(context).unfocus();
 
     if (!_validateBasicStep()) {
       setState(() {
-        currentStep =
-            0;
+        currentStep = 0;
       });
 
       return;
@@ -5096,29 +5275,24 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       );
 
       setState(() {
-        currentStep =
-            1;
+        currentStep = 1;
       });
 
       return;
     }
 
-    final step =
+    final int? step =
         int.tryParse(
-      stepController.text
-          .trim(),
+      stepController.text.trim(),
     );
 
-    final gapDays =
+    final int? gapDays =
         int.tryParse(
-      gapDaysController.text
-          .trim(),
+      gapDaysController.text.trim(),
     );
 
-    if (step ==
-            null ||
-        gapDays ==
-            null) {
+    if (step == null ||
+        gapDays == null) {
       return;
     }
 
@@ -5137,42 +5311,38 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             gapDays,
 
         variant:
-            variantController.text
-                .trim(),
+            variantController.text.trim(),
+
+        // ======================================================
+        // BUSINESS TYPE
+        //
+        // Your existing API parameter is named "type".
+        // We now send the custom business type here.
+        // ======================================================
 
         type:
-            selectedType,
+            selectedBusinessType.trim(),
 
         subject:
-            subjectController.text
-                .trim(),
+            subjectController.text.trim(),
 
         logoUrl:
-            logoController.text
-                    .trim()
-                    .isEmpty
+            logoController.text.trim().isEmpty
                 ? null
-                : logoController.text
-                    .trim(),
+                : logoController.text.trim(),
 
         logoPosition:
             selectedLogoPosition,
 
         heroImageUrl:
-            heroImageController.text
-                    .trim()
-                    .isEmpty
+            heroImageController.text.trim().isEmpty
                 ? null
-                : heroImageController.text
-                    .trim(),
+                : heroImageController.text.trim(),
 
         heroImageLink:
-            heroLinkController.text
-                    .trim()
-                    .isEmpty
+            heroLinkController.text.trim().isEmpty
                 ? null
-                : heroLinkController.text
-                    .trim(),
+                : heroLinkController.text.trim(),
 
         content:
             contentController.text,
@@ -5196,43 +5366,30 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             isUnderline,
 
         attachmentName:
-            attachmentNameController.text
-                    .trim()
-                    .isEmpty
+            attachmentNameController.text.trim().isEmpty
                 ? null
-                : attachmentNameController.text
-                    .trim(),
+                : attachmentNameController.text.trim(),
 
         attachmentUrl:
-            attachmentUrlController.text
-                    .trim()
-                    .isEmpty
+            attachmentUrlController.text.trim().isEmpty
                 ? null
-                : attachmentUrlController.text
-                    .trim(),
+                : attachmentUrlController.text.trim(),
 
         attachmentMimeType:
-            attachmentMimeController.text
-                    .trim()
-                    .isEmpty
+            attachmentMimeController.text.trim().isEmpty
                 ? null
-                : attachmentMimeController.text
-                    .trim(),
+                : attachmentMimeController.text.trim(),
 
         attachmentSize:
             int.tryParse(
-                  attachmentSizeController.text
-                      .trim(),
+                  attachmentSizeController.text.trim(),
                 ) ??
                 0,
 
         whatsapp:
-            whatsappController.text
-                    .trim()
-                    .isEmpty
+            whatsappController.text.trim().isEmpty
                 ? null
-                : whatsappController.text
-                    .trim(),
+                : whatsappController.text.trim(),
 
         trackingEnabled:
             trackingEnabled,
@@ -5329,7 +5486,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
       case 'Black':
       default:
-        // Editor is dark, so black text would disappear.
         return Colors.white;
     }
   }
@@ -5415,13 +5571,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     final size =
         _selectedEditorSize();
 
-    if (size >=
-        24) {
+    if (size >= 24) {
       return 14;
     }
 
-    if (size >=
-        18) {
+    if (size >= 18) {
       return 13;
     }
 
@@ -5429,25 +5583,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   }
 
   // ============================================================
-  // LOGO ALIGNMENT
-  // ============================================================
-
-  Alignment _logoAlignment() {
-    switch (selectedLogoPosition) {
-      case 'Left':
-        return Alignment.centerLeft;
-
-      case 'Right':
-        return Alignment.centerRight;
-
-      case 'Center':
-      default:
-        return Alignment.center;
-    }
-  }
-
-  // ============================================================
-  // STATUS
+  // STATUS COLOR
   // ============================================================
 
   Color _statusColor() {

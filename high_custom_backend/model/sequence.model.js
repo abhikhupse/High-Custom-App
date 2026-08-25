@@ -33,7 +33,7 @@ const sequenceSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["Email", "Follow Up", "Promotion", "Reminder"],
+      // enum: ["Email", "Follow Up", "Promotion", "Reminder"],
     },
 
     subject: {
