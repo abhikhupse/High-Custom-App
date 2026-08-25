@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'create_sequence_screen.dart';
 import '../../../services/sequence_api.dart';
+import '../../../widgets/app_feedback.dart';
 
 // ============================================================
 // MASTER / SEQUENCE LIST SCREEN
@@ -2989,35 +2990,6 @@ class _MasterListScreenState extends State<MasterListScreen> {
   }) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style:
-              const TextStyle(
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor:
-            isError
-                ? const Color(
-                    0xFF7F1D1D,
-                  )
-                : const Color(
-                    0xFF17191C,
-                  ),
-        behavior:
-            SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(12),
-        ),
-      ),
-    );
+    AppFeedback.show(context, message, isError: isError);
   }
 }

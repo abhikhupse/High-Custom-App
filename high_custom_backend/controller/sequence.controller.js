@@ -526,6 +526,19 @@ exports.createSequence = async (req, res) => {
     });
 
     // ==========================================================
+    // PROCESS EXISTING LEADS FOR A NEW ACTIVE SEQUENCE
+    // ==========================================================
+
+    // Lead creation already runs active sequences, but the reverse flow also
+    // needs to work: when an active sequence is created after leads already
+    // exist, process those matching leads immediately.
+    let execution = null;
+
+    if (sequence.status === "active") {
+      execution = await processSequencesForUser(userId);
+    }
+
+    // ==========================================================
     // RESPONSE
     // ==========================================================
 
@@ -533,6 +546,7 @@ exports.createSequence = async (req, res) => {
       success: true,
       message: "Sequence Created Successfully",
       data: sequence,
+      execution,
     });
   } catch (error) {
     console.error("Error while creating Sequence:", error);

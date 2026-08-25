@@ -239,7 +239,7 @@ const sequenceSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["draft", "active", "paused", "completed"],
+      enum: ["draft", "scheduled", "active", "paused", "completed"],
       default: "draft",
       index: true,
     },

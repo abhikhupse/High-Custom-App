@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:high_custom_frontend/widgets/app_feedback.dart';
 
 import '../../services/profile_api.dart';
 
@@ -411,19 +412,7 @@ class _ProfileScreenState
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior:
-              SnackBarBehavior.floating,
-          margin:
-              const EdgeInsets.all(16),
-          duration:
-              const Duration(seconds: 3),
-        ),
-      );
+    AppFeedback.show(context, message);
   }
 
   // ============================================================

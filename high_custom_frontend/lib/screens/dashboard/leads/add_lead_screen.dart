@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/leads_api.dart';
 import '../../../services/sequence_api.dart';
+import '../../../widgets/app_feedback.dart';
 
 // ============================================================
 // ADD LEAD SCREEN
@@ -1317,31 +1318,6 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-        ),
-        behavior:
-            SnackBarBehavior.floating,
-        backgroundColor:
-            const Color(
-          0xFF20242E,
-        ),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
-        ),
-      ),
-    );
+    AppFeedback.show(context, message);
   }
 }

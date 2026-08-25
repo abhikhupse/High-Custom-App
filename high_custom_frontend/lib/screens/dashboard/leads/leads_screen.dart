@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/leads_api.dart';
+import '../../../widgets/app_feedback.dart';
 import 'add_lead_screen.dart';
 
 // ============================================================
@@ -5453,25 +5454,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-        ),
-        behavior:
-            SnackBarBehavior.floating,
-        backgroundColor:
-            const Color(
-          0xFF202124,
-        ),
-      ),
-    );
+    AppFeedback.show(context, message);
   }
 
   // ============================================================

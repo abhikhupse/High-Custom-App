@@ -11,8 +11,41 @@ const { sendSequenceToLead } = require("../services/sequence.service");
 // ============================================================
 
 const BASE_URL = process.env.APP_BASE_URL;
+const SEQUENCE_CRON = process.env.SEQUENCE_CRON || "* * * * *";
 
 console.log("========================================");
+
+// ============================================================
+// ACTIVATE SCHEDULED SEQUENCES THAT ARE DUE
+// ============================================================
+
+async function activateDueScheduledSequences(userId = null) {
+  const filter = {
+    status: "scheduled",
+    scheduledAt: {
+      $ne: null,
+      $lte: new Date(),
+    },
+  };
+
+  if (userId) {
+    filter.userId = userId;
+  }
+
+  const result = await SEQUENCE_COLLECTION.updateMany(filter, {
+    $set: {
+      status: "active",
+    },
+  });
+
+  const activated = result.modifiedCount || 0;
+
+  if (activated > 0) {
+    console.log(`Activated ${activated} scheduled sequence(s).`);
+  }
+
+  return activated;
+}
 console.log("EMAIL TRACKING BASE URL:", BASE_URL);
 console.log("APP_BASE_URL FROM ENV:", process.env.APP_BASE_URL);
 console.log("========================================");
@@ -26,9 +59,17 @@ async function getPreviousStepDelivery({ leadId, sequence }) {
     return null;
   }
 
+  const deliveryChannel = sequence.channel || "Email";
+  const businessType =
+    sequence.businessType ||
+    (sequence.type && sequence.type !== "Email" ? sequence.type : "");
+
   const previousSequence = await SEQUENCE_COLLECTION.findOne({
     userId: sequence.userId,
     step: sequence.step - 1,
+    variant: sequence.variant,
+    channel: deliveryChannel,
+    ...(businessType ? { businessType } : {}),
   }).sort({
     createdAt: -1,
   });
@@ -212,6 +253,8 @@ async function processSequences() {
   console.log("================================================");
 
   try {
+    await activateDueScheduledSequences();
+
     const sequences = await SEQUENCE_COLLECTION.find({
       status: "active",
     }).lean();
@@ -265,6 +308,8 @@ async function processSequencesForUser(userId) {
   console.log("================================================");
 
   try {
+    await activateDueScheduledSequences(userId);
+
     // ========================================================
     // ACTIVE SEQUENCES FOR USER
     // ========================================================
@@ -318,7 +363,7 @@ async function processSequencesForUser(userId) {
 
 function startSequenceJob() {
   cron.schedule(
-    "*/15 * * * *",
+    SEQUENCE_CRON,
     async () => {
       try {
         await processSequences();
@@ -331,7 +376,7 @@ function startSequenceJob() {
     },
   );
 
-  console.log("Sequence scheduler started.");
+  console.log(`Sequence scheduler started with cron: ${SEQUENCE_CRON}`);
 }
 
 // ============================================================
@@ -342,4 +387,5 @@ module.exports = {
   startSequenceJob,
   processSequences,
   processSequencesForUser,
+  activateDueScheduledSequences,
 };

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../services/sequence_api.dart';
+import '../../../widgets/app_feedback.dart';
 import 'create_sequence_preview.dart';
 
 // ============================================================
@@ -2135,6 +2136,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       setState(() {
                         scheduledDateTime =
                             null;
+                        if (selectedStatus ==
+                            'scheduled') {
+                          selectedStatus =
+                              'draft';
+                        }
                       });
                     },
                     icon:
@@ -5247,6 +5253,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     setState(() {
       scheduledDateTime =
           newDate;
+      selectedStatus =
+          'scheduled';
     });
   }
 
@@ -5293,6 +5301,20 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
     if (step == null ||
         gapDays == null) {
+      return;
+    }
+
+    if (selectedStatus == 'scheduled' &&
+        scheduledDateTime == null) {
+      _showMessage(
+        'Please select a scheduled date and time.',
+        isError: true,
+      );
+
+      setState(() {
+        currentStep = 3;
+      });
+
       return;
     }
 
@@ -5392,7 +5414,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         scheduledAt:
             scheduledDateTime
-                ?.toIso8601String(),
+                ?.toUtc()
+                .toIso8601String(),
       );
 
       if (!mounted) {
@@ -5663,41 +5686,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content:
-            Text(
-          message,
-          style:
-              const TextStyle(
-            color:
-                white,
-            fontSize:
-                11.5,
-          ),
-        ),
-        behavior:
-            SnackBarBehavior.floating,
-        backgroundColor:
-            isError
-                ? const Color(
-                    0xFF38171C,
-                  )
-                : const Color(
-                    0xFF12301F,
-                  ),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(
-            11,
-          ),
-        ),
-      ),
-    );
+    AppFeedback.show(context, message, isError: isError);
   }
 }

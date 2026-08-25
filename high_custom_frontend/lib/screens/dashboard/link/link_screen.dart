@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:high_custom_frontend/widgets/app_feedback.dart';
 
 // ============================================================
 // LINK SCREEN
@@ -668,16 +669,6 @@ class _LinkScreenState extends State<LinkScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF20242E),
-        content: Text(message),
-      ),
-    );
+    AppFeedback.show(context, message);
   }
 }
