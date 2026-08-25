@@ -11,7 +11,7 @@ class ProfileApi {
   // ============================================================
 
   static const String serverUrl =
-      'http://192.168.1.18:3000';
+      'https://high-custom-app.onrender.com';
 
   static const String baseUrl =
       '$serverUrl/api/user';

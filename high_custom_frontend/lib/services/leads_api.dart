@@ -10,7 +10,7 @@ class LeadsApi {
   // ============================================================
 
   static const String baseUrl =
-      'http://192.168.1.18:3000/api';
+      'https://high-custom-app.onrender.com/api';
 
   // ============================================================
   // STORAGE

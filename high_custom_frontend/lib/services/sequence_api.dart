@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 class SequenceApi {
   static const String baseUrl =
-      'http://192.168.1.18:3000/api/sequence';
+      'https://high-custom-app.onrender.com/api/sequence';
 
   static const FlutterSecureStorage _storage =
       FlutterSecureStorage();

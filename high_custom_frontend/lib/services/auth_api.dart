@@ -15,7 +15,7 @@ class AuthApi {
   // ============================================================
 
   static const String baseUrl =
-      'http://192.168.1.18:3000/api/user';
+      'https://high-custom-app.onrender.com/api/user';
 
   // ============================================================
   // STORAGE

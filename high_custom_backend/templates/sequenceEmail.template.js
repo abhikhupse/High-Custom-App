@@ -115,6 +115,36 @@ function formatContent(content = "") {
 }
 
 // ============================================================
+// PERSONALIZE LEAD PLACEHOLDERS
+// ============================================================
+
+function replaceLeadPlaceholders(value = "", lead = {}) {
+  const firstName = String(lead.firstName || "").trim();
+  const lastName = String(lead.lastName || "").trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+
+  const replacements = {
+    firstName: firstName || "there",
+    lastName,
+    fullName: fullName || "there",
+    email: String(lead.email || "").trim(),
+    company: String(lead.company || "").trim(),
+    businessType: String(lead.businessType || "").trim(),
+  };
+
+  return String(value).replace(
+    /{{\s*(firstName|lastName|fullName|email|company|businessType)\s*}}/gi,
+    (_, key) => {
+      const normalizedKey = Object.keys(replacements).find(
+        (item) => item.toLowerCase() === key.toLowerCase(),
+      );
+
+      return normalizedKey ? replacements[normalizedKey] : "";
+    },
+  );
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 
@@ -151,13 +181,17 @@ function buildSequenceEmail({
   // SUBJECT
   // ==========================================================
 
-  const subject = escapeHtml(sequence.subject || "");
+  const subject = escapeHtml(
+    replaceLeadPlaceholders(sequence.subject || "", lead),
+  );
 
   // ==========================================================
   // CONTENT
   // ==========================================================
 
-  const content = formatContent(sequence.content || "");
+  const content = formatContent(
+    replaceLeadPlaceholders(sequence.content || "", lead),
+  );
 
   // ==========================================================
   // EDITOR
@@ -544,4 +578,5 @@ ${trackingPixel}
 
 module.exports = {
   buildSequenceEmail,
+  replaceLeadPlaceholders,
 };

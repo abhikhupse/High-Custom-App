@@ -4,7 +4,10 @@ const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
 
 const createGoogleOAuthClient = require("../config/google_oauth");
 
-const { buildSequenceEmail } = require("../templates/sequenceEmail.template");
+const {
+  buildSequenceEmail,
+  replaceLeadPlaceholders,
+} = require("../templates/sequenceEmail.template");
 
 const SENDER_COPY_LABEL_NAME = "High Custom Sequences";
 
@@ -391,7 +394,7 @@ async function sendSequenceEmail({
   const raw = createMimeMessage({
     from: integration.email,
     to: leadEmail,
-    subject: sequence.subject,
+    subject: replaceLeadPlaceholders(sequence.subject || "", lead),
     html,
   });
 
