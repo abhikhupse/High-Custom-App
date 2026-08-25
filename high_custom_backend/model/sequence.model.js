@@ -33,7 +33,22 @@ const sequenceSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      // enum: ["Email", "Follow Up", "Promotion", "Reminder"],
+      enum: ["Email"],
+      default: "Email",
+    },
+
+    channel: {
+      type: String,
+      enum: ["Email"],
+      required: true,
+      default: "Email",
+    },
+
+    businessType: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
     },
 
     subject: {

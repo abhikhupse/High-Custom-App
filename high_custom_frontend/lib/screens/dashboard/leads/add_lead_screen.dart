@@ -57,8 +57,59 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
 
   bool isSaving = false;
   bool trackingEnabled = true;
+  bool isLoadingBusinessTypes = true;
 
   String selectedType = 'Email';
+  String? selectedBusinessType;
+
+  final List<String> businessTypes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusinessTypes();
+  }
+
+  Future<void> _loadBusinessTypes() async {
+    setState(() {
+      isLoadingBusinessTypes = true;
+    });
+
+    final response = await SequenceApi.getSequences(
+      page: 1,
+      limit: 100,
+    );
+
+    if (!mounted) return;
+
+    final values = <String>{};
+    final data = response['data'];
+
+    if (data is List) {
+      for (final item in data) {
+        if (item is! Map) continue;
+
+        final value = item['businessType']?.toString().trim() ?? '';
+        if (value.isNotEmpty) values.add(value);
+      }
+    }
+
+    final sortedValues = values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    setState(() {
+      businessTypes
+        ..clear()
+        ..addAll(sortedValues);
+
+      if (selectedBusinessType != null &&
+          !businessTypes.contains(selectedBusinessType)) {
+        selectedBusinessType = null;
+      }
+
+      isLoadingBusinessTypes = false;
+    });
+  }
 
   // ============================================================
   // DISPOSE
@@ -483,6 +534,12 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
           _buildTypeDropdown(),
 
           const SizedBox(
+            height: 12,
+          ),
+
+          _buildBusinessTypeDropdown(),
+
+          const SizedBox(
             height: 14,
           ),
 
@@ -760,6 +817,101 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                             value;
                       });
                     },
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // BUSINESS TYPE DROPDOWN
+  // ============================================================
+
+  Widget _buildBusinessTypeDropdown() {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: inputColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedBusinessType,
+          isExpanded: true,
+          dropdownColor: surface2,
+          icon: isLoadingBusinessTypes
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: gold,
+                  ),
+                )
+              : const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: mutedText,
+                ),
+          hint: Row(
+            children: [
+              const Icon(
+                Icons.storefront_outlined,
+                color: gold,
+                size: 19,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isLoadingBusinessTypes
+                      ? 'Loading business types...'
+                      : businessTypes.isEmpty
+                          ? 'Create a sequence business type first'
+                          : 'Select Business Type',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: hintText,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          style: const TextStyle(
+            color: lightText,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          items: businessTypes
+              .map(
+                (value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.storefront_outlined,
+                        color: gold,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          value,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: isSaving || isLoadingBusinessTypes || businessTypes.isEmpty
+              ? null
+              : (value) {
+                  setState(() {
+                    selectedBusinessType = value;
+                  });
+                },
         ),
       ),
     );
@@ -1084,6 +1236,18 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       return;
     }
 
+    final businessType = selectedBusinessType?.trim() ?? '';
+
+    if (businessType.isEmpty) {
+      _showMessage(
+        businessTypes.isEmpty
+            ? 'Create an active sequence with a Business Type first.'
+            : 'Please select a Business Type.',
+      );
+
+      return;
+    }
+
     setState(() {
       isSaving = true;
     });
@@ -1096,6 +1260,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
         lastName: lastName,
         company: company,
         type: selectedType,
+        businessType: businessType,
         tracking: trackingEnabled,
       );
 
@@ -1105,39 +1270,11 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
 
       if (response['success'] ==
           true) {
-        Map<String, dynamic>?
-            sequenceResponse;
-
-        if (trackingEnabled &&
-            selectedType ==
-                'Email') {
-          sequenceResponse =
-              await SequenceApi
-                  .runSequence();
-        }
-
-        if (!mounted) {
-          return;
-        }
-
-        final bool sequenceFailed =
-            sequenceResponse !=
-                    null &&
-                sequenceResponse[
-                        'success'] !=
-                    true;
-
-        if (sequenceFailed) {
-          _showMessage(
-            'Lead added, but the sequence could not be run.',
-          );
-        } else {
-          _showMessage(
-            response['message']
-                    ?.toString() ??
-                'Lead added successfully.',
-          );
-        }
+        _showMessage(
+          response['message']
+                  ?.toString() ??
+              'Lead added successfully.',
+        );
 
         Navigator.pop(
           context,

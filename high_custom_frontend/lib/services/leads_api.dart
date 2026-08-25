@@ -124,6 +124,7 @@ class LeadsApi {
     required String lastName,
     required String company,
     required String type,
+    required String businessType,
     required bool tracking,
   }) async {
     try {
@@ -149,6 +150,7 @@ class LeadsApi {
               'lastName': lastName.trim(),
               'company': company.trim(),
               'type': type,
+              'businessType': businessType.trim(),
               'tracking': tracking,
             }),
           )

@@ -5313,14 +5313,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         variant:
             variantController.text.trim(),
 
-        // ======================================================
-        // BUSINESS TYPE
-        //
-        // Your existing API parameter is named "type".
-        // We now send the custom business type here.
-        // ======================================================
-
-        type:
+        businessType:
             selectedBusinessType.trim(),
 
         subject:

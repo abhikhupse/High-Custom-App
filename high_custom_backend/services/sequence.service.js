@@ -19,29 +19,14 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   console.log("VARIANT:", sequence?.variant);
   console.log("==============================================");
 
-  // ==========================================================
-  // TYPE MATCH
-  // ==========================================================
+  const deliveryChannel = sequence.channel || "Email";
 
-  if (sequence.type !== lead.type) {
+  if (deliveryChannel !== "Email" || lead.type !== deliveryChannel) {
     return {
       sent: false,
       failed: false,
       skipped: true,
-      reason: "type_mismatch",
-    };
-  }
-
-  // ==========================================================
-  // ONLY EMAIL
-  // ==========================================================
-
-  if (sequence.type !== "Email") {
-    return {
-      sent: false,
-      failed: false,
-      skipped: true,
-      reason: "unsupported_email_type",
+      reason: "unsupported_delivery_channel",
     };
   }
 
@@ -91,7 +76,7 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
         variant: sequence.variant,
 
-        sequenceType: sequence.type,
+        sequenceType: deliveryChannel,
 
         leadType: lead.type,
 
@@ -183,6 +168,10 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   // CHECK EXISTING PENDING DELIVERY
   // ==========================================================
 
+  const trackingId = crypto.randomUUID();
+
+  let delivery = null;
+
   const existingPending = await SEQUENCE_DELIVERY.findOne({
     leadId: lead._id,
     sequenceId: sequence._id,
@@ -190,24 +179,73 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   });
 
   if (existingPending) {
-    console.log(`Delivery pending: ${leadEmail}`);
+    const pendingAge =
+      Date.now() - new Date(existingPending.updatedAt).getTime();
 
-    return {
-      sent: false,
+    const fiveMinutes = 5 * 60 * 1000;
 
-      failed: false,
+    if (pendingAge < fiveMinutes) {
+      console.log(`Delivery is currently processing: ${leadEmail}`);
 
-      skipped: true,
+      return {
+        sent: false,
 
-      reason: "delivery_pending",
-    };
+        failed: false,
+
+        skipped: true,
+
+        reason: "delivery_in_progress",
+
+        deliveryId: existingPending._id,
+      };
+    }
+
+    console.warn(`Recovering stale pending delivery: ${leadEmail}`);
+
+    existingPending.status = "pending";
+
+    existingPending.failureType = null;
+
+    existingPending.failureReason = null;
+
+    existingPending.errorMessage = null;
+
+    existingPending.failedAt = null;
+
+    existingPending.scheduledAt = new Date();
+
+    existingPending.trackingId = trackingId;
+
+    await existingPending.save();
+
+    delivery = existingPending;
   }
 
-  // ==========================================================
-  // CREATE TRACKING ID
-  // ==========================================================
+  // A failed delivery already occupies the unique lead/sequence pair. Reuse
+  // it for the retry instead of attempting to insert a duplicate document.
+  if (!delivery && !existingPending) {
+    const existingFailed = await SEQUENCE_DELIVERY.findOne({
+      leadId: lead._id,
+      sequenceId: sequence._id,
+      status: "failed",
+    });
 
-  const trackingId = crypto.randomUUID();
+    if (existingFailed) {
+      console.log(`Retrying failed delivery: ${leadEmail}`);
+
+      existingFailed.status = "pending";
+      existingFailed.failureType = null;
+      existingFailed.failureReason = null;
+      existingFailed.errorMessage = null;
+      existingFailed.failedAt = null;
+      existingFailed.scheduledAt = new Date();
+      existingFailed.trackingId = trackingId;
+
+      await existingFailed.save();
+
+      delivery = existingFailed;
+    }
+  }
 
   // ==========================================================
   // CREATE TRACKING URL
@@ -226,32 +264,32 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   // CREATE DELIVERY
   // ==========================================================
 
-  let delivery;
-
   try {
-    delivery = await SEQUENCE_DELIVERY.create({
-      userId: sequence.userId,
+    if (!delivery) {
+      delivery = await SEQUENCE_DELIVERY.create({
+        userId: sequence.userId,
 
-      leadId: lead._id,
+        leadId: lead._id,
 
-      sequenceId: sequence._id,
+        sequenceId: sequence._id,
 
-      step: sequence.step,
+        step: sequence.step,
 
-      variant: sequence.variant,
+        variant: sequence.variant,
 
-      sequenceType: sequence.type,
+        sequenceType: deliveryChannel,
 
-      leadType: lead.type,
+        leadType: lead.type,
 
-      email: leadEmail,
+        email: leadEmail,
 
-      status: "pending",
+        status: "pending",
 
-      trackingId,
+        trackingId,
 
-      scheduledAt: new Date(),
-    });
+        scheduledAt: new Date(),
+      });
+    }
   } catch (createError) {
     console.error("Failed to create delivery:", createError);
 

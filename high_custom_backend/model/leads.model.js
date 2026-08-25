@@ -42,6 +42,14 @@ const leadsSchema = new mongoose.Schema(
       default: "Email",
     },
 
+    businessType: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 100,
+      index: true,
+    },
+
     tracking: {
       type: Boolean,
       default: true,

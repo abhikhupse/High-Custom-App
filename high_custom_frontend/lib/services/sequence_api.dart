@@ -56,7 +56,7 @@ class SequenceApi {
     required int step,
     required int gapDays,
     required String variant,
-    required String type,
+    required String businessType,
     required String subject,
 
     String? logoUrl,
@@ -144,7 +144,9 @@ class SequenceApi {
         'step': step,
         'gapDays': gapDays,
         'variant': variant.trim().toUpperCase(),
-        'type': type,
+        'type': 'Email',
+        'channel': 'Email',
+        'businessType': businessType.trim(),
         'subject': subject.trim(),
 
         'content': content,

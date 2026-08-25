@@ -56,6 +56,27 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
+    loginDeviceIps: {
+      type: [
+        {
+          ipAddress: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          userAgent: {
+            type: String,
+            default: "",
+          },
+          lastSeenAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
+
     emailOtp: {
       type: String,
       default: null,

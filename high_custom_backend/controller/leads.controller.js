@@ -3,6 +3,7 @@ const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const XLSX = require("xlsx");
 
 const { predictLeadFromEmail } = require("../utils/emailLeadPredictor");
+const { processSequencesForUser } = require("../jobs/sequence.job");
 
 // ============================================================
 // GET LOGGED-IN USER ID
@@ -193,6 +194,8 @@ exports.getLeads = async (req, res) => {
 
         type: lead.type || "Email",
 
+        businessType: lead.businessType || "",
+
         tracking: lead.tracking !== false,
 
         trackingStatus:
@@ -234,7 +237,15 @@ exports.createLead = async (req, res) => {
     // REQUEST DATA
     // ========================================================
 
-    const { firstName, lastName, email, company, type, tracking } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      company,
+      type,
+      businessType,
+      tracking,
+    } = req.body;
 
     // ========================================================
     // EMAIL REQUIRED
@@ -248,6 +259,16 @@ exports.createLead = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    const normalizedBusinessType =
+      typeof businessType === "string" ? businessType.trim() : "";
+
+    if (!normalizedBusinessType) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a business type.",
+      });
+    }
 
     // ========================================================
     // EMAIL VALIDATION
@@ -324,8 +345,31 @@ exports.createLead = async (req, res) => {
 
       type: leadType,
 
+      businessType: normalizedBusinessType,
+
       tracking: tracking !== false,
     });
+
+    // Process active sequences immediately for a newly added email lead.
+    // This runs after the response cycle begins so lead creation is not blocked.
+    if (newLead.type === "Email" && newLead.tracking) {
+      setImmediate(async () => {
+        try {
+          const result = await processSequencesForUser(userId);
+
+          console.log("Sequences processed after lead creation:", {
+            leadId: newLead._id,
+            email: newLead.email,
+            result,
+          });
+        } catch (emailError) {
+          console.error(
+            "Failed to process sequences after creating lead:",
+            emailError,
+          );
+        }
+      });
+    }
 
     // ========================================================
     // RESPONSE
@@ -347,6 +391,8 @@ exports.createLead = async (req, res) => {
         company: newLead.company,
 
         type: newLead.type,
+
+        businessType: newLead.businessType,
 
         tracking: newLead.tracking,
 
@@ -398,7 +444,15 @@ exports.editLead = async (req, res) => {
       });
     }
 
-    const { firstName, lastName, email, company, type, tracking } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      company,
+      type,
+      businessType,
+      tracking,
+    } = req.body;
 
     // ========================================================
     // FIND LEAD
@@ -424,6 +478,11 @@ exports.editLead = async (req, res) => {
     const newLastName = lastName?.trim() || "";
     const newEmail = email?.trim().toLowerCase() || "";
     const newCompany = company?.trim() || "";
+
+    const newBusinessType =
+      typeof businessType === "string"
+        ? businessType.trim()
+        : existingLead.businessType || "";
 
     const newType = type === "WhatsApp" ? "WhatsApp" : "Email";
 
@@ -462,6 +521,7 @@ exports.editLead = async (req, res) => {
       existingLead.lastName === newLastName &&
       existingLead.email === newEmail &&
       existingLead.company === newCompany &&
+      existingLead.businessType === newBusinessType &&
       existingLead.type === newType &&
       existingLead.tracking === newTracking;
 
@@ -502,6 +562,7 @@ exports.editLead = async (req, res) => {
     existingLead.lastName = newLastName;
     existingLead.email = newEmail;
     existingLead.company = newCompany;
+    existingLead.businessType = newBusinessType;
     existingLead.type = newType;
     existingLead.tracking = newTracking;
 
@@ -528,6 +589,8 @@ exports.editLead = async (req, res) => {
         company: existingLead.company,
 
         type: existingLead.type,
+
+        businessType: existingLead.businessType,
 
         tracking: existingLead.tracking,
 

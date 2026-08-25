@@ -870,9 +870,9 @@ class _MasterListScreenState extends State<MasterListScreen> {
             '';
 
     final String type =
-        sequence['type']
+        sequence['businessType']
                 ?.toString() ??
-            'Email';
+            '-';
 
     final String status =
         sequence['status']
@@ -2449,8 +2449,8 @@ class _MasterListScreenState extends State<MasterListScreen> {
                         _detailDivider(),
 
                         _detailRow(
-                          'Type',
-                          sequence['type']
+                          'Business Type',
+                          sequence['businessType']
                                   ?.toString() ??
                               '-',
                           Icons

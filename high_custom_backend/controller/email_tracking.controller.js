@@ -1,5 +1,7 @@
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
+const USER = require("../model/user.model");
+const { getClientIp } = require("../utils/clientIp");
 
 // ============================================================
 // TRACK EMAIL OPEN
@@ -90,6 +92,68 @@ exports.trackOpen = async (req, res) => {
     console.log("Previous Opened At:", delivery.openedAt || "NULL");
 
     console.log("Previous Open Count:", delivery.openedCount || 0);
+
+    // ==========================================================
+    // IGNORE REQUESTS FROM A RECENT SENDER LOGIN IP
+    // ==========================================================
+
+    const requestIp = getClientIp(req);
+
+    if (requestIp && delivery.userId) {
+      const isSenderLoginIp = await USER.exists({
+        _id: delivery.userId,
+        "loginDeviceIps.ipAddress": requestIp,
+      });
+
+      if (isSenderLoginIp) {
+        console.log(
+          `IGNORED OPEN: ${requestIp} matches a sender login-device IP`,
+        );
+        console.log("============================================================");
+
+        return sendTrackingPixel(res);
+      }
+    }
+
+    // ==========================================================
+    // IGNORE PRE-SEND / AUTOMATED EARLY IMAGE FETCHES
+    // ==========================================================
+    //
+    // Gmail and mail-security scanners can request remote images while the
+    // message is being accepted. Those requests are not reliable evidence
+    // that the recipient opened the email.
+    //
+    // Only count an open after the delivery has been confirmed as sent and
+    // after a short grace period. The pixel is still returned normally.
+    // ==========================================================
+
+    if (delivery.status !== "sent" || !delivery.sentAt) {
+      console.log("IGNORED OPEN: delivery is not confirmed as sent yet");
+      console.log(
+        "============================================================",
+      );
+
+      return sendTrackingPixel(res);
+    }
+
+    const millisecondsSinceSent =
+      requestTime.getTime() - new Date(delivery.sentAt).getTime();
+
+    const scannerGracePeriodMs = 15 * 1000;
+
+    if (
+      millisecondsSinceSent >= 0 &&
+      millisecondsSinceSent < scannerGracePeriodMs
+    ) {
+      console.log(
+        `IGNORED OPEN: image fetched ${millisecondsSinceSent}ms after send`,
+      );
+      console.log(
+        "============================================================",
+      );
+
+      return sendTrackingPixel(res);
+    }
 
     // ==========================================================
     // INCREMENT OPEN COUNT

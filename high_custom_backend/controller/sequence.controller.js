@@ -40,9 +40,9 @@ exports.createSequence = async (req, res) => {
       step,
       gapDays,
       variant,
-
-      // Custom business type from Flutter
       type,
+      channel,
+      businessType,
 
       subject,
       brand,
@@ -138,14 +138,25 @@ exports.createSequence = async (req, res) => {
     // BUSINESS TYPE
     // ==========================================================
 
-    if (!type || typeof type !== "string" || type.trim() === "") {
+    const rawBusinessType = businessType ?? type;
+
+    if (
+      !rawBusinessType ||
+      typeof rawBusinessType !== "string" ||
+      rawBusinessType.trim() === ""
+    ) {
       return res.status(400).json({
         success: false,
         message: "Business type is required",
       });
     }
 
-    const formattedBusinessType = type.trim();
+    const formattedBusinessType = rawBusinessType.trim();
+
+    const formattedChannel =
+      typeof channel === "string" && channel.trim() === "Email"
+        ? "Email"
+        : "Email";
 
     if (formattedBusinessType.length < 2) {
       return res.status(400).json({
@@ -412,11 +423,10 @@ exports.createSequence = async (req, res) => {
 
       variant: formattedVariant,
 
-      // ======================================================
-      // CUSTOM BUSINESS TYPE
-      // ======================================================
-
-      type: formattedBusinessType,
+      // Delivery channel and business category are separate.
+      type: formattedChannel,
+      channel: formattedChannel,
+      businessType: formattedBusinessType,
 
       subject: formattedSubject,
 
@@ -956,6 +966,14 @@ exports.getSequence = async (req, res) => {
           },
         },
         {
+          businessType: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          // Backward compatibility for records created before businessType
+          // was separated from the delivery channel.
           type: {
             $regex: search,
             $options: "i",
@@ -990,7 +1008,14 @@ exports.getSequence = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Sequences fetched successfully",
-      data: sequences,
+      data: sequences.map((sequence) => ({
+        ...sequence,
+        channel: sequence.channel || "Email",
+        type: sequence.channel || "Email",
+        businessType:
+          sequence.businessType ||
+          (sequence.type && sequence.type !== "Email" ? sequence.type : ""),
+      })),
       pagination: {
         page,
         limit,

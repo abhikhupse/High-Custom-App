@@ -2,6 +2,7 @@ const USER_COLLECTION = require("../model/user.model");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
+const { getClientIp } = require("../utils/clientIp");
 
 exports.register = async (req, res) => {
   try {
@@ -533,8 +534,47 @@ exports.login = async (req, res) => {
       // { expiresIn: "24h" },
     );
 
-    // Update the user's login status
+    // Update the user's login status and remember this login-device IP.
     user.isLogIn = true;
+
+    const loginIp = getClientIp(req);
+    const loginUserAgent = String(req.headers["user-agent"] || "").slice(
+      0,
+      500,
+    );
+
+    if (loginIp) {
+      if (!Array.isArray(user.loginDeviceIps)) {
+        user.loginDeviceIps = [];
+      }
+
+      const existingDevice = user.loginDeviceIps.find(
+        (device) => device.ipAddress === loginIp,
+      );
+
+      if (existingDevice) {
+        existingDevice.userAgent = loginUserAgent;
+        existingDevice.lastSeenAt = new Date();
+      } else {
+        user.loginDeviceIps.push({
+          ipAddress: loginIp,
+          userAgent: loginUserAgent,
+          lastSeenAt: new Date(),
+        });
+
+        // Keep only the ten most recent login networks/devices.
+        if (user.loginDeviceIps.length > 10) {
+          user.loginDeviceIps = user.loginDeviceIps
+            .sort(
+              (a, b) =>
+                new Date(b.lastSeenAt).getTime() -
+                new Date(a.lastSeenAt).getTime(),
+            )
+            .slice(0, 10);
+        }
+      }
+    }
+
     await user.save();
 
     return res.status(200).json({

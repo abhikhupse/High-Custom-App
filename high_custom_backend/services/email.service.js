@@ -6,6 +6,52 @@ const createGoogleOAuthClient = require("../config/google_oauth");
 
 const { buildSequenceEmail } = require("../templates/sequenceEmail.template");
 
+const SENDER_COPY_LABEL_NAME = "High Custom Sequences";
+
+// Cache label IDs per connected Gmail account for the lifetime of the server.
+const senderCopyLabelCache = new Map();
+
+async function getOrCreateSenderCopyLabel(gmail, accountEmail) {
+  const cachedLabelId = senderCopyLabelCache.get(accountEmail);
+
+  if (cachedLabelId) {
+    return cachedLabelId;
+  }
+
+  const labelsResponse = await gmail.users.labels.list({
+    userId: "me",
+  });
+
+  const existingLabel = (labelsResponse.data.labels || []).find(
+    (label) =>
+      label.type === "user" && label.name === SENDER_COPY_LABEL_NAME,
+  );
+
+  if (existingLabel?.id) {
+    senderCopyLabelCache.set(accountEmail, existingLabel.id);
+    return existingLabel.id;
+  }
+
+  const createResponse = await gmail.users.labels.create({
+    userId: "me",
+    requestBody: {
+      name: SENDER_COPY_LABEL_NAME,
+      labelListVisibility: "labelShow",
+      messageListVisibility: "show",
+    },
+  });
+
+  const labelId = createResponse.data.id;
+
+  if (!labelId) {
+    throw new Error("Gmail did not return the created label ID.");
+  }
+
+  senderCopyLabelCache.set(accountEmail, labelId);
+
+  return labelId;
+}
+
 // ============================================================
 // BASE64 URL ENCODE
 // ============================================================
@@ -414,6 +460,76 @@ async function sendSequenceEmail({
   }
 
   // ==========================================================
+  // APPLY CUSTOM LABEL TO THE SENDER-SIDE COPY
+  // ==========================================================
+  //
+  // The recipient has already received the message. This operation only
+  // changes the copy in the connected sender's Gmail mailbox. A trash
+  // failure must not mark the delivery as failed or retry the send, because
+  // that could deliver a duplicate email to the recipient.
+  // ==========================================================
+
+  let senderCopyLabeled = false;
+
+  try {
+    const senderCopyLabelId = await getOrCreateSenderCopyLabel(
+      gmail,
+      integration.email,
+    );
+
+    await gmail.users.messages.modify({
+      userId: "me",
+      id: response.data.id,
+      requestBody: {
+        addLabelIds: [senderCopyLabelId],
+      },
+    });
+
+    senderCopyLabeled = true;
+
+    console.log("CUSTOM LABEL APPLIED TO SENDER COPY");
+    console.log("Label:", SENDER_COPY_LABEL_NAME);
+    console.log("Message ID:", response.data.id);
+  } catch (labelError) {
+    // Clear a possibly stale cached ID so the next send can rediscover it.
+    senderCopyLabelCache.delete(integration.email);
+
+    console.error("CUSTOM LABEL COULD NOT BE APPLIED TO SENDER COPY");
+    console.error(
+      "Reason:",
+      labelError?.response?.data?.error?.message ||
+        labelError?.message ||
+        "Unknown Gmail label error",
+    );
+  }
+
+  // ==========================================================
+  // MOVE THE LABELED SENDER-SIDE COPY TO TRASH
+  // ==========================================================
+
+  let movedToTrash = false;
+
+  try {
+    await gmail.users.messages.trash({
+      userId: "me",
+      id: response.data.id,
+    });
+
+    movedToTrash = true;
+
+    console.log("SENDER COPY MOVED TO GMAIL TRASH");
+    console.log("Message ID:", response.data.id);
+  } catch (trashError) {
+    console.error("SENDER COPY COULD NOT BE MOVED TO TRASH");
+    console.error(
+      "Reason:",
+      trashError?.response?.data?.error?.message ||
+        trashError?.message ||
+        "Unknown Gmail trash error",
+    );
+  }
+
+  // ==========================================================
   // SAVE NEW ACCESS TOKEN
   // ==========================================================
 
@@ -454,6 +570,10 @@ async function sendSequenceEmail({
     to: leadEmail,
 
     status: "sent",
+
+    senderCopyLabeled,
+
+    movedToTrash,
   };
 }
 

@@ -90,28 +90,21 @@ async function processOneSequence(sequence) {
   let failed = 0;
 
   // ==========================================================
-  // ONLY EMAIL
-  // ==========================================================
-
-  if (sequence.type !== "Email") {
-    return {
-      sequenceId: sequence._id,
-      step: sequence.step,
-      variant: sequence.variant,
-      sent: 0,
-      skipped: 0,
-      failed: 0,
-      reason: "unsupported_type",
-    };
-  }
-
-  // ==========================================================
   // GET LEADS
   // ==========================================================
 
+  // Old records stored the business category in type. New records keep the
+  // delivery channel separate. All current sequence delivery is email.
+  const deliveryChannel = sequence.channel || "Email";
+
+  const sequenceBusinessType =
+    sequence.businessType ||
+    (sequence.type && sequence.type !== "Email" ? sequence.type : "");
+
   const leads = await LEADS_COLLECTION.find({
     userId: sequence.userId,
-    type: sequence.type,
+    type: deliveryChannel,
+    ...(sequenceBusinessType ? { businessType: sequenceBusinessType } : {}),
     tracking: true,
   }).lean();
 
@@ -182,6 +175,13 @@ async function processOneSequence(sequence) {
         );
       } else {
         skipped++;
+
+        console.log(
+          `Email skipped: ${lead.email} | Step ${sequence.step} | ` +
+            `Variant ${sequence.variant} | Reason: ${
+              result.reason || "unknown"
+            }`,
+        );
       }
     } catch (leadError) {
       failed++;
