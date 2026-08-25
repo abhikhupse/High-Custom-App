@@ -1,3 +1,5 @@
 .env
 .env.*
+high_custom_backend/.env
+high_custom_frontend/.env
 node_modules/
