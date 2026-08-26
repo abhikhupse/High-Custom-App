@@ -8,9 +8,7 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 const sequenceUpload = require("../middleware/sequenceUpload.middleware");
 
-// ============================================================
 // CREATE SEQUENCE
-// ============================================================
 
 router.post(
   "/create-sequence",
@@ -26,9 +24,7 @@ router.put(
   sequencrCtrl.updateSequence,
 );
 
-// ============================================================
 // GET TRACKING SUMMARY
-// ============================================================
 
 router.get(
   "/tracking-summary",
@@ -36,16 +32,14 @@ router.get(
   sequencrCtrl.getTrackingSummary,
 );
 
-// ============================================================
 // GET SEQUENCES
-// ============================================================
 
 router.get("/", authMiddleware, sequencrCtrl.getSequence);
 
-// ============================================================
 // MANUALLY RUN SEQUENCE
-// ============================================================
 
 router.post("/run", authMiddleware, sequencrCtrl.runSequence);
+
+router.delete("/:sequenceId", authMiddleware, sequencrCtrl.deleteSequence);
 
 module.exports = router;

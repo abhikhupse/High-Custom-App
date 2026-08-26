@@ -2861,31 +2861,13 @@ class _MasterListScreenState extends State<MasterListScreen> {
             ),
 
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  sequences.remove(
-                    sequence,
-                  );
-
-                  totalSequences =
-                      totalSequences > 0
-                          ? totalSequences -
-                              1
-                          : 0;
-
-                  if (sequences
-                          .isEmpty &&
-                      currentPage > 1) {
-                    currentPage--;
-                  }
-                });
-
+              onPressed: () async {
                 Navigator.pop(
                   dialogContext,
                 );
 
-                _showMessage(
-                  'Sequence removed from the list.',
+                await _performDeleteSequence(
+                  sequence,
                 );
               },
               style:
@@ -2905,6 +2887,82 @@ class _MasterListScreenState extends State<MasterListScreen> {
         );
       },
     );
+  }
+
+  Future<void> _performDeleteSequence(
+    Map<String, dynamic> sequence,
+  ) async {
+    final sequenceId =
+        sequence['_id']?.toString().trim() ??
+            sequence['id']?.toString().trim() ??
+            '';
+
+    if (sequenceId.isEmpty) {
+      _showMessage(
+        'Sequence ID was not found.',
+        isError: true,
+      );
+
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+      });
+    }
+
+    try {
+      final result =
+          await SequenceApi.deleteSequence(
+        sequenceId: sequenceId,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (result['success'] == true) {
+        _showMessage(
+          result['message']?.toString() ??
+              'Sequence deleted successfully.',
+        );
+
+        final targetPage =
+            sequences.length == 1 && currentPage > 1
+                ? currentPage - 1
+                : currentPage;
+
+        await _loadSequences(
+          page: targetPage,
+        );
+
+        return;
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
+      _showMessage(
+        result['message']?.toString() ??
+            'Unable to delete sequence.',
+        isError: true,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
+      _showMessage(
+        'Unable to delete sequence: $error',
+        isError: true,
+      );
+    }
   }
 
   // ============================================================

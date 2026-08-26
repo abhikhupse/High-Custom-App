@@ -743,6 +743,98 @@ class SequenceApi {
   }
 
   // ============================================================
+  // DELETE SEQUENCE
+  // ============================================================
+
+  static Future<Map<String, dynamic>> deleteSequence({
+    required String sequenceId,
+  }) async {
+    try {
+      final activeToken = await _getToken();
+
+      if (activeToken == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      final cleanSequenceId = sequenceId.trim();
+
+      if (cleanSequenceId.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Sequence ID is required.',
+        };
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/$cleanSequenceId',
+      );
+
+      final response = await http
+          .delete(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $activeToken',
+            },
+          )
+          .timeout(
+            const Duration(seconds: 20),
+          );
+
+      debugPrint(
+        'DELETE SEQUENCE STATUS: ${response.statusCode}',
+      );
+
+      debugPrint(
+        'DELETE SEQUENCE RESPONSE: ${response.body}',
+      );
+
+      final data = _decodeResponse(response.body);
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300) {
+        return {
+          'success': true,
+          ...data,
+        };
+      }
+
+      if (response.statusCode == 401) {
+        await _clearToken();
+
+        return {
+          'success': false,
+          'message': data['message'] ??
+              'Session expired. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      return {
+        'success': false,
+        'message':
+            data['message'] ?? 'Unable to delete sequence.',
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      debugPrint(
+        'DELETE SEQUENCE ERROR: $e',
+      );
+
+      return {
+        'success': false,
+        'message': 'Unable to connect to the server.',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
   // RUN SEQUENCE
   // ============================================================
 

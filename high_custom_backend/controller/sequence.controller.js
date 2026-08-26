@@ -1390,3 +1390,63 @@ exports.updateSequence = async (req, res) => {
     });
   }
 };
+
+exports.deleteSequence = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+
+    const { sequenceId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication is required",
+      });
+    }
+
+    if (!sequenceId) {
+      return res.status(400).json({
+        success: false,
+        message: "Sequence ID is required",
+      });
+    }
+
+    const sequence = await SEQUENCE_COLLECTION.findOne({
+      _id: sequenceId,
+      userId,
+    });
+
+    if (!sequence) {
+      return res.status(404).json({
+        success: false,
+        message: "Sequence not found",
+      });
+    }
+
+    await SEQUENCE_COLLECTION.deleteOne({
+      _id: sequenceId,
+      userId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Sequence deleted successfully",
+      sequenceId,
+    });
+  } catch (error) {
+    console.error("Error while deleting sequence:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sequence ID",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to delete sequence",
+      error: error.message,
+    });
+  }
+};
