@@ -7,6 +7,7 @@ import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/integration_api.dart';
+import '../../widgets/app_skeleton.dart';
 
 class IntegrationScreen extends StatefulWidget {
   const IntegrationScreen({
@@ -830,13 +831,7 @@ class _IntegrationScreenState
       color:
           const Color(0xFFF5F7FA),
       child: isLoadingStatus
-          ? const Center(
-              child:
-                  CircularProgressIndicator(
-                color:
-                    Color(0xFF315BEF),
-              ),
-            )
+          ? const AppDashboardSkeleton(light: true)
           : RefreshIndicator(
               onRefresh: () =>
                   _loadIntegrationStatus(),

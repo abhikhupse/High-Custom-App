@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/leads_api.dart';
 import '../../../widgets/app_feedback.dart';
+import '../../../widgets/app_skeleton.dart';
 import 'add_lead_screen.dart';
 
 // ============================================================
@@ -2899,18 +2900,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // ============================================================
 
   Widget _buildMobileLoading() {
-    return const Padding(
-      padding:
-          EdgeInsets.symmetric(
-        vertical: 80,
-      ),
-      child: Center(
-        child:
-            CircularProgressIndicator(
-          color: gold,
-          strokeWidth: 2.5,
-        ),
-      ),
+    return const AppCardSkeletonList(
+      itemCount: 5,
+      compact: true,
     );
   }
 

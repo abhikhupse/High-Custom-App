@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'create_sequence_screen.dart';
 import '../../../services/sequence_api.dart';
 import '../../../widgets/app_feedback.dart';
+import '../../../widgets/app_skeleton.dart';
 
 // ============================================================
 // MASTER / SEQUENCE LIST SCREEN
@@ -1843,19 +1844,8 @@ class _MasterListScreenState extends State<MasterListScreen> {
   // ============================================================
 
   Widget _buildLoadingState() {
-    return Container(
-      width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
-        vertical: 80,
-      ),
-      child: const Center(
-        child:
-            CircularProgressIndicator(
-          color: gold,
-          strokeWidth: 2.5,
-        ),
-      ),
+    return const AppCardSkeletonList(
+      itemCount: 5,
     );
   }
 

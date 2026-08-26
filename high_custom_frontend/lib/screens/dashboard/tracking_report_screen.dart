@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/tracking_api.dart';
+import '../../widgets/app_skeleton.dart';
 
 // ============================================================
 // TRACKING REPORT SCREEN
@@ -286,11 +287,7 @@ class _TrackingReportScreenState
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: purple,
-        ),
-      );
+      return const AppDashboardSkeleton();
     }
 
     if (_error != null) {
