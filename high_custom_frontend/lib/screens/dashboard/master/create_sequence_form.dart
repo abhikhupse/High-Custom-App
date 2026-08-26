@@ -13,7 +13,12 @@ import 'create_sequence_preview.dart';
 class CreateSequenceForm extends StatefulWidget {
   const CreateSequenceForm({
     super.key,
+    this.sequence,
   });
+
+  final Map<String, dynamic>? sequence;
+
+  bool get isEditing => sequence != null;
 
   @override
   State<CreateSequenceForm> createState() =>
@@ -176,6 +181,86 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   bool isLoading = false;
+
+  // ============================================================
+  // INITIAL EDIT DATA
+  // ============================================================
+
+  @override
+  void initState() {
+    super.initState();
+
+    final sequence = widget.sequence;
+
+    if (sequence == null) {
+      return;
+    }
+
+    stepController.text = sequence['step']?.toString() ?? '';
+    gapDaysController.text = sequence['gapDays']?.toString() ?? '0';
+    variantController.text = sequence['variant']?.toString() ?? '';
+    subjectController.text = sequence['subject']?.toString() ?? '';
+    contentController.text = sequence['content']?.toString() ?? '';
+
+    selectedBusinessType =
+        sequence['businessType']?.toString().trim() ?? '';
+
+    if (selectedBusinessType.isNotEmpty) {
+      businessTypes.add(selectedBusinessType);
+    }
+
+    final brand = _asMap(sequence['brand']);
+    logoController.text = brand['logoUrl']?.toString() ?? '';
+    selectedLogoPosition = brand['logoPosition']?.toString() ?? 'Center';
+
+    final heroImage = _asMap(sequence['heroImage']);
+    heroImageController.text = heroImage['url']?.toString() ?? '';
+    heroLinkController.text = heroImage['link']?.toString() ?? '';
+
+    final editor = _asMap(sequence['editor']);
+    selectedFont = editor['font']?.toString() ?? 'Arial';
+    selectedFontSize = editor['fontSize']?.toString() ?? '16px';
+    selectedTextColor = editor['textColor']?.toString() ?? 'Black';
+    isBold = editor['bold'] == true;
+    isItalic = editor['italic'] == true;
+    isUnderline = editor['underline'] == true;
+
+    final attachment = _asMap(sequence['attachment']);
+    attachmentNameController.text = attachment['name']?.toString() ?? '';
+    attachmentUrlController.text = attachment['url']?.toString() ?? '';
+    attachmentMimeController.text = attachment['mimeType']?.toString() ?? '';
+    attachmentSizeController.text = attachment['size']?.toString() ?? '0';
+
+    final actionLinks = _asMap(sequence['actionLinks']);
+    final whatsapp = _asMap(actionLinks['whatsapp']);
+    final cta = _asMap(actionLinks['cta']);
+
+    whatsappController.text = whatsapp['url']?.toString() ?? '';
+    ctaTextController.text = cta['text']?.toString() ?? '';
+    ctaUrlController.text = cta['url']?.toString() ?? '';
+
+    final tracking = _asMap(sequence['tracking']);
+    trackingEnabled = tracking['enabled'] != false;
+    selectedStatus = sequence['status']?.toString() ?? 'draft';
+
+    final scheduledAt = sequence['scheduledAt']?.toString();
+
+    if (scheduledAt != null && scheduledAt.trim().isNotEmpty) {
+      scheduledDateTime = DateTime.tryParse(scheduledAt)?.toLocal();
+    }
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+
+    return <String, dynamic>{};
+  }
 
   // ============================================================
   // DISPOSE
@@ -2569,9 +2654,13 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           backTitle:
               'Back',
           nextTitle:
-              'Publish Sequence',
+              widget.isEditing
+                  ? 'Update Sequence'
+                  : 'Publish Sequence',
           nextIcon:
-              Icons.send_rounded,
+              widget.isEditing
+                  ? Icons.save_rounded
+                  : Icons.send_rounded,
           onBack:
               _previousStep,
           onNext:
@@ -5324,8 +5413,46 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     });
 
     try {
-      final result =
-          await SequenceApi.createSequence(
+      final sequenceId =
+          widget.sequence?['_id']?.toString() ??
+              widget.sequence?['id']?.toString() ??
+              '';
+
+      final result = widget.isEditing
+          ? await SequenceApi.updateSequence(
+              sequenceId: sequenceId,
+              step: step,
+              gapDays: gapDays,
+              variant: variantController.text.trim(),
+              businessType: selectedBusinessType.trim(),
+              subject: subjectController.text.trim(),
+              logoUrl: logoController.text.trim(),
+              logoPosition: selectedLogoPosition,
+              heroImageUrl: heroImageController.text.trim(),
+              heroImageLink: heroLinkController.text.trim(),
+              content: contentController.text,
+              font: selectedFont,
+              fontSize: selectedFontSize,
+              textColor: selectedTextColor,
+              bold: isBold,
+              italic: isItalic,
+              underline: isUnderline,
+              attachmentName: attachmentNameController.text.trim(),
+              attachmentUrl: attachmentUrlController.text.trim(),
+              attachmentMimeType: attachmentMimeController.text.trim(),
+              attachmentSize: int.tryParse(
+                    attachmentSizeController.text.trim(),
+                  ) ??
+                  0,
+              whatsapp: whatsappController.text.trim(),
+              ctaText: ctaTextController.text.trim(),
+              ctaUrl: ctaUrlController.text.trim(),
+              trackingEnabled: trackingEnabled,
+              status: selectedStatus,
+              scheduledAt:
+                  scheduledDateTime?.toUtc().toIso8601String(),
+            )
+          : await SequenceApi.createSequence(
         step:
             step,
 
@@ -5425,9 +5552,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       if (result['success'] ==
           true) {
         _showMessage(
-          result['message']
-                  ?.toString() ??
-              'Sequence created successfully.',
+          result['message']?.toString() ??
+              (widget.isEditing
+                  ? 'Sequence updated successfully.'
+                  : 'Sequence created successfully.'),
         );
 
         await Future.delayed(
@@ -5447,9 +5575,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         );
       } else {
         _showMessage(
-          result['message']
-                  ?.toString() ??
-              'Unable to create sequence.',
+          result['message']?.toString() ??
+              (widget.isEditing
+                  ? 'Unable to update sequence.'
+                  : 'Unable to create sequence.'),
           isError:
               true,
         );

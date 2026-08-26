@@ -9,7 +9,12 @@ import 'create_sequence_form.dart';
 class CreateSequenceScreen extends StatelessWidget {
   const CreateSequenceScreen({
     super.key,
+    this.sequence,
   });
+
+  final Map<String, dynamic>? sequence;
+
+  bool get isEditing => sequence != null;
 
   // ============================================================
   // COLORS
@@ -67,14 +72,16 @@ class CreateSequenceScreen extends StatelessWidget {
 
             const SizedBox(width: 10),
 
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Create Sequence',
-                    style: TextStyle(
+                    isEditing
+                        ? 'Edit Sequence'
+                        : 'Create Sequence',
+                    style: const TextStyle(
                       color: white,
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -85,8 +92,10 @@ class CreateSequenceScreen extends StatelessWidget {
                   SizedBox(height: 5),
 
                   Text(
-                    'Build your automated email campaign',
-                    style: TextStyle(
+                    isEditing
+                        ? 'Update your automated email campaign'
+                        : 'Build your automated email campaign',
+                    style: const TextStyle(
                       color: mutedText,
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
@@ -99,9 +108,11 @@ class CreateSequenceScreen extends StatelessWidget {
         ),
       ),
 
-      body: const SafeArea(
+      body: SafeArea(
         top: false,
-        child: CreateSequenceForm(),
+        child: CreateSequenceForm(
+          sequence: sequence,
+        ),
       ),
     );
   }

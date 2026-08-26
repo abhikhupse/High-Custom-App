@@ -19,6 +19,13 @@ router.post(
   sequencrCtrl.createSequence,
 );
 
+router.put(
+  "/:sequenceId",
+  authMiddleware,
+  sequenceUpload,
+  sequencrCtrl.updateSequence,
+);
+
 // ============================================================
 // GET TRACKING SUMMARY
 // ============================================================

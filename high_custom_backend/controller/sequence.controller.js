@@ -1095,3 +1095,294 @@ exports.runSequence = async (req, res) => {
     });
   }
 };
+
+exports.updateSequence = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const { sequenceId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User Authrntication required",
+      });
+    }
+
+    if (!sequenceId) {
+      return res.status(400).json({
+        success: false,
+        message: "Sequence ID is required",
+      });
+    }
+
+    const sequence = await SEQUENCE_COLLECTION.findOne({
+      _id: sequenceId,
+      userId,
+    });
+
+    if (!sequence) {
+      return res.status(400).json({
+        success: false,
+        message: "Sequence not found",
+      });
+    }
+
+    const {
+      step,
+      gapDays,
+      variant,
+      businessType,
+      subject,
+      brand,
+      heroImage,
+      content,
+      editor,
+      attachment,
+      actionLinks,
+      tracking,
+      status,
+      scheduledAt,
+    } = req.body;
+
+    const parsedBrand = parseJsonField(brand, {});
+    const parsedHeroImage = parseJsonField(heroImage, {});
+    const parsedEditor = parseJsonField(editor, {});
+    const parsedAttachment = parseJsonField(attachment, {});
+    const parsedActionLinks = parseJsonField(actionLinks, {});
+    const parsedTracking = parseJsonField(tracking, {});
+
+    const stepNumber = Number(step);
+    const gapDaysNumber = Number(gapDays ?? 0);
+
+    if (!Number.isInteger(stepNumber) || stepNumber < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Step Number must be greater than 0",
+      });
+    }
+
+    if (!Number.isInteger(gapDaysNumber) || gapDaysNumber < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Gap day must be 0 or greater than 0",
+      });
+    }
+
+    const formattedVariant =
+      typeof variant === "string" ? variant.trim().toUpperCase() : "";
+
+    if (!formattedVariant) {
+      return res.status(400).json({
+        success: false,
+        message: "Varient is required",
+      });
+    }
+
+    const formattedBusinessType =
+      typeof variant === "string" ? businessType.trim() : "";
+
+    if (!formattedBusinessType) {
+      return res.status(400).json({
+        success: false,
+        message: "Business type is required",
+      });
+    }
+
+    const formattedSubject = typeof subject === "string" ? subject.trim() : "";
+
+    if (!formattedSubject) {
+      return res.status(400).json({
+        success: false,
+        message: "Subject is required",
+      });
+    }
+
+    if (typeof content !== " string" || content.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Email Content is required",
+      });
+    }
+
+    const duplicate = await SEQUENCE_COLLECTION.findOne({
+      userId,
+      step: stepNumber,
+      variant: formattedVariant,
+      $ne: {
+        sequence: _id,
+      },
+    });
+
+    if (duplicate) {
+      return res.status(400).json({
+        success: false,
+        message: "Another sequence with this step and variant already exists",
+      });
+    }
+
+    const allowedStatuses = [
+      "draft",
+      "scheduled",
+      "active",
+      "paused",
+      "completed",
+    ];
+
+    const formattedStatus = allowedStatuses.includes(status)
+      ? status
+      : sequence.status;
+
+    if (scheduledAt && typeof scheduledAt === "string") {
+      const date = new Date(scheduledAt);
+
+      if (!Number.isNaN(date.getTime())) {
+        formattedScheduledAt = date;
+      }
+    }
+    if (formattedStatus === "schuduled" && !formattedScheduledAt) {
+      return res.status(400).json({
+        success: false,
+        message: "Scheduled date and time is required",
+      });
+    }
+
+    sequence.step = stepNumber;
+    sequence.gapDays = gapDaysNumber;
+    sequence.variant = formattedVariant;
+
+    sequence.type = "Email";
+    sequence.channel = "Email";
+    sequence.businessType = formattedBusinessType;
+
+    sequence.subject = formattedSubject;
+    sequence.content = content;
+
+    sequence.status = formattedStatus;
+    sequence.scheduledAt =
+      formattedStatus === "scheduled" ? formattedScheduledAt : null;
+
+    if (parsedBrand && typeof parsedBrand === -"object") {
+      const logoUrl =
+        typeof parsedBrand.logoUrl === "string"
+          ? parsedBrand.logoUrl.trim()
+          : "";
+
+      sequence.brand = {
+        enabled: logoUrl !== "",
+        logoUrl: logoUrl || null,
+        logoPosition: ["Left", "Center", "Right"].includes(
+          parsedBrand.logoPosition,
+        )
+          ? parsedBrand.logoPosition
+          : "Center",
+      };
+    }
+
+    if (parsedHeroImage && typeof parsedHeroImage === "object") {
+      const heroUrl =
+        typeof parsedHeroImage.link === "string"
+          ? parsedHeroImage.link.trim()
+          : "";
+
+      sequence.heroImage = {
+        enabled: heroUrl !== "",
+        url: heroUrl || null,
+        link: heroLink || null,
+      };
+    }
+    sequence.editor = {
+      font: ["Arial", "Roboto", "Verdana"].includes(parsedEditor.font)
+        ? parsedEditor.font
+        : "Arial",
+
+      fontSize: ["12px", "14px", "16px", "18px", "20px"].includes(
+        parsedEditor.fontSize,
+      )
+        ? parsedEditor.fontSize
+        : "16px",
+
+      textColor: ["Black", "Red", "Blue", "Green"].includes(
+        parsedEditor.textColor,
+      )
+        ? parsedEditor.textColor
+        : "Black",
+
+      bold: toBoolean(parsedEditor.bold, false),
+
+      italic: toBoolean(parsedEditor.italic, false),
+
+      underline: toBoolean(parsedEditor.underline, false),
+    };
+
+    if (parsedAttachment && typeof parsedAttachment === "object") {
+      const attachmentUrl =
+        typeof parsedAttachment.url.trim() === "string"
+          ? parsedAttachment.url.trim()
+          : "";
+
+      sequence.attachment = {
+        enabled: attachmentUrl !== "",
+        name: parsedAttachment.name?.toString().trim() || null,
+        url: attachmentUrl || null,
+        mimeType: parsedAttachment.mimeType?.toString().trim() || null,
+        size: Number(parsedAttachment.size || 0),
+      };
+    }
+
+    let whatsappUrl = "";
+
+    if (typeof parsedActionLinks.whatsapp === "string") {
+      whatsappUrl = parsedActionLinks.whatsapp.trim();
+    } else if (typeof parsedActionLinks.whatsapp?.url === "string") {
+      whatsappUrl = parsedActionLinks.whatsapp.url.trim();
+    }
+
+    const ctaText = parsedActionLinks.cta?.text?.toString().trim() || "";
+
+    const ctaUrl = parsedActionLinks.cta?.url?.toString().trim() || "";
+
+    sequence.actionLinks = {
+      whatsapp: {
+        enabled: whatsappUrl !== "",
+        url: whatsappUrl || null,
+      },
+
+      cta: {
+        enabled: ctaText !== "" && ctaUrl !== "",
+        text: ctaText || null,
+        url: ctaUrl || null,
+      },
+    };
+
+    sequence.tracking.enabled = toBoolean(parsedTracking.enabled, true);
+
+    await sequence.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Sequence updated successfully",
+      data: sequence,
+    });
+  } catch (error) {
+    console.error("Error while updating sequence : ", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Sequence ID",
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Another Sequence with this stepand varient already exist",
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: "Unable to update Sequence",
+      error: error.message,
+    });
+  }
+};

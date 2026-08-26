@@ -366,6 +366,158 @@ class SequenceApi {
   }
 
   // ============================================================
+  // UPDATE SEQUENCE
+  // ============================================================
+
+  static Future<Map<String, dynamic>> updateSequence({
+    required String sequenceId,
+    required int step,
+    required int gapDays,
+    required String variant,
+    required String businessType,
+    required String subject,
+    required String content,
+    String? logoUrl,
+    String? logoPosition,
+    String? heroImageUrl,
+    String? heroImageLink,
+    String? font,
+    String? fontSize,
+    String? textColor,
+    bool bold = false,
+    bool italic = false,
+    bool underline = false,
+    String? attachmentName,
+    String? attachmentUrl,
+    String? attachmentMimeType,
+    int attachmentSize = 0,
+    String? whatsapp,
+    String? ctaText,
+    String? ctaUrl,
+    bool trackingEnabled = true,
+    String status = 'draft',
+    String? scheduledAt,
+  }) async {
+    try {
+      final activeToken = await _getToken();
+
+      if (activeToken == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      final cleanSequenceId = sequenceId.trim();
+
+      if (cleanSequenceId.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Sequence ID is required.',
+        };
+      }
+
+      final requestBody = <String, dynamic>{
+        'step': step,
+        'gapDays': gapDays,
+        'variant': variant.trim().toUpperCase(),
+        'type': 'Email',
+        'channel': 'Email',
+        'businessType': businessType.trim(),
+        'subject': subject.trim(),
+        'content': content,
+        'brand': {
+          'logoUrl': logoUrl?.trim() ?? '',
+          'logoPosition': logoPosition ?? 'Center',
+        },
+        'heroImage': {
+          'url': heroImageUrl?.trim() ?? '',
+          'link': heroImageLink?.trim() ?? '',
+        },
+        'editor': {
+          'font': font ?? 'Arial',
+          'fontSize': fontSize ?? '16px',
+          'textColor': textColor ?? 'Black',
+          'bold': bold,
+          'italic': italic,
+          'underline': underline,
+        },
+        'attachment': {
+          'name': attachmentName?.trim() ?? '',
+          'url': attachmentUrl?.trim() ?? '',
+          'mimeType': attachmentMimeType?.trim() ?? '',
+          'size': attachmentSize,
+        },
+        'actionLinks': {
+          'whatsapp': whatsapp?.trim() ?? '',
+          'cta': {
+            'text': ctaText?.trim() ?? '',
+            'url': ctaUrl?.trim() ?? '',
+          },
+        },
+        'tracking': {
+          'enabled': trackingEnabled,
+        },
+        'status': status,
+        'scheduledAt': scheduledAt,
+      };
+
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/$cleanSequenceId'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $activeToken',
+            },
+            body: jsonEncode(requestBody),
+          )
+          .timeout(
+            const Duration(seconds: 20),
+          );
+
+      debugPrint('UPDATE SEQUENCE STATUS: ${response.statusCode}');
+      debugPrint('UPDATE SEQUENCE RESPONSE: ${response.body}');
+
+      final data = _decodeResponse(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {
+          'success': true,
+          ...data,
+        };
+      }
+
+      if (response.statusCode == 401) {
+        await _clearToken();
+
+        return {
+          'success': false,
+          'message': data['message'] ??
+              'Session expired. Please login again.',
+          'sessionExpired': true,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Unable to update sequence.',
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      debugPrint('UPDATE SEQUENCE ERROR: $e');
+
+      return {
+        'success': false,
+        'message': 'Unable to connect to the server.',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
   // GET TRACKING SUMMARY
   // ============================================================
 

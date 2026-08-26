@@ -2775,7 +2775,12 @@ class _MasterListScreenState extends State<MasterListScreen> {
     ).push(
       MaterialPageRoute(
         builder: (context) =>
-            const CreateSequenceScreen(),
+            CreateSequenceScreen(
+          sequence:
+              Map<String, dynamic>.from(
+            sequence,
+          ),
+        ),
       ),
     );
 
