@@ -39,6 +39,7 @@ const BASE_URL =
     ? `http://localhost:${process.env.PORT || 3000}`
     : null);
 const SEQUENCE_CRON = process.env.SEQUENCE_CRON || "* * * * *";
+let scheduledSequenceCursor = null;
 
 console.log("========================================");
 
@@ -83,77 +84,6 @@ if (!BASE_URL) {
 console.log("========================================");
 
 // ============================================================
-// CHECK PREVIOUS STEP
-// ============================================================
-
-async function getPreviousStepDelivery({ leadId, sequence }) {
-  if (sequence.step <= 1) {
-    return null;
-  }
-
-  const deliveryChannel = sequence.channel || "Email";
-  const businessType =
-    sequence.businessType ||
-    (sequence.type && sequence.type !== "Email" ? sequence.type : "");
-
-  const previousSequence = await SEQUENCE_COLLECTION.findOne({
-    userId: sequence.userId,
-    step: sequence.step - 1,
-    variant: sequence.variant,
-    channel: deliveryChannel,
-    ...(businessType ? { businessType } : {}),
-  }).sort({
-    createdAt: -1,
-  });
-
-  if (!previousSequence) {
-    return null;
-  }
-
-  return SEQUENCE_DELIVERY.findOne({
-    leadId,
-    sequenceId: previousSequence._id,
-    status: "sent",
-  });
-}
-
-// ============================================================
-// GAP DAY CHECK
-// ============================================================
-
-async function isGapSatisfied({ leadId, sequence }) {
-  // STEP 1
-  if (sequence.step === 1) {
-    return true;
-  }
-
-  // PREVIOUS STEP
-  const previousDelivery = await getPreviousStepDelivery({
-    leadId,
-    sequence,
-  });
-
-  if (!previousDelivery) {
-    return false;
-  }
-
-  // GAP DAYS
-  const gapDays = Number(sequence.gapDays || 0);
-
-  const previousSentAt = previousDelivery.sentAt;
-
-  if (!previousSentAt) {
-    return false;
-  }
-
-  const now = Date.now();
-
-  const requiredTime = previousSentAt.getTime() + gapDays * 24 * 60 * 60 * 1000;
-
-  return now >= requiredTime;
-}
-
-// ============================================================
 // PROCESS ONE SEQUENCE
 // ============================================================
 
@@ -161,6 +91,7 @@ async function processOneSequence(sequence) {
   let sent = 0;
   let skipped = 0;
   let failed = 0;
+  let leadsProcessed = 0;
 
   // ==========================================================
   // GET LEADS
@@ -174,12 +105,24 @@ async function processOneSequence(sequence) {
     sequence.businessType ||
     (sequence.type && sequence.type !== "Email" ? sequence.type : "");
 
-  const leads = await LEADS_COLLECTION.find({
+  const leadFilter = {
     userId: sequence.userId,
     type: deliveryChannel,
     ...(sequenceBusinessType ? { businessType: sequenceBusinessType } : {}),
     tracking: true,
-  }).lean();
+  };
+
+  const configuredBatchSize = Number(process.env.SEQUENCE_LEAD_BATCH_SIZE || 250);
+  const leadBatchSize = Number.isInteger(configuredBatchSize)
+    ? Math.min(Math.max(configuredBatchSize, 25), 1000)
+    : 250;
+
+  const configuredRunLimit = Number(
+    process.env.SEQUENCE_MAX_LEADS_PER_RUN || 1000,
+  );
+  const maxLeadsPerRun = Number.isInteger(configuredRunLimit)
+    ? Math.min(Math.max(configuredRunLimit, leadBatchSize), 5000)
+    : 1000;
 
   // ==========================================================
   // LOOP LEADS
@@ -193,87 +136,176 @@ async function processOneSequence(sequence) {
     ? Math.min(Math.max(configuredConcurrency, 1), 5)
     : 3;
 
-  for (let index = 0; index < leads.length; index += concurrency) {
-    const batch = leads.slice(index, index + concurrency);
+  // Resolve the previous step once per sequence. Previously this lookup ran
+  // once for every lead, which became extremely expensive for bulk imports.
+  let previousSequence = null;
 
-    await Promise.all(
-      batch.map(async (lead) => {
-        try {
-      // ======================================================
-      // CHECK ALREADY SENT
-      // ======================================================
+  if (sequence.step > 1) {
+    previousSequence = await SEQUENCE_COLLECTION.findOne({
+      userId: sequence.userId,
+      step: sequence.step - 1,
+      variant: sequence.variant,
+      channel: deliveryChannel,
+      ...(sequenceBusinessType
+        ? { businessType: sequenceBusinessType }
+        : {}),
+    })
+      .sort({ createdAt: -1 })
+      .select({ _id: 1 })
+      .lean();
+  }
 
-      const alreadySent = await SEQUENCE_DELIVERY.findOne({
-        leadId: lead._id,
-        sequenceId: sequence._id,
+  let lastLeadId = sequence.processingCursor || null;
+
+  while (leadsProcessed < maxLeadsPerRun) {
+    const remainingThisRun = maxLeadsPerRun - leadsProcessed;
+
+    const leads = await LEADS_COLLECTION.find({
+      ...leadFilter,
+      ...(lastLeadId ? { _id: { $gt: lastLeadId } } : {}),
+    })
+      .sort({ _id: 1 })
+      .limit(Math.min(leadBatchSize, remainingThisRun))
+      .lean();
+
+    if (leads.length === 0) {
+      if (lastLeadId) {
+        await SEQUENCE_COLLECTION.updateOne(
+          { _id: sequence._id },
+          { $set: { processingCursor: null } },
+        );
+      }
+
+      break;
+    }
+
+    lastLeadId = leads[leads.length - 1]._id;
+    leadsProcessed += leads.length;
+
+    const leadIds = leads.map((lead) => lead._id);
+
+    const currentDeliveries = await SEQUENCE_DELIVERY.find({
+      sequenceId: sequence._id,
+      leadId: { $in: leadIds },
+    })
+      .select({ leadId: 1, status: 1 })
+      .lean();
+
+    const currentDeliveryByLead = new Map(
+      currentDeliveries.map((delivery) => [
+        String(delivery.leadId),
+        delivery,
+      ]),
+    );
+
+    let previousDeliveryByLead = new Map();
+
+    if (sequence.step > 1 && previousSequence) {
+      const previousDeliveries = await SEQUENCE_DELIVERY.find({
+        sequenceId: previousSequence._id,
+        leadId: { $in: leadIds },
         status: "sent",
-      });
+      })
+        .select({ leadId: 1, sentAt: 1 })
+        .lean();
 
-      if (alreadySent) {
+      previousDeliveryByLead = new Map(
+        previousDeliveries.map((delivery) => [
+          String(delivery.leadId),
+          delivery,
+        ]),
+      );
+    }
+
+    const eligibleLeads = [];
+    const requiredGapMilliseconds =
+      Number(sequence.gapDays || 0) * 24 * 60 * 60 * 1000;
+
+    for (const lead of leads) {
+      const existingDelivery = currentDeliveryByLead.get(String(lead._id));
+
+      if (existingDelivery?.status === "sent") {
         skipped++;
-        return;
+        continue;
       }
 
-      // ======================================================
-      // CHECK GAP
-      // ======================================================
+      if (sequence.step > 1) {
+        const previousDelivery = previousDeliveryByLead.get(String(lead._id));
 
-      const gapSatisfied = await isGapSatisfied({
-        leadId: lead._id,
-        sequence,
-      });
-
-      if (!gapSatisfied) {
-        skipped++;
-        return;
-      }
-
-      // ======================================================
-      // SEND EMAIL
-      // ======================================================
-
-      const result = await sendSequenceToLead({
-        sequence,
-        lead,
-        baseUrl: BASE_URL,
-      });
-
-      // ======================================================
-      // PROCESS SEND RESULT
-      // ======================================================
-
-      if (result.sent) {
-        sent++;
-
-        console.log(
-          `Email sent: ${lead.email} | Step ${sequence.step} | Variant ${sequence.variant}`,
-        );
-      } else if (result.failed) {
-        failed++;
-
-        console.error(
-          `Email failed: ${lead.email} | Step ${sequence.step} | Variant ${sequence.variant}`,
-        );
-
-        console.error(
-          `Reason: ${result.failureReason || result.reason || "Unknown error"}`,
-        );
-      } else {
-        skipped++;
-
-        console.log(
-          `Email skipped: ${lead.email} | Step ${sequence.step} | ` +
-            `Variant ${sequence.variant} | Reason: ${
-              result.reason || "unknown"
-            }`,
-        );
-      }
-        } catch (leadError) {
-          failed++;
-
-          console.error(`Failed sending to ${lead.email}:`, leadError.message);
+        if (
+          !previousSequence ||
+          !previousDelivery?.sentAt ||
+          Date.now() <
+            new Date(previousDelivery.sentAt).getTime() + requiredGapMilliseconds
+        ) {
+          skipped++;
+          continue;
         }
-      }),
+      }
+
+      eligibleLeads.push(lead);
+    }
+
+    for (let index = 0; index < eligibleLeads.length; index += concurrency) {
+      const batch = eligibleLeads.slice(index, index + concurrency);
+
+      await Promise.all(
+        batch.map(async (lead) => {
+          try {
+            // ==================================================
+            // SEND EMAIL
+            // ==================================================
+
+            const result = await sendSequenceToLead({
+              sequence,
+              lead,
+              baseUrl: BASE_URL,
+            });
+
+            if (result.sent) {
+              sent++;
+
+              console.log(
+                `Email sent: ${lead.email} | Step ${sequence.step} | Variant ${sequence.variant}`,
+              );
+            } else if (result.failed) {
+              failed++;
+
+              console.error(
+                `Email failed: ${lead.email} | Step ${sequence.step} | Variant ${sequence.variant}`,
+              );
+
+              console.error(
+                `Reason: ${result.failureReason || result.reason || "Unknown error"}`,
+              );
+            } else {
+              skipped++;
+
+              console.log(
+                `Email skipped: ${lead.email} | Step ${sequence.step} | ` +
+                  `Variant ${sequence.variant} | Reason: ${
+                    result.reason || "unknown"
+                  }`,
+              );
+            }
+          } catch (leadError) {
+            failed++;
+
+            console.error(
+              `Failed sending to ${lead.email}:`,
+              leadError.message,
+            );
+          }
+        }),
+      );
+    }
+
+    // Advance only after the complete page has been handled. If the process
+    // stops unexpectedly, the page is safely retried and the delivery unique
+    // index prevents duplicate sends.
+    await SEQUENCE_COLLECTION.updateOne(
+      { _id: sequence._id },
+      { $set: { processingCursor: lastLeadId } },
     );
   }
 
@@ -281,7 +313,7 @@ async function processOneSequence(sequence) {
     sequenceId: sequence._id,
     step: sequence.step,
     variant: sequence.variant,
-    leads: leads.length,
+    leads: leadsProcessed,
     sent,
     skipped,
     failed,
@@ -301,9 +333,36 @@ async function processSequences() {
   try {
     await activateDueScheduledSequences();
 
-    const sequences = await SEQUENCE_COLLECTION.find({
+    const configuredSequenceLimit = Number(
+      process.env.SEQUENCE_MAX_SEQUENCES_PER_RUN || 100,
+    );
+    const sequenceLimit = Number.isInteger(configuredSequenceLimit)
+      ? Math.min(Math.max(configuredSequenceLimit, 1), 1000)
+      : 100;
+
+    let sequences = await SEQUENCE_COLLECTION.find({
       status: "active",
-    }).lean();
+      ...(scheduledSequenceCursor
+        ? { _id: { $gt: scheduledSequenceCursor } }
+        : {}),
+    })
+      .sort({ _id: 1 })
+      .limit(sequenceLimit)
+      .lean();
+
+    // Reaching the end starts the next fair pass from the beginning.
+    if (sequences.length === 0 && scheduledSequenceCursor) {
+      scheduledSequenceCursor = null;
+
+      sequences = await SEQUENCE_COLLECTION.find({ status: "active" })
+        .sort({ _id: 1 })
+        .limit(sequenceLimit)
+        .lean();
+    }
+
+    if (sequences.length > 0) {
+      scheduledSequenceCursor = sequences[sequences.length - 1]._id;
+    }
 
     console.log("Active sequences:", sequences.length);
 
@@ -407,14 +466,27 @@ async function processSequencesForUser(userId) {
 // START CRON JOB
 // ============================================================
 
+let scheduledJobIsRunning = false;
+
 function startSequenceJob() {
   cron.schedule(
     SEQUENCE_CRON,
     async () => {
+      if (scheduledJobIsRunning) {
+        console.warn(
+          "Sequence scheduler skipped this run because the previous run is still active.",
+        );
+        return;
+      }
+
+      scheduledJobIsRunning = true;
+
       try {
         await processSequences();
       } catch (error) {
         console.error("Scheduled sequence job failed:", error);
+      } finally {
+        scheduledJobIsRunning = false;
       }
     },
     {

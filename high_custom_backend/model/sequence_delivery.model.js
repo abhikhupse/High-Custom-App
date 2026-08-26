@@ -177,4 +177,26 @@ sequenceDeliverySchema.index(
   },
 );
 
+sequenceDeliverySchema.index({
+  userId: 1,
+  createdAt: -1,
+});
+
+sequenceDeliverySchema.index({
+  userId: 1,
+  sequenceId: 1,
+  createdAt: -1,
+});
+
+sequenceDeliverySchema.index({
+  userId: 1,
+  status: 1,
+  createdAt: -1,
+});
+
+sequenceDeliverySchema.index({
+  sequenceId: 1,
+  status: 1,
+});
+
 module.exports = mongoose.model("SequenceDelivery", sequenceDeliverySchema);

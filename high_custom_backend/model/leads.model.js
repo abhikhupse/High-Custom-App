@@ -72,4 +72,20 @@ leadsSchema.index(
   },
 );
 
+// Sequence workers filter by all four fields together. Keeping userId first
+// also isolates each tenant's data efficiently.
+leadsSchema.index({
+  userId: 1,
+  type: 1,
+  businessType: 1,
+  tracking: 1,
+  _id: 1,
+});
+
+// Supports the newest-first leads screen without an in-memory sort.
+leadsSchema.index({
+  userId: 1,
+  createdAt: -1,
+});
+
 module.exports = mongoose.model("Leads", leadsSchema);

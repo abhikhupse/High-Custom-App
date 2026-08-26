@@ -253,6 +253,13 @@ const sequenceSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Remembers where the worker stopped so large lead lists are processed in
+    // bounded chunks instead of being scanned from the beginning every minute.
+    processingCursor: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+
     // ============================================================
     // STATISTICS
     // ============================================================
@@ -311,6 +318,33 @@ sequenceSchema.index({
 sequenceSchema.index({
   userId: 1,
   status: 1,
+});
+
+// Used by the scheduler when activating sequences whose scheduled time has
+// arrived.
+sequenceSchema.index({
+  status: 1,
+  scheduledAt: 1,
+});
+
+sequenceSchema.index({
+  status: 1,
+  _id: 1,
+});
+
+sequenceSchema.index({
+  userId: 1,
+  status: 1,
+  step: 1,
+});
+
+// Used to locate the previous step in the same business sequence.
+sequenceSchema.index({
+  userId: 1,
+  businessType: 1,
+  channel: 1,
+  variant: 1,
+  step: 1,
 });
 
 sequenceSchema.index(
