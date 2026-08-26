@@ -13,8 +13,32 @@ const SENDER_COPY_LABEL_NAME = "High Custom Sequences";
 
 // Cache label IDs per connected Gmail account for the lifetime of the server.
 const senderCopyLabelCache = new Map();
+const senderCopyLabelPromiseCache = new Map();
 
 async function getOrCreateSenderCopyLabel(gmail, accountEmail) {
+  const cachedLabelId = senderCopyLabelCache.get(accountEmail);
+
+  if (cachedLabelId) {
+    return cachedLabelId;
+  }
+
+  const pendingPromise = senderCopyLabelPromiseCache.get(accountEmail);
+
+  if (pendingPromise) {
+    return pendingPromise;
+  }
+
+  const labelPromise = resolveSenderCopyLabel(gmail, accountEmail);
+  senderCopyLabelPromiseCache.set(accountEmail, labelPromise);
+
+  try {
+    return await labelPromise;
+  } finally {
+    senderCopyLabelPromiseCache.delete(accountEmail);
+  }
+}
+
+async function resolveSenderCopyLabel(gmail, accountEmail) {
   const cachedLabelId = senderCopyLabelCache.get(accountEmail);
 
   if (cachedLabelId) {
@@ -53,6 +77,50 @@ async function getOrCreateSenderCopyLabel(gmail, accountEmail) {
   senderCopyLabelCache.set(accountEmail, labelId);
 
   return labelId;
+}
+
+async function processSenderCopy({ gmail, messageId, labelId, accountEmail }) {
+  try {
+    await gmail.users.messages.modify({
+      userId: "me",
+      id: messageId,
+      requestBody: {
+        addLabelIds: [labelId],
+      },
+    });
+
+    console.log("CUSTOM LABEL APPLIED TO SENDER COPY");
+    console.log("Label:", SENDER_COPY_LABEL_NAME);
+    console.log("Message ID:", messageId);
+  } catch (labelError) {
+    senderCopyLabelCache.delete(accountEmail);
+
+    console.error("CUSTOM LABEL COULD NOT BE APPLIED TO SENDER COPY");
+    console.error(
+      "Reason:",
+      labelError?.response?.data?.error?.message ||
+        labelError?.message ||
+        "Unknown Gmail label error",
+    );
+  }
+
+  try {
+    await gmail.users.messages.trash({
+      userId: "me",
+      id: messageId,
+    });
+
+    console.log("SENDER COPY MOVED TO GMAIL TRASH");
+    console.log("Message ID:", messageId);
+  } catch (trashError) {
+    console.error("SENDER COPY COULD NOT BE MOVED TO TRASH");
+    console.error(
+      "Reason:",
+      trashError?.response?.data?.error?.message ||
+        trashError?.message ||
+        "Unknown Gmail trash error",
+    );
+  }
 }
 
 // ============================================================
@@ -484,63 +552,22 @@ async function sendSequenceEmail({
   // that could deliver a duplicate email to the recipient.
   // ==========================================================
 
-  let senderCopyLabeled = false;
+  let senderCopyLabelId = null;
 
   try {
-    const senderCopyLabelId = await getOrCreateSenderCopyLabel(
+    senderCopyLabelId = await getOrCreateSenderCopyLabel(
       gmail,
       integration.email,
     );
-
-    await gmail.users.messages.modify({
-      userId: "me",
-      id: response.data.id,
-      requestBody: {
-        addLabelIds: [senderCopyLabelId],
-      },
-    });
-
-    senderCopyLabeled = true;
-
-    console.log("CUSTOM LABEL APPLIED TO SENDER COPY");
-    console.log("Label:", SENDER_COPY_LABEL_NAME);
-    console.log("Message ID:", response.data.id);
   } catch (labelError) {
-    // Clear a possibly stale cached ID so the next send can rediscover it.
     senderCopyLabelCache.delete(integration.email);
 
-    console.error("CUSTOM LABEL COULD NOT BE APPLIED TO SENDER COPY");
+    console.error("CUSTOM LABEL COULD NOT BE PREPARED");
     console.error(
       "Reason:",
       labelError?.response?.data?.error?.message ||
         labelError?.message ||
         "Unknown Gmail label error",
-    );
-  }
-
-  // ==========================================================
-  // MOVE THE LABELED SENDER-SIDE COPY TO TRASH
-  // ==========================================================
-
-  let movedToTrash = false;
-
-  try {
-    await gmail.users.messages.trash({
-      userId: "me",
-      id: response.data.id,
-    });
-
-    movedToTrash = true;
-
-    console.log("SENDER COPY MOVED TO GMAIL TRASH");
-    console.log("Message ID:", response.data.id);
-  } catch (trashError) {
-    console.error("SENDER COPY COULD NOT BE MOVED TO TRASH");
-    console.error(
-      "Reason:",
-      trashError?.response?.data?.error?.message ||
-        trashError?.message ||
-        "Unknown Gmail trash error",
     );
   }
 
@@ -561,6 +588,25 @@ async function sendSequenceEmail({
   }
 
   await integration.save();
+
+  // Labeling and trashing only affect the sender-side Gmail copy. Run those
+  // operations after the recipient delivery has already been confirmed so
+  // they do not delay the next campaign email.
+  if (senderCopyLabelId) {
+    setImmediate(() => {
+      processSenderCopy({
+        gmail,
+        messageId: response.data.id,
+        labelId: senderCopyLabelId,
+        accountEmail: integration.email,
+      }).catch((backgroundError) => {
+        console.error(
+          "SENDER COPY BACKGROUND PROCESSING FAILED:",
+          backgroundError,
+        );
+      });
+    });
+  }
 
   // ==========================================================
   // SUCCESS
@@ -586,9 +632,7 @@ async function sendSequenceEmail({
 
     status: "sent",
 
-    senderCopyLabeled,
-
-    movedToTrash,
+    senderCopyProcessing: Boolean(senderCopyLabelId),
   };
 }
 

@@ -153,8 +153,20 @@ async function processOneSequence(sequence) {
   // LOOP LEADS
   // ==========================================================
 
-  for (const lead of leads) {
-    try {
+  const configuredConcurrency = Number(
+    process.env.SEQUENCE_SEND_CONCURRENCY || 3,
+  );
+
+  const concurrency = Number.isInteger(configuredConcurrency)
+    ? Math.min(Math.max(configuredConcurrency, 1), 5)
+    : 3;
+
+  for (let index = 0; index < leads.length; index += concurrency) {
+    const batch = leads.slice(index, index + concurrency);
+
+    await Promise.all(
+      batch.map(async (lead) => {
+        try {
       // ======================================================
       // CHECK ALREADY SENT
       // ======================================================
@@ -167,7 +179,7 @@ async function processOneSequence(sequence) {
 
       if (alreadySent) {
         skipped++;
-        continue;
+        return;
       }
 
       // ======================================================
@@ -181,7 +193,7 @@ async function processOneSequence(sequence) {
 
       if (!gapSatisfied) {
         skipped++;
-        continue;
+        return;
       }
 
       // ======================================================
@@ -224,11 +236,13 @@ async function processOneSequence(sequence) {
             }`,
         );
       }
-    } catch (leadError) {
-      failed++;
+        } catch (leadError) {
+          failed++;
 
-      console.error(`Failed sending to ${lead.email}:`, leadError.message);
-    }
+          console.error(`Failed sending to ${lead.email}:`, leadError.message);
+        }
+      }),
+    );
   }
 
   return {

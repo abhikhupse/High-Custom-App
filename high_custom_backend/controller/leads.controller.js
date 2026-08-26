@@ -812,6 +812,22 @@ exports.importLeadsFromExcel = async (req, res) => {
         .trim()
         .toLowerCase();
 
+      const businessType = String(
+        getValue(row, [
+          "Business Type",
+          "businessType",
+          "BusinessType",
+          "BUSINESS TYPE",
+          "BUSINESSTYPE",
+        ]),
+      ).trim();
+
+      const trackingValue = String(
+        getValue(row, ["Tracking", "tracking", "TRACKING"]),
+      )
+        .trim()
+        .toLowerCase();
+
       // ======================================================
       // EMAIL REQUIRED
       // ======================================================
@@ -915,7 +931,11 @@ exports.importLeadsFromExcel = async (req, res) => {
 
         type,
 
-        tracking: true,
+        businessType,
+
+        tracking: !["false", "no", "0", "disabled"].includes(
+          trackingValue,
+        ),
       });
     });
 
@@ -928,6 +948,26 @@ exports.importLeadsFromExcel = async (req, res) => {
     if (validLeads.length > 0) {
       insertedLeads = await LEADS_COLLECTION.insertMany(validLeads, {
         ordered: false,
+      });
+    }
+
+    // Start active sequences immediately for newly imported leads. The HTTP
+    // response is not blocked while Gmail processes the campaign.
+    if (insertedLeads.length > 0) {
+      setImmediate(async () => {
+        try {
+          const result = await processSequencesForUser(userId);
+
+          console.log("Sequences processed after bulk lead import:", {
+            imported: insertedLeads.length,
+            result,
+          });
+        } catch (sequenceError) {
+          console.error(
+            "Failed to process sequences after bulk lead import:",
+            sequenceError,
+          );
+        }
       });
     }
 
