@@ -1154,14 +1154,14 @@ exports.updateSequence = async (req, res) => {
     const stepNumber = Number(step);
     const gapDaysNumber = Number(gapDays ?? 0);
 
-    if (!Number.isInteger(stepNumber) || stepNumber < 0) {
+    if (!Number.isInteger(stepNumber) || stepNumber < 1) {
       return res.status(400).json({
         success: false,
         message: "Step Number must be greater than 0",
       });
     }
 
-    if (!Number.isInteger(gapDaysNumber) || gapDaysNumber < 1) {
+    if (!Number.isInteger(gapDaysNumber) || gapDaysNumber < 0) {
       return res.status(400).json({
         success: false,
         message: "Gap day must be 0 or greater than 0",
