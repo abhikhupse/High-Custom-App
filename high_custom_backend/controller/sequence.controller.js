@@ -1098,7 +1098,7 @@ exports.runSequence = async (req, res) => {
 
 exports.updateSequence = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?._id;
     const { sequenceId } = req.params;
 
     if (!userId) {
@@ -1116,7 +1116,7 @@ exports.updateSequence = async (req, res) => {
     }
 
     const sequence = await SEQUENCE_COLLECTION.findOne({
-      id: sequenceId,
+      _id: sequenceId,
       userId,
     });
 
