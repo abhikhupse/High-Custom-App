@@ -1283,6 +1283,10 @@ exports.updateSequence = async (req, res) => {
         typeof parsedHeroImage.link === "string"
           ? parsedHeroImage.link.trim()
           : "";
+      const heroLink =
+        typeof parsedHeroImage.link === "string"
+          ? parsedHeroImage.link.trim()
+          : "";
 
       sequence.heroImage = {
         enabled: heroUrl !== "",
