@@ -4,10 +4,6 @@ const authMiddleware = (req, res, next) => {
   try {
     const authHeader = req.get("Authorization");
 
-    console.log("================================");
-    console.log("Authorization Header:", authHeader);
-    console.log("================================");
-
     if (!authHeader) {
       return res.status(401).json({
         success: false,
@@ -32,8 +28,6 @@ const authMiddleware = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    console.log("Decoded JWT:", decoded);
 
     req.user = decoded;
 

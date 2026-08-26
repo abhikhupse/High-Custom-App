@@ -261,6 +261,7 @@ function buildSequenceEmail({
       <img
         src="${escapeHtml(heroUrl)}"
         alt=""
+        referrerpolicy="no-referrer"
         style="
           display:block;
           width:100%;
@@ -456,6 +457,7 @@ function buildSequenceEmail({
         width="1"
         height="1"
         alt=""
+        referrerpolicy="no-referrer"
         style="
           display:block;
           width:1px;

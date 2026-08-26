@@ -10,7 +10,34 @@ const { sendSequenceToLead } = require("../services/sequence.service");
 // BASE URL
 // ============================================================
 
-const BASE_URL = process.env.APP_BASE_URL;
+function normalizeBaseUrl(value) {
+  const rawValue = String(value || "").trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const url = new URL(rawValue);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    // Only the origin belongs here. This prevents callback paths or trailing
+    // slashes from producing an invalid tracking-pixel endpoint.
+    return url.origin;
+  } catch (_) {
+    return null;
+  }
+}
+
+const BASE_URL =
+  normalizeBaseUrl(process.env.APP_BASE_URL) ||
+  normalizeBaseUrl(process.env.RENDER_EXTERNAL_URL) ||
+  (process.env.NODE_ENV !== "production"
+    ? `http://localhost:${process.env.PORT || 3000}`
+    : null);
 const SEQUENCE_CRON = process.env.SEQUENCE_CRON || "* * * * *";
 
 console.log("========================================");
@@ -46,8 +73,13 @@ async function activateDueScheduledSequences(userId = null) {
 
   return activated;
 }
-console.log("EMAIL TRACKING BASE URL:", BASE_URL);
-console.log("APP_BASE_URL FROM ENV:", process.env.APP_BASE_URL);
+console.log("EMAIL TRACKING BASE URL:", BASE_URL || "NOT CONFIGURED");
+
+if (!BASE_URL) {
+  console.error(
+    "Tracking is unavailable: set APP_BASE_URL to the public backend origin, for example https://high-custom-app.onrender.com",
+  );
+}
 console.log("========================================");
 
 // ============================================================

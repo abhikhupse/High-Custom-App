@@ -531,7 +531,7 @@ exports.login = async (req, res) => {
         employerCode: user.employerCode,
       },
       process.env.JWT_SECRET,
-      // { expiresIn: "24h" },
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
     );
 
     // Update the user's login status and remember this login-device IP.

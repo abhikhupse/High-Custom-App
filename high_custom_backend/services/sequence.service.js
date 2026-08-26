@@ -221,6 +221,37 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
     delivery = existingPending;
   }
 
+  const cleanBaseUrl = String(baseUrl || "")
+    .trim()
+    .replace(/\/+$/, "");
+
+  let parsedBaseUrl = null;
+
+  try {
+    parsedBaseUrl = new URL(cleanBaseUrl);
+  } catch (_) {
+    parsedBaseUrl = null;
+  }
+
+  if (
+    !parsedBaseUrl ||
+    (parsedBaseUrl.protocol !== "http:" &&
+      parsedBaseUrl.protocol !== "https:")
+  ) {
+    console.error(
+      "Sequence email was not sent because the public tracking base URL is invalid.",
+    );
+
+    return {
+      sent: false,
+      failed: true,
+      skipped: false,
+      failureType: "configuration_error",
+      failureReason:
+        "APP_BASE_URL must be the public backend origin, for example https://high-custom-app.onrender.com",
+    };
+  }
+
   // A failed delivery already occupies the unique lead/sequence pair. Reuse
   // it for the retry instead of attempting to insert a duplicate document.
   if (!delivery && !existingPending) {
@@ -251,12 +282,13 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   // CREATE TRACKING URL
   // ==========================================================
 
-  const trackingUrl = `${baseUrl}/api/email-tracking/open/${trackingId}`;
+  const trackingUrl = `${parsedBaseUrl.origin}/api/email-tracking/open/${encodeURIComponent(
+    trackingId,
+  )}?v=${Date.now()}`;
 
   console.log("==============================================");
   console.log("TRACKING URL GENERATED");
-  console.log("TRACKING ID:", trackingId);
-  console.log("BASE URL:", baseUrl);
+  console.log("BASE URL:", parsedBaseUrl.origin);
   console.log("TRACKING URL:", trackingUrl);
   console.log("==============================================");
 
