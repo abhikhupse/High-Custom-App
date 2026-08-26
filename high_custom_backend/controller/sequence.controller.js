@@ -1208,8 +1208,8 @@ exports.updateSequence = async (req, res) => {
       userId,
       step: stepNumber,
       variant: formattedVariant,
-      $ne: {
-        sequence: _id,
+      _id: {
+        $ne: sequence._id,
       },
     });
 
