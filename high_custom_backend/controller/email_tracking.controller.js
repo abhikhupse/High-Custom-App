@@ -116,38 +116,19 @@ exports.trackOpen = async (req, res) => {
     }
 
     // ==========================================================
-    // IGNORE PRE-SEND / AUTOMATED EARLY IMAGE FETCHES
+    // COUNT IMMEDIATE OPENS
     // ==========================================================
     //
-    // Gmail and mail-security scanners can request remote images while the
-    // message is being accepted. Those requests are not reliable evidence
-    // that the recipient opened the email.
-    //
-    // Only count an open after the delivery has been confirmed as sent and
-    // after a short grace period. The pixel is still returned normally.
+    // The delivery record is created before Gmail sends the message. A fast
+    // recipient can therefore request the tracking pixel while the delivery
+    // is still "pending", before sendSequenceToLead stores status="sent".
+    // Gmail may cache that first pixel response, so ignoring it permanently
+    // loses the real open. Count both pending and sent deliveries, but never
+    // count a delivery that has already failed.
     // ==========================================================
 
-    if (delivery.status !== "sent" || !delivery.sentAt) {
-      console.log("IGNORED OPEN: delivery is not confirmed as sent yet");
-      console.log(
-        "============================================================",
-      );
-
-      return sendTrackingPixel(res);
-    }
-
-    const millisecondsSinceSent =
-      requestTime.getTime() - new Date(delivery.sentAt).getTime();
-
-    const scannerGracePeriodMs = 15 * 1000;
-
-    if (
-      millisecondsSinceSent >= 0 &&
-      millisecondsSinceSent < scannerGracePeriodMs
-    ) {
-      console.log(
-        `IGNORED OPEN: image fetched ${millisecondsSinceSent}ms after send`,
-      );
+    if (delivery.status === "failed") {
+      console.log("IGNORED OPEN: delivery has failed");
       console.log(
         "============================================================",
       );

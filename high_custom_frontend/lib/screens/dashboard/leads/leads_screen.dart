@@ -133,7 +133,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
     );
 
     _trackingRefreshTimer = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 2),
       (_) {
         _refreshTrackingStatus();
       },

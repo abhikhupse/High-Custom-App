@@ -326,6 +326,30 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
       trackingUrl,
 
       baseUrl,
+
+      onAccepted: async ({ messageId, threadId }) => {
+        delivery.status = "sent";
+        delivery.sentAt = new Date();
+        delivery.messageId = messageId || null;
+        delivery.threadId = threadId || null;
+        delivery.errorMessage = null;
+        delivery.failureType = null;
+        delivery.failureReason = null;
+        delivery.failedAt = null;
+
+        await delivery.save();
+
+        await SEQUENCE_COLLECTION.updateOne(
+          {
+            _id: sequence._id,
+          },
+          {
+            $inc: {
+              "statistics.sent": 1,
+            },
+          },
+        );
+      },
     });
 
     // ========================================================
@@ -347,38 +371,31 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
     // GMAIL ACCEPTED EMAIL
     // ========================================================
 
-    delivery.status = "sent";
+    // Older/custom email providers may not use the callback. Keep this
+    // fallback so a confirmed message can never remain pending.
+    if (delivery.status !== "sent") {
+      delivery.status = "sent";
+      delivery.sentAt = new Date();
+      delivery.messageId = result.messageId || null;
+      delivery.threadId = result.threadId || null;
+      delivery.errorMessage = null;
+      delivery.failureType = null;
+      delivery.failureReason = null;
+      delivery.failedAt = null;
 
-    delivery.sentAt = new Date();
+      await delivery.save();
 
-    delivery.messageId = result.messageId || null;
-
-    delivery.threadId = result.threadId || null;
-
-    delivery.errorMessage = null;
-
-    delivery.failureType = null;
-
-    delivery.failureReason = null;
-
-    delivery.failedAt = null;
-
-    await delivery.save();
-
-    // ========================================================
-    // UPDATE SENT STATISTICS
-    // ========================================================
-
-    await SEQUENCE_COLLECTION.updateOne(
-      {
-        _id: sequence._id,
-      },
-      {
-        $inc: {
-          "statistics.sent": 1,
+      await SEQUENCE_COLLECTION.updateOne(
+        {
+          _id: sequence._id,
         },
-      },
-    );
+        {
+          $inc: {
+            "statistics.sent": 1,
+          },
+        },
+      );
+    }
 
     // ========================================================
     // SUCCESS LOG

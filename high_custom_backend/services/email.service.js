@@ -240,6 +240,7 @@ async function sendSequenceEmail({
   lead,
   trackingUrl,
   baseUrl,
+  onAccepted,
 }) {
   console.log("==============================================");
   console.log("GMAIL SEND STARTED");
@@ -460,6 +461,17 @@ async function sendSequenceEmail({
     });
 
     throw error;
+  }
+
+  // ==========================================================
+  // CONFIRM DELIVERY IMMEDIATELY AFTER GMAIL ACCEPTS IT
+  // ==========================================================
+
+  if (typeof onAccepted === "function") {
+    await onAccepted({
+      messageId: response.data.id,
+      threadId: response.data.threadId || null,
+    });
   }
 
   // ==========================================================
