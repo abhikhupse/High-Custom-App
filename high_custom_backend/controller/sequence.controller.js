@@ -1197,7 +1197,7 @@ exports.updateSequence = async (req, res) => {
       });
     }
 
-    if (typeof content !== " string" || content.trim() === "") {
+    if (typeof content !== "string" || content.trim() === "") {
       return res.status(400).json({
         success: false,
         message: "Email Content is required",
