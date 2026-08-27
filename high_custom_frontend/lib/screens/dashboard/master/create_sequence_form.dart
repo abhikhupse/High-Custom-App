@@ -3258,6 +3258,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         ctaTextController,
                     ctaUrlController:
                         ctaUrlController,
+                    attachmentNameController:
+                        attachmentNameController,
                     selectedLogoPosition:
                         selectedLogoPosition,
                     selectedFont:

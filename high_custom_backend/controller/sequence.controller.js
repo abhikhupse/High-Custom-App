@@ -222,7 +222,7 @@ exports.createSequence = async (req, res) => {
     // BASE URL
     // ==========================================================
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl = getPublicBaseUrl(req);
 
     // ==========================================================
     // BRAND / LOGO
@@ -648,6 +648,31 @@ function parseJsonField(value, fallback = {}) {
   } catch (_) {
     return fallback;
   }
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (_) {
+    return false;
+  }
+}
+
+function getPublicBaseUrl(req) {
+  const configuredUrl =
+    process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL || "";
+
+  if (isHttpUrl(configuredUrl)) {
+    return new URL(configuredUrl.trim()).origin;
+  }
+
+  const forwardedProto = String(req.get("x-forwarded-proto") || "")
+    .split(",")[0]
+    .trim();
+  const protocol = forwardedProto || req.protocol;
+
+  return `${protocol}://${req.get("host")}`;
 }
 
 // ============================================================
@@ -1151,6 +1176,11 @@ exports.updateSequence = async (req, res) => {
     const parsedActionLinks = parseJsonField(actionLinks, {});
     const parsedTracking = parseJsonField(tracking, {});
 
+    const brandLogoFile = req.files?.brandLogo?.[0] || null;
+    const heroImageFile = req.files?.heroImage?.[0] || null;
+    const attachmentFile = req.files?.attachment?.[0] || null;
+    const baseUrl = getPublicBaseUrl(req);
+
     const stepNumber = Number(step);
     const gapDaysNumber = Number(gapDays ?? 0);
 
@@ -1261,7 +1291,17 @@ exports.updateSequence = async (req, res) => {
     sequence.scheduledAt =
       formattedStatus === "scheduled" ? formattedScheduledAt : null;
 
-    if (parsedBrand && typeof parsedBrand === -"object") {
+    if (brandLogoFile) {
+      sequence.brand = {
+        enabled: true,
+        logoUrl: `${baseUrl}/uploads/brand/${brandLogoFile.filename}`,
+        logoPosition: ["Left", "Center", "Right"].includes(
+          parsedBrand.logoPosition,
+        )
+          ? parsedBrand.logoPosition
+          : "Center",
+      };
+    } else if (parsedBrand && typeof parsedBrand === "object") {
       const logoUrl =
         typeof parsedBrand.logoUrl === "string"
           ? parsedBrand.logoUrl.trim()
@@ -1278,10 +1318,20 @@ exports.updateSequence = async (req, res) => {
       };
     }
 
-    if (parsedHeroImage && typeof parsedHeroImage === "object") {
+    if (heroImageFile) {
+      sequence.heroImage = {
+        enabled: true,
+        url: `${baseUrl}/uploads/hero/${heroImageFile.filename}`,
+        link:
+          typeof parsedHeroImage.link === "string" &&
+          isHttpUrl(parsedHeroImage.link)
+            ? parsedHeroImage.link.trim()
+            : null,
+      };
+    } else if (parsedHeroImage && typeof parsedHeroImage === "object") {
       const heroUrl =
-        typeof parsedHeroImage.link === "string"
-          ? parsedHeroImage.link.trim()
+        typeof parsedHeroImage.url === "string"
+          ? parsedHeroImage.url.trim()
           : "";
       const heroLink =
         typeof parsedHeroImage.link === "string"
@@ -1318,9 +1368,17 @@ exports.updateSequence = async (req, res) => {
       underline: toBoolean(parsedEditor.underline, false),
     };
 
-    if (parsedAttachment && typeof parsedAttachment === "object") {
+    if (attachmentFile) {
+      sequence.attachment = {
+        enabled: true,
+        name: attachmentFile.originalname,
+        url: `${baseUrl}/uploads/attachments/${attachmentFile.filename}`,
+        mimeType: attachmentFile.mimetype,
+        size: attachmentFile.size,
+      };
+    } else if (parsedAttachment && typeof parsedAttachment === "object") {
       const attachmentUrl =
-        typeof parsedAttachment.url.trim() === "string"
+        typeof parsedAttachment.url === "string"
           ? parsedAttachment.url.trim()
           : "";
 

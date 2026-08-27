@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -10,6 +11,40 @@ class SequenceApi {
 
   static const FlutterSecureStorage _storage =
       FlutterSecureStorage();
+
+  static bool _isRemoteUrl(String value) {
+    final uri = Uri.tryParse(value.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
+  static void _addMultipartFields(
+    http.MultipartRequest request,
+    Map<String, dynamic> body,
+  ) {
+    body.forEach((key, value) {
+      if (value == null) return;
+      request.fields[key] = value is Map || value is List
+          ? jsonEncode(value)
+          : value.toString();
+    });
+  }
+
+  static Future<void> _addLocalFile(
+    http.MultipartRequest request,
+    String fieldName,
+    String? path,
+  ) async {
+    final cleanPath = path?.trim() ?? '';
+    if (cleanPath.isEmpty || _isRemoteUrl(cleanPath)) return;
+
+    final file = File(cleanPath);
+    if (!await file.exists()) return;
+
+    request.files.add(
+      await http.MultipartFile.fromPath(fieldName, cleanPath),
+    );
+  }
 
   // ============================================================
   // GET TOKEN
@@ -275,20 +310,21 @@ class SequenceApi {
       // REQUEST
       // ========================================================
 
-      final response = await http
-          .post(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization':
-                  'Bearer $activeToken',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(
-            const Duration(seconds: 20),
-          );
+      final request = http.MultipartRequest('POST', url)
+        ..headers.addAll({
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $activeToken',
+        });
+
+      _addMultipartFields(request, requestBody);
+      await _addLocalFile(request, 'brandLogo', cleanLogoUrl);
+      await _addLocalFile(request, 'heroImage', cleanHeroImageUrl);
+      await _addLocalFile(request, 'attachment', cleanAttachmentUrl);
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 20),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
 
       // ========================================================
       // RESPONSE DEBUG
@@ -464,19 +500,23 @@ class SequenceApi {
         'scheduledAt': scheduledAt,
       };
 
-      final response = await http
-          .put(
-            Uri.parse('$baseUrl/$cleanSequenceId'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $activeToken',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(
-            const Duration(seconds: 20),
-          );
+      final request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$baseUrl/$cleanSequenceId'),
+      )..headers.addAll({
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $activeToken',
+        });
+
+      _addMultipartFields(request, requestBody);
+      await _addLocalFile(request, 'brandLogo', logoUrl);
+      await _addLocalFile(request, 'heroImage', heroImageUrl);
+      await _addLocalFile(request, 'attachment', attachmentUrl);
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 20),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
 
       debugPrint('UPDATE SEQUENCE STATUS: ${response.statusCode}');
       debugPrint('UPDATE SEQUENCE RESPONSE: ${response.body}');

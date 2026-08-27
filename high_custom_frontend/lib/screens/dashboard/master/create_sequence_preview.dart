@@ -13,6 +13,7 @@ class CreateSequencePreview extends StatelessWidget {
     required this.whatsappController,
     required this.ctaTextController,
     required this.ctaUrlController,
+    required this.attachmentNameController,
     required this.selectedLogoPosition,
     required this.selectedFont,
     required this.selectedTextColor,
@@ -34,6 +35,7 @@ class CreateSequencePreview extends StatelessWidget {
   final TextEditingController whatsappController;
   final TextEditingController ctaTextController;
   final TextEditingController ctaUrlController;
+  final TextEditingController attachmentNameController;
 
   // ============================================================
   // EDITOR SETTINGS
@@ -746,6 +748,11 @@ class CreateSequencePreview extends StatelessWidget {
                 isMobile: isMobile,
               ),
 
+            if (attachmentNameController.text.trim().isNotEmpty)
+              _buildAttachment(
+                isMobile: isMobile,
+              ),
+
             const SizedBox(height: 10),
 
             // ====================================================
@@ -1134,6 +1141,39 @@ class CreateSequencePreview extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAttachment({
+    required bool isMobile,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 20,
+        vertical: 6,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.attach_file,
+            size: isMobile ? 14 : 17,
+            color: primaryColor,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              attachmentNameController.text.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: primaryColor,
+                fontSize: isMobile ? 8 : 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

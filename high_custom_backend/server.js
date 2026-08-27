@@ -9,6 +9,8 @@ const { startSequenceJob } = require("./jobs/sequence.job");
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 // ==========================================
 // MIDDLEWARE
 // ==========================================
