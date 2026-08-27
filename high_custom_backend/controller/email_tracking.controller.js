@@ -481,13 +481,30 @@ exports.submitInterestDetails = async (req, res) => {
 exports.getInterestDetails = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
+    const query = { userId };
+
     const details = await LEAD_INTEREST_DETAILS.find({ userId })
       .populate("leadId", "firstName lastName email")
       .populate("sequenceId", "subject step variant")
       .sort({ submittedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .lean();
 
-    return res.status(200).json({ success: true, details });
+    const total = await LEAD_INTEREST_DETAILS.countDocuments(query);
+
+    return res.status(200).json({
+      success: true,
+      details,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+    });
   } catch (error) {
     console.error("GET INTEREST DETAILS ERROR:", error);
     return res.status(500).json({

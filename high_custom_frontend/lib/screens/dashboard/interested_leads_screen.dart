@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/tracking_api.dart';
 
@@ -15,6 +16,10 @@ class _InterestedLeadsScreenState extends State<InterestedLeadsScreen> {
   List<Map<String, dynamic>> _details = [];
   bool _loading = true;
   String? _error;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  int _total = 0;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
@@ -22,12 +27,19 @@ class _InterestedLeadsScreenState extends State<InterestedLeadsScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({int? page}) async {
     if (mounted) setState(() => _loading = true);
-    final result = await TrackingApi.getInterestDetails();
+    final requestedPage = page ?? _currentPage;
+    final result = await TrackingApi.getInterestDetails(
+      page: requestedPage,
+      limit: _pageSize,
+    );
     if (!mounted) return;
 
     final rawDetails = result['details'];
+    final pagination = result['pagination'] is Map
+        ? Map<String, dynamic>.from(result['pagination'] as Map)
+        : <String, dynamic>{};
     setState(() {
       _loading = false;
       _error = result['success'] == true
@@ -39,7 +51,38 @@ class _InterestedLeadsScreenState extends State<InterestedLeadsScreen> {
                 .map((item) => Map<String, dynamic>.from(item))
                 .toList()
           : [];
+      _currentPage = (pagination['page'] as num?)?.toInt() ?? requestedPage;
+      _totalPages = (pagination['totalPages'] as num?)?.toInt() ?? 1;
+      _total = (pagination['total'] as num?)?.toInt() ?? _details.length;
     });
+  }
+
+  Future<void> _openCall(String mobileNumber) async {
+    final number = mobileNumber.trim();
+    if (number.isEmpty || !await launchUrl(Uri(scheme: 'tel', path: number))) {
+      _showContactError('Unable to open the phone dialer.');
+    }
+  }
+
+  Future<void> _openWhatsApp(String mobileNumber, String name) async {
+    final number = mobileNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    final greeting = name.trim().isEmpty ? 'there' : name.trim();
+    final message =
+        'Hello $greeting, thank you for your interest in High Custom Jewellers. '
+        'I am reaching out to assist you. How may I help you?';
+    final uri = Uri.https('wa.me', '/$number', {'text': message});
+
+    if (number.isEmpty ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showContactError('Unable to open WhatsApp.');
+    }
+  }
+
+  void _showContactError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _text(dynamic value) => value?.toString().trim() ?? '';
@@ -72,7 +115,7 @@ class _InterestedLeadsScreenState extends State<InterestedLeadsScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              '${_details.length} contact detail submission${_details.length == 1 ? '' : 's'}',
+              '$_total contact detail submission${_total == 1 ? '' : 's'}',
               style: const TextStyle(color: Color(0xFFAEB4BF)),
             ),
             const SizedBox(height: 22),
@@ -88,8 +131,10 @@ class _InterestedLeadsScreenState extends State<InterestedLeadsScreen> {
                 message:
                     'No interested lead has submitted contact details yet.',
               )
-            else
+            else ...[
               ..._details.map(_buildCard),
+              if (_totalPages > 1) _buildPagination(),
+            ],
           ],
         ),
       ),
@@ -150,7 +195,92 @@ class _InterestedLeadsScreenState extends State<InterestedLeadsScreen> {
               _text(sequence['subject']),
             ),
           _DetailRow(Icons.schedule_outlined, _date(item['submittedAt'])),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _ContactButton(
+                  icon: Icons.call_outlined,
+                  label: 'Call',
+                  color: const Color(0xFF3B82F6),
+                  onPressed: () => _openCall(_text(item['mobileNumber'])),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ContactButton(
+                  icon: Icons.chat_outlined,
+                  label: 'WhatsApp',
+                  color: const Color(0xFF25D366),
+                  onPressed: () => _openWhatsApp(
+                    _text(item['mobileNumber']),
+                    _text(item['name']),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPagination() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton.outlined(
+            tooltip: 'Previous page',
+            onPressed: _currentPage > 1
+                ? () => _load(page: _currentPage - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Page $_currentPage of $_totalPages',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          IconButton.outlined(
+            tooltip: 'Next page',
+            onPressed: _currentPage < _totalPages
+                ? () => _load(page: _currentPage + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactButton extends StatelessWidget {
+  const _ContactButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 19),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withValues(alpha: .55)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );
   }

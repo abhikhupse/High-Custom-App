@@ -55,6 +55,14 @@ class _TrackingReportScreenState
 
   List<dynamic> _deliveries = [];
 
+  int _currentPage = 1;
+
+  int _totalPages = 1;
+
+  int _totalDeliveries = 0;
+
+  static const int _pageSize = 20;
+
   // ============================================================
   // SEARCH
   // ============================================================
@@ -96,7 +104,7 @@ class _TrackingReportScreenState
   // LOAD REPORT
   // ============================================================
 
-  Future<void> _loadReport() async {
+  Future<void> _loadReport({int? page}) async {
     if (!mounted) return;
 
     setState(() {
@@ -105,8 +113,13 @@ class _TrackingReportScreenState
     });
 
     try {
+      final requestedPage = page ?? _currentPage;
+
       final response =
-          await TrackingApi.getTrackingReport();
+          await TrackingApi.getTrackingReport(
+        page: requestedPage,
+        limit: _pageSize,
+      );
 
       if (!mounted) return;
 
@@ -119,6 +132,17 @@ class _TrackingReportScreenState
             response['deliveries']
                     as List<dynamic>? ??
                 [];
+
+        final pagination = response['pagination'];
+
+        if (pagination is Map) {
+          _currentPage =
+              (pagination['page'] as num?)?.toInt() ?? requestedPage;
+          _totalPages =
+              (pagination['totalPages'] as num?)?.toInt() ?? 1;
+          _totalDeliveries =
+              (pagination['total'] as num?)?.toInt() ?? _deliveries.length;
+        }
 
         _loading = false;
       });
@@ -1223,8 +1247,42 @@ class _TrackingReportScreenState
                 isMobile,
               ),
             ),
+
+          if (_totalPages > 1) ...[
+            const SizedBox(height: 12),
+            _buildPagination(),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildPagination() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton.outlined(
+          tooltip: 'Previous page',
+          onPressed: _currentPage > 1
+              ? () => _loadReport(page: _currentPage - 1)
+              : null,
+          icon: const Icon(Icons.chevron_left_rounded),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            'Page $_currentPage of $_totalPages • $_totalDeliveries records',
+            style: const TextStyle(color: mutedText, fontSize: 13),
+          ),
+        ),
+        IconButton.outlined(
+          tooltip: 'Next page',
+          onPressed: _currentPage < _totalPages
+              ? () => _loadReport(page: _currentPage + 1)
+              : null,
+          icon: const Icon(Icons.chevron_right_rounded),
+        ),
+      ],
     );
   }
 

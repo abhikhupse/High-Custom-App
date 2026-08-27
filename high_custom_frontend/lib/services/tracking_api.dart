@@ -182,7 +182,10 @@ class TrackingApi {
   // GET INTERESTED LEAD CONTACT DETAILS
   // ============================================================
 
-  static Future<Map<String, dynamic>> getInterestDetails() async {
+  static Future<Map<String, dynamic>> getInterestDetails({
+    int page = 1,
+    int limit = 10,
+  }) async {
     try {
       final headers = await _headers();
 
@@ -194,11 +197,18 @@ class TrackingApi {
         };
       }
 
+      final uri = Uri.parse(
+        '$baseUrl/email-tracking/interest-details',
+      ).replace(
+        queryParameters: {
+          'page': page.toString(),
+          'limit': limit.toString(),
+        },
+      );
+
       final response = await http
           .get(
-            Uri.parse(
-              '$baseUrl/email-tracking/interest-details',
-            ),
+            uri,
             headers: headers,
           )
           .timeout(
