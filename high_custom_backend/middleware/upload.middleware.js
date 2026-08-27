@@ -2,6 +2,12 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+function uploadError(message) {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+}
+
 // ============================================================
 // UPLOAD DIRECTORIES
 // ============================================================
@@ -37,7 +43,7 @@ const storage = multer.diskStorage({
     } else if (file.fieldname === "profileImage") {
       cb(null, uploadDirectories.profile);
     } else {
-      cb(new Error("Invalid upload field"));
+      cb(uploadError("Invalid upload field"));
     }
   },
 
@@ -70,7 +76,7 @@ const fileFilter = (req, file, cb) => {
     ];
 
     if (!allowedImages.includes(file.mimetype)) {
-      return cb(new Error("Brand logo must be JPG, JPEG, PNG or WEBP"), false);
+      return cb(uploadError("Brand logo must be JPG, JPEG, PNG or WEBP"), false);
     }
 
     return cb(null, true);
@@ -88,7 +94,7 @@ const fileFilter = (req, file, cb) => {
 
     if (!allowedImages.includes(file.mimetype)) {
       return cb(
-        new Error("Profile image must be JPG, JPEG, PNG or WEBP"),
+        uploadError("Profile image must be JPG, JPEG, PNG or WEBP"),
         false,
       );
     }
@@ -108,7 +114,7 @@ const fileFilter = (req, file, cb) => {
     ];
 
     if (!allowedImages.includes(file.mimetype)) {
-      return cb(new Error("Hero image must be JPG, JPEG, PNG or WEBP"), false);
+      return cb(uploadError("Hero image must be JPG, JPEG, PNG or WEBP"), false);
     }
 
     return cb(null, true);
@@ -144,13 +150,13 @@ const fileFilter = (req, file, cb) => {
     ];
 
     if (!allowedFiles.includes(file.mimetype)) {
-      return cb(new Error("Invalid attachment file type"), false);
+      return cb(uploadError("Invalid attachment file type"), false);
     }
 
     return cb(null, true);
   }
 
-  return cb(new Error("Unexpected file field"), false);
+  return cb(uploadError("Unexpected file field"), false);
 };
 
 // ============================================================

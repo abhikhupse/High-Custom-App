@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class SequenceApi {
   static const String baseUrl =
@@ -16,6 +17,41 @@ class SequenceApi {
     final uri = Uri.tryParse(value.trim());
     return uri != null &&
         (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
+  static MediaType _mediaTypeForFilename(String? filename) {
+    final extension = (filename ?? '').split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'webp':
+        return MediaType('image', 'webp');
+      case 'pdf':
+        return MediaType('application', 'pdf');
+      case 'doc':
+        return MediaType('application', 'msword');
+      case 'docx':
+        return MediaType(
+          'application',
+          'vnd.openxmlformats-officedocument.wordprocessingml.document',
+        );
+      case 'xls':
+        return MediaType('application', 'vnd.ms-excel');
+      case 'xlsx':
+        return MediaType(
+          'application',
+          'vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+      case 'txt':
+        return MediaType('text', 'plain');
+      case 'zip':
+        return MediaType('application', 'zip');
+      default:
+        return MediaType('application', 'octet-stream');
+    }
   }
 
   static void _addMultipartFields(
@@ -39,7 +75,12 @@ class SequenceApi {
   ) async {
     if (bytes != null && bytes.isNotEmpty) {
       request.files.add(
-        http.MultipartFile.fromBytes(fieldName, bytes, filename: filename),
+        http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: filename,
+          contentType: _mediaTypeForFilename(filename),
+        ),
       );
       return;
     }

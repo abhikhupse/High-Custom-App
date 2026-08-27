@@ -55,9 +55,12 @@ startSequenceJob();
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err);
 
-  res.status(500).json({
+  const statusCode =
+    err.statusCode || (err.name === "MulterError" ? 400 : 500);
+
+  res.status(statusCode).json({
     success: false,
-    message: "Internal Server Error",
+    message: statusCode === 400 ? err.message : "Internal Server Error",
   });
 });
 
