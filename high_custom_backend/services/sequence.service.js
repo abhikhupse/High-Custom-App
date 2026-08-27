@@ -286,6 +286,14 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
     trackingId,
   )}?v=${Date.now()}`;
 
+  const interestedUrl = `${parsedBaseUrl.origin}/api/email-tracking/response/${encodeURIComponent(
+    trackingId,
+  )}/interested`;
+
+  const notInterestedUrl = `${parsedBaseUrl.origin}/api/email-tracking/response/${encodeURIComponent(
+    trackingId,
+  )}/notInterested`;
+
   console.log("==============================================");
   console.log("TRACKING URL GENERATED");
   console.log("BASE URL:", parsedBaseUrl.origin);
@@ -356,6 +364,10 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
       },
 
       trackingUrl,
+
+      interestedUrl,
+
+      notInterestedUrl,
 
       baseUrl,
 

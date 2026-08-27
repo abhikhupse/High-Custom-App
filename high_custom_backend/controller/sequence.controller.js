@@ -802,6 +802,9 @@ exports.getTrackingSummary = async (req, res) => {
     let failed = 0;
     let opened = 0;
     let pending = 0;
+    let clicked = 0;
+    let interested = 0;
+    let notInterested = 0;
 
     for (const delivery of deliveries) {
       totalMails++;
@@ -836,6 +839,16 @@ exports.getTrackingSummary = async (req, res) => {
 
       if (delivery.openedAt) {
         opened++;
+      }
+
+      if (delivery.clickedAt) {
+        clicked++;
+      }
+
+      if (delivery.response === "interested") {
+        interested++;
+      } else if (delivery.response === "notInterested") {
+        notInterested++;
       }
     }
 
@@ -894,27 +907,6 @@ exports.getTrackingSummary = async (req, res) => {
     // ========================================================
     // CLICKED
     // ========================================================
-
-    // Currently your delivery model does not show a click
-    // tracking field in the code you sent.
-    //
-    // Keep this at 0 until click tracking is implemented.
-
-    const clicked = 0;
-
-    // ========================================================
-    // INTERESTED
-    // ========================================================
-
-    // Not implemented yet in your delivery model.
-    const interested = 0;
-
-    // ========================================================
-    // NOT INTERESTED
-    // ========================================================
-
-    // Not implemented yet in your delivery model.
-    const notInterested = 0;
 
     // ========================================================
     // RESPONSE

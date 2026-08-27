@@ -1,6 +1,7 @@
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
 const USER = require("../model/user.model");
+const LEAD = require("../model/leads.model");
 const { getClientIp } = require("../utils/clientIp");
 
 // ============================================================
@@ -319,6 +320,105 @@ function sendTrackingPixel(res) {
 
     return res.status(200).end();
   }
+}
+
+exports.trackResponse = async (req, res) => {
+  try {
+    const trackingId = String(req.params.trackingId || "").trim();
+    const response = String(req.params.response || "").trim();
+
+    if (!trackingId || !["interested", "notInterested"].includes(response)) {
+      return sendResponsePage(res, {
+        title: "Invalid Response",
+        message: "This response link is not valid.",
+        success: false,
+      });
+    }
+
+    const delivery = await SEQUENCE_DELIVERY.findOne({ trackingId });
+
+    if (!delivery) {
+      return sendResponsePage(res, {
+        title: "Link Not Found",
+        message: "This response link is no longer available.",
+        success: false,
+      });
+    }
+
+    if (delivery.response !== response) {
+      const increments = {};
+
+      if (delivery.response === "interested") {
+        increments["statistics.interested"] = -1;
+      } else if (delivery.response === "notInterested") {
+        increments["statistics.notInterested"] = -1;
+      }
+
+      increments[
+        response === "interested"
+          ? "statistics.interested"
+          : "statistics.notInterested"
+      ] = 1;
+
+      delivery.response = response;
+      delivery.respondedAt = new Date();
+      delivery.clickedAt = delivery.clickedAt || delivery.respondedAt;
+
+      await delivery.save();
+      await SEQUENCE.updateOne({ _id: delivery.sequenceId }, { $inc: increments });
+    }
+
+    if (response === "notInterested") {
+      await LEAD.updateOne(
+        { _id: delivery.leadId, userId: delivery.userId },
+        { $set: { tracking: false } },
+      );
+    }
+
+    if (response === "interested") {
+      return sendResponsePage(res, {
+        title: "Thank You 🙌",
+        message: "Your response has been recorded as Interested.",
+      });
+    }
+
+    return sendResponsePage(res, {
+      title: "Unsubscribed Successfully",
+      message: "You will no longer receive emails from us.",
+    });
+  } catch (error) {
+    console.error("TRACK RESPONSE ERROR:", error);
+    return sendResponsePage(res, {
+      title: "Unable to Record Response",
+      message: "Please try again later.",
+      success: false,
+    });
+  }
+};
+
+function sendResponsePage(res, { title, message, success = true }) {
+  res.set({
+    "Content-Type": "text/html; charset=UTF-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+  });
+
+  return res.status(success ? 200 : 400).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title}</title>
+</head>
+<body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#101828;">
+  <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+    <section style="width:100%;max-width:560px;background:#fff;border:1px solid #e4e7ec;border-radius:16px;padding:40px 28px;text-align:center;box-shadow:0 12px 32px rgba(16,24,40,.08);">
+      <h1 style="margin:0 0 16px;font-size:30px;line-height:1.25;">${title}</h1>
+      <p style="margin:0;color:#475467;font-size:17px;line-height:1.6;">${message}</p>
+    </section>
+  </main>
+</body>
+</html>`);
 }
 
 // ============================================================

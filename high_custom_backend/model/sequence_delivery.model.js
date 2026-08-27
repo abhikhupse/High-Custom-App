@@ -157,6 +157,17 @@ const sequenceDeliverySchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    response: {
+      type: String,
+      enum: ["interested", "notInterested"],
+      default: null,
+    },
+
+    respondedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

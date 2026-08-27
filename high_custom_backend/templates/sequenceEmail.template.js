@@ -170,6 +170,8 @@ function buildSequenceEmail({
   sequence = {},
   lead = {},
   trackingUrl = null,
+  interestedUrl = null,
+  notInterestedUrl = null,
   baseUrl = null,
 }) {
   const brand =
@@ -486,6 +488,35 @@ function buildSequenceEmail({
     `;
   }
 
+  let responseButtonsHtml = "";
+
+  if (isValidUrl(interestedUrl) && isValidUrl(notInterestedUrl)) {
+    responseButtonsHtml = `
+      <tr>
+        <td style="padding:4px 20px 24px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td width="50%" style="padding-right:6px;">
+                <a
+                  href="${escapeHtml(interestedUrl)}"
+                  target="_blank"
+                  style="display:block;background:#157347;color:#FFFFFF;text-decoration:none;text-align:center;padding:12px 8px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;"
+                >Interested</a>
+              </td>
+              <td width="50%" style="padding-left:6px;">
+                <a
+                  href="${escapeHtml(notInterestedUrl)}"
+                  target="_blank"
+                  style="display:block;background:#667085;color:#FFFFFF;text-decoration:none;text-align:center;padding:12px 8px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;"
+                >Not Interested</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `;
+  }
+
   // ==========================================================
   // FINAL EMAIL
   // ==========================================================
@@ -577,6 +608,8 @@ ${ctaHtml}
 ${whatsappHtml}
 
 ${attachmentHtml}
+
+${responseButtonsHtml}
 
 </table>
 

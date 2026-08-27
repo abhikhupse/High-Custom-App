@@ -307,6 +307,8 @@ async function sendSequenceEmail({
   sequence,
   lead,
   trackingUrl,
+  interestedUrl,
+  notInterestedUrl,
   baseUrl,
   onAccepted,
 }) {
@@ -453,6 +455,8 @@ async function sendSequenceEmail({
       email: leadEmail,
     },
     trackingUrl,
+    interestedUrl,
+    notInterestedUrl,
     baseUrl,
   });
 

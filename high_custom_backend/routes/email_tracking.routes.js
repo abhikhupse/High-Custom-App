@@ -15,6 +15,11 @@ const emailTrackingController = require("../controller/email_tracking.controller
 
 router.get("/open/:trackingId", emailTrackingController.trackOpen);
 
+router.get(
+  "/response/:trackingId/:response",
+  emailTrackingController.trackResponse,
+);
+
 // ============================================================
 // TRACKING REPORT
 // ============================================================
