@@ -114,6 +114,24 @@ function formatContent(content = "") {
   return html;
 }
 
+function resolvePublicAssetUrl(value, baseUrl) {
+  const assetUrl = typeof value === "string" ? value.trim() : "";
+
+  if (isValidUrl(assetUrl)) {
+    return assetUrl;
+  }
+
+  if (!assetUrl.startsWith("/") || !isValidUrl(baseUrl)) {
+    return "";
+  }
+
+  try {
+    return new URL(assetUrl, baseUrl).toString();
+  } catch (_) {
+    return "";
+  }
+}
+
 // ============================================================
 // PERSONALIZE LEAD PLACEHOLDERS
 // ============================================================
@@ -215,11 +233,11 @@ function buildSequenceEmail({
 
   let logoHtml = "";
 
-  const logoUrl = typeof brand.logoUrl === "string" ? brand.logoUrl.trim() : "";
+  const logoUrl = resolvePublicAssetUrl(brand.logoUrl, baseUrl);
 
   const logoPosition = getLogoAlignment(brand.logoPosition || "Center");
 
-  if (brand.enabled === true && isValidUrl(logoUrl)) {
+  if (isValidUrl(logoUrl)) {
     logoHtml = `
       <tr>
         <td
@@ -251,12 +269,12 @@ function buildSequenceEmail({
 
   let heroHtml = "";
 
-  const heroUrl = typeof heroImage.url === "string" ? heroImage.url.trim() : "";
+  const heroUrl = resolvePublicAssetUrl(heroImage.url, baseUrl);
 
   const heroLink =
     typeof heroImage.link === "string" ? heroImage.link.trim() : "";
 
-  if (heroImage.enabled === true && isValidUrl(heroUrl)) {
+  if (isValidUrl(heroUrl)) {
     const imageHtml = `
       <img
         src="${escapeHtml(heroUrl)}"
@@ -361,14 +379,12 @@ function buildSequenceEmail({
 
   let attachmentHtml = "";
 
-  const attachmentUrl =
-    typeof attachment.url === "string" ? attachment.url.trim() : "";
+  const attachmentUrl = resolvePublicAssetUrl(attachment.url, baseUrl);
 
   const attachmentName =
     typeof attachment.name === "string" ? attachment.name.trim() : "";
 
   if (
-    attachment.enabled === true &&
     isValidUrl(attachmentUrl) &&
     attachmentName !== ""
   ) {
