@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'constants/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,22 +44,24 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _checkLoginStatus() async {
+    final welcomeDelay = Future<void>.delayed(
+      const Duration(milliseconds: 1400),
+    );
     final token = await _storage.read(key: 'auth_token');
     final legacyToken = await _storage.read(key: 'token');
     final normalizedToken = (token ?? legacyToken ?? '').trim();
 
     if (normalizedToken.isNotEmpty) {
       if (token == null || token.trim().isEmpty) {
-        await _storage.write(
-          key: 'auth_token',
-          value: normalizedToken,
-        );
+        await _storage.write(key: 'auth_token', value: normalizedToken);
       }
 
       if (legacyToken != null && legacyToken.trim().isNotEmpty) {
         await _storage.delete(key: 'token');
       }
     }
+
+    await welcomeDelay;
 
     if (!mounted) {
       return;
@@ -73,11 +76,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const HighCustomSplashScreen();
     }
 
     return _isLoggedIn ? const DashboardScreen() : const LoginScreen();
