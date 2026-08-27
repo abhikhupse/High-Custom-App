@@ -1144,6 +1144,8 @@ exports.updateSequence = async (req, res) => {
       });
     }
 
+    const previousStatus = sequence.status;
+
     const {
       step,
       gapDays,
@@ -1283,6 +1285,10 @@ exports.updateSequence = async (req, res) => {
     sequence.scheduledAt =
       formattedStatus === "scheduled" ? formattedScheduledAt : null;
 
+    if (previousStatus !== "active" && formattedStatus === "active") {
+      sequence.processingCursor = null;
+    }
+
     if (brandLogoFile) {
       sequence.brand = {
         enabled: true,
@@ -1412,10 +1418,17 @@ exports.updateSequence = async (req, res) => {
 
     await sequence.save();
 
+    let execution = null;
+
+    if (previousStatus !== "active" && sequence.status === "active") {
+      execution = await processSequencesForUser(userId);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Sequence updated successfully",
       data: sequence,
+      execution,
     });
   } catch (error) {
     console.error("Error while updating sequence : ", error);
