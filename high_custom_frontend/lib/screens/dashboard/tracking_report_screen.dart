@@ -1342,6 +1342,12 @@ class _TrackingReportScreenState
         delivery['sentAt'] ??
         delivery['createdAt'];
 
+    final response =
+        delivery['response']?.toString() ?? '';
+
+    final respondedAt =
+        delivery['respondedAt'];
+
     final firstName =
         lead is Map
             ? lead['firstName']
@@ -1391,8 +1397,18 @@ class _TrackingReportScreenState
     final bool opened =
         openedAt != null;
 
+    final statusLabel = response == 'interested'
+        ? 'Interested'
+        : response == 'notInterested'
+            ? 'Not Interested'
+            : opened
+                ? 'Opened'
+                : 'Sent';
+
     final eventDate =
-        opened
+        response.isNotEmpty
+            ? (respondedAt ?? sentAt)
+            : opened
             ? openedAt
             : sentAt;
 
@@ -1516,9 +1532,7 @@ class _TrackingReportScreenState
                   width: 8,
                 ),
 
-                _statusBadge(
-                  opened,
-                ),
+                _statusBadge(statusLabel),
               ],
             ),
 
@@ -1547,15 +1561,17 @@ class _TrackingReportScreenState
                 const Spacer(),
 
                 Text(
-                  opened
-                      ? 'Opened ${_formatTime(eventDate)}'
-                      : 'Sent ${_formatTime(eventDate)}',
+                  '$statusLabel ${_formatTime(eventDate)}',
                   style:
                       TextStyle(
                     color:
-                        opened
+                        statusLabel == 'Interested'
                             ? green
-                            : orange,
+                            : statusLabel == 'Not Interested'
+                                ? const Color(0xFFFF5B66)
+                                : opened
+                                    ? green
+                                    : orange,
                     fontSize:
                         11,
                     fontWeight:
@@ -1882,9 +1898,7 @@ class _TrackingReportScreenState
                   CrossAxisAlignment
                       .start,
               children: [
-                _statusBadge(
-                  opened,
-                ),
+                _statusBadge(statusLabel),
 
                 const SizedBox(
                   height: 6,
@@ -2062,12 +2076,15 @@ class _TrackingReportScreenState
   // ============================================================
 
   Widget _statusBadge(
-    bool opened,
+    String status,
   ) {
-    final color =
-        opened
-            ? green
-            : orange;
+    final color = status == 'Interested'
+        ? green
+        : status == 'Not Interested'
+            ? const Color(0xFFFF5B66)
+            : status == 'Opened'
+                ? green
+                : orange;
 
     return Container(
       constraints:
@@ -2082,13 +2099,11 @@ class _TrackingReportScreenState
       decoration:
           BoxDecoration(
         color:
-            opened
-                ? const Color(
-                    0xFF002F1C,
-                  )
-                : const Color(
-                    0xFF2D1B05,
-                  ),
+            status == 'Interested' || status == 'Opened'
+                ? const Color(0xFF002F1C)
+                : status == 'Not Interested'
+                    ? const Color(0xFF3A1014)
+                    : const Color(0xFF2D1B05),
         borderRadius:
             BorderRadius.circular(
           8,
@@ -2102,9 +2117,7 @@ class _TrackingReportScreenState
         ),
       ),
       child: Text(
-        opened
-            ? 'Open'
-            : 'Sent',
+        status,
         textAlign:
             TextAlign.center,
         style:

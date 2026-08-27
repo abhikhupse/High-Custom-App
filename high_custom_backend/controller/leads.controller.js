@@ -124,17 +124,32 @@ exports.getLeads = async (req, res) => {
     for (const delivery of deliveries) {
       const leadId = delivery.leadId.toString();
 
-      if (trackingByLead.has(leadId)) {
+      const existingStatus = trackingByLead.get(leadId);
+
+      if (
+        existingStatus === "Interested" ||
+        existingStatus === "Not Interested"
+      ) {
         continue;
       }
 
       let status = "Pending";
 
+      if (delivery.response === "interested") {
+        status = "Interested";
+      } else if (delivery.response === "notInterested") {
+        status = "Not Interested";
+      }
+
+      if (existingStatus && !delivery.response) {
+        continue;
+      }
+
       // ------------------------------------------------------
       // FAILED
       // ------------------------------------------------------
 
-      if (delivery.status === "failed" || delivery.status === "Failed") {
+      else if (delivery.status === "failed" || delivery.status === "Failed") {
         status = "Failed";
       }
 
@@ -199,9 +214,8 @@ exports.getLeads = async (req, res) => {
         tracking: lead.tracking !== false,
 
         trackingStatus:
-          lead.tracking === false
-            ? "Skip"
-            : trackingByLead.get(lead._id.toString()) || "Pending",
+          trackingByLead.get(lead._id.toString()) ||
+          (lead.tracking === false ? "Skip" : "Pending"),
 
         addedDate: lead.createdAt,
         updatedDate: lead.updatedAt,

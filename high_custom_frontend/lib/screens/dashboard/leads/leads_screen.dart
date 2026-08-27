@@ -364,6 +364,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
           status == 'open' ||
           status == 'seen' ||
           status == 'clicked' ||
+          status == 'interested' ||
+          status == 'not interested' ||
           status == 'replied' ||
           status == 'reply';
     }).length;
@@ -1225,6 +1227,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
                         'Replied',
                         'Failed',
                         'Skip',
+                        'Interested',
+                        'Not Interested',
                       ],
                       onChanged:
                           _changeStatusFilter,
@@ -1282,6 +1286,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   'Replied',
                   'Failed',
                   'Skip',
+                  'Interested',
+                  'Not Interested',
                 ],
                 onChanged:
                     _changeStatusFilter,
@@ -2396,7 +2402,13 @@ class _LeadsScreenState extends State<LeadsScreen> {
     Color color;
     IconData icon;
 
-    if (normalized == 'sent') {
+    if (normalized == 'interested') {
+      color = green;
+      icon = Icons.thumb_up_alt_rounded;
+    } else if (normalized == 'not interested') {
+      color = red;
+      icon = Icons.unsubscribe_rounded;
+    } else if (normalized == 'sent') {
       color =
           const Color(
         0xFF4D9CFF,

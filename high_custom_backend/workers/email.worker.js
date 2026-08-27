@@ -70,6 +70,14 @@ async function processEmailJob(job, token) {
     };
   }
 
+  if (lead.tracking === false) {
+    return {
+      sent: false,
+      skipped: true,
+      reason: "lead_unsubscribed",
+    };
+  }
+
   return sendSequenceToLead({
     sequence,
     lead,

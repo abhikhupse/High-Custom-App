@@ -558,6 +558,18 @@ exports.getTrackingReport = async (req, res) => {
               ],
             },
           },
+
+          totalInterested: {
+            $sum: {
+              $cond: [{ $eq: ["$response", "interested"] }, 1, 0],
+            },
+          },
+
+          totalNotInterested: {
+            $sum: {
+              $cond: [{ $eq: ["$response", "notInterested"] }, 1, 0],
+            },
+          },
         },
       },
     ]);
@@ -571,6 +583,8 @@ exports.getTrackingReport = async (req, res) => {
       totalOpened: 0,
       totalOpens: 0,
       totalFailed: 0,
+      totalInterested: 0,
+      totalNotInterested: 0,
     };
 
     // ==========================================================
@@ -605,6 +619,10 @@ exports.getTrackingReport = async (req, res) => {
         totalOpens: stats.totalOpens,
 
         totalFailed: stats.totalFailed,
+
+        totalInterested: stats.totalInterested,
+
+        totalNotInterested: stats.totalNotInterested,
 
         openRate,
       },
