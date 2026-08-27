@@ -214,8 +214,15 @@ exports.getLeads = async (req, res) => {
         tracking: lead.tracking !== false,
 
         trackingStatus:
-          trackingByLead.get(lead._id.toString()) ||
+          lead.responseStatus === "interested"
+            ? "Interested"
+            : lead.responseStatus === "notInterested"
+              ? "Not Interested"
+              : trackingByLead.get(lead._id.toString()) ||
           (lead.tracking === false ? "Skip" : "Pending"),
+
+        responseStatus: lead.responseStatus || null,
+        respondedAt: lead.respondedAt || null,
 
         addedDate: lead.createdAt,
         updatedDate: lead.updatedAt,

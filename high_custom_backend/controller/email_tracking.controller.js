@@ -368,12 +368,16 @@ exports.trackResponse = async (req, res) => {
       await SEQUENCE.updateOne({ _id: delivery.sequenceId }, { $inc: increments });
     }
 
-    if (response === "notInterested") {
-      await LEAD.updateOne(
-        { _id: delivery.leadId, userId: delivery.userId },
-        { $set: { tracking: false } },
-      );
-    }
+    await LEAD.updateOne(
+      { _id: delivery.leadId, userId: delivery.userId },
+      {
+        $set: {
+          responseStatus: response,
+          respondedAt: delivery.respondedAt || new Date(),
+          ...(response === "notInterested" ? { tracking: false } : {}),
+        },
+      },
+    );
 
     if (response === "interested") {
       return sendResponsePage(res, {
@@ -637,7 +641,15 @@ exports.getTrackingReport = async (req, res) => {
         totalPages: Math.ceil(total / limitNumber),
       },
 
-      deliveries,
+      deliveries: deliveries.map((delivery) => ({
+        ...delivery,
+        responseStatus:
+          delivery.response === "interested"
+            ? "Interested"
+            : delivery.response === "notInterested"
+              ? "Not Interested"
+              : null,
+      })),
     });
   } catch (error) {
     console.error("GET TRACKING REPORT ERROR:", error);

@@ -54,6 +54,18 @@ const leadsSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    responseStatus: {
+      type: String,
+      enum: ["interested", "notInterested"],
+      default: null,
+      index: true,
+    },
+
+    respondedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

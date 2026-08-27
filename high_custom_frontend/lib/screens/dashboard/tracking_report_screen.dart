@@ -1345,6 +1345,9 @@ class _TrackingReportScreenState
     final response =
         delivery['response']?.toString() ?? '';
 
+    final responseStatus =
+        delivery['responseStatus']?.toString() ?? '';
+
     final respondedAt =
         delivery['respondedAt'];
 
@@ -1397,7 +1400,9 @@ class _TrackingReportScreenState
     final bool opened =
         openedAt != null;
 
-    final statusLabel = response == 'interested'
+    final statusLabel = responseStatus.isNotEmpty
+        ? responseStatus
+        : response == 'interested'
         ? 'Interested'
         : response == 'notInterested'
             ? 'Not Interested'
