@@ -34,7 +34,16 @@ class SequenceApi {
     http.MultipartRequest request,
     String fieldName,
     String? path,
+    Uint8List? bytes,
+    String? filename,
   ) async {
+    if (bytes != null && bytes.isNotEmpty) {
+      request.files.add(
+        http.MultipartFile.fromBytes(fieldName, bytes, filename: filename),
+      );
+      return;
+    }
+
     final cleanPath = path?.trim() ?? '';
     if (cleanPath.isEmpty || _isRemoteUrl(cleanPath)) return;
 
@@ -95,9 +104,13 @@ class SequenceApi {
     required String subject,
 
     String? logoUrl,
+    Uint8List? logoBytes,
+    String? logoFilename,
     String? logoPosition,
 
     String? heroImageUrl,
+    Uint8List? heroImageBytes,
+    String? heroImageFilename,
     String? heroImageLink,
 
     required String content,
@@ -112,6 +125,7 @@ class SequenceApi {
 
     String? attachmentName,
     String? attachmentUrl,
+    Uint8List? attachmentBytes,
     String? attachmentMimeType,
     int attachmentSize = 0,
 
@@ -317,9 +331,17 @@ class SequenceApi {
         });
 
       _addMultipartFields(request, requestBody);
-      await _addLocalFile(request, 'brandLogo', cleanLogoUrl);
-      await _addLocalFile(request, 'heroImage', cleanHeroImageUrl);
-      await _addLocalFile(request, 'attachment', cleanAttachmentUrl);
+      await _addLocalFile(
+        request, 'brandLogo', cleanLogoUrl, logoBytes, logoFilename,
+      );
+      await _addLocalFile(
+        request, 'heroImage', cleanHeroImageUrl, heroImageBytes,
+        heroImageFilename,
+      );
+      await _addLocalFile(
+        request, 'attachment', cleanAttachmentUrl, attachmentBytes,
+        cleanAttachmentName,
+      );
 
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 20),
@@ -414,8 +436,12 @@ class SequenceApi {
     required String subject,
     required String content,
     String? logoUrl,
+    Uint8List? logoBytes,
+    String? logoFilename,
     String? logoPosition,
     String? heroImageUrl,
+    Uint8List? heroImageBytes,
+    String? heroImageFilename,
     String? heroImageLink,
     String? font,
     String? fontSize,
@@ -425,6 +451,7 @@ class SequenceApi {
     bool underline = false,
     String? attachmentName,
     String? attachmentUrl,
+    Uint8List? attachmentBytes,
     String? attachmentMimeType,
     int attachmentSize = 0,
     String? whatsapp,
@@ -509,9 +536,17 @@ class SequenceApi {
         });
 
       _addMultipartFields(request, requestBody);
-      await _addLocalFile(request, 'brandLogo', logoUrl);
-      await _addLocalFile(request, 'heroImage', heroImageUrl);
-      await _addLocalFile(request, 'attachment', attachmentUrl);
+      await _addLocalFile(
+        request, 'brandLogo', logoUrl, logoBytes, logoFilename,
+      );
+      await _addLocalFile(
+        request, 'heroImage', heroImageUrl, heroImageBytes,
+        heroImageFilename,
+      );
+      await _addLocalFile(
+        request, 'attachment', attachmentUrl, attachmentBytes,
+        attachmentName,
+      );
 
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 20),

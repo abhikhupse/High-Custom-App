@@ -30,6 +30,11 @@ class CreateSequenceForm extends StatefulWidget {
 // ============================================================
 
 class _CreateSequenceFormState extends State<CreateSequenceForm> {
+  Uint8List? _logoBytes;
+  String? _logoFilename;
+  Uint8List? _heroImageBytes;
+  String? _heroImageFilename;
+  Uint8List? _attachmentBytes;
   // ============================================================
   // COLORS
   // ============================================================
@@ -5079,6 +5084,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         await FilePicker.platform.pickFiles(
       type:
           FileType.image,
+      withData:
+          true,
       allowMultiple:
           false,
     );
@@ -5096,6 +5103,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     }
 
     setState(() {
+      _logoBytes = file.bytes;
+      _logoFilename = file.name;
       logoController.text =
           file.path ??
               file.name;
@@ -5111,6 +5120,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         await FilePicker.platform.pickFiles(
       type:
           FileType.image,
+      withData:
+          true,
       allowMultiple:
           false,
     );
@@ -5139,6 +5150,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     }
 
     setState(() {
+      _heroImageBytes = file.bytes;
+      _heroImageFilename = file.name;
       heroImageController.text =
           file.path ??
               file.name;
@@ -5154,6 +5167,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         await FilePicker.platform.pickFiles(
       type:
           FileType.any,
+      withData:
+          true,
       allowMultiple:
           false,
     );
@@ -5171,6 +5186,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     }
 
     setState(() {
+      _attachmentBytes = file.bytes;
       attachmentNameController.text =
           file.name;
 
@@ -5429,8 +5445,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               businessType: selectedBusinessType.trim(),
               subject: subjectController.text.trim(),
               logoUrl: logoController.text.trim(),
+              logoBytes: _logoBytes,
+              logoFilename: _logoFilename,
               logoPosition: selectedLogoPosition,
               heroImageUrl: heroImageController.text.trim(),
+              heroImageBytes: _heroImageBytes,
+              heroImageFilename: _heroImageFilename,
               heroImageLink: heroLinkController.text.trim(),
               content: contentController.text,
               font: selectedFont,
@@ -5441,6 +5461,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               underline: isUnderline,
               attachmentName: attachmentNameController.text.trim(),
               attachmentUrl: attachmentUrlController.text.trim(),
+              attachmentBytes: _attachmentBytes,
               attachmentMimeType: attachmentMimeController.text.trim(),
               attachmentSize: int.tryParse(
                     attachmentSizeController.text.trim(),
@@ -5478,6 +5499,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         logoPosition:
             selectedLogoPosition,
 
+        logoBytes:
+            _logoBytes,
+
+        logoFilename:
+            _logoFilename,
+
         heroImageUrl:
             heroImageController.text.trim().isEmpty
                 ? null
@@ -5487,6 +5514,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             heroLinkController.text.trim().isEmpty
                 ? null
                 : heroLinkController.text.trim(),
+
+        heroImageBytes:
+            _heroImageBytes,
+
+        heroImageFilename:
+            _heroImageFilename,
 
         content:
             contentController.text,
@@ -5523,6 +5556,9 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             attachmentMimeController.text.trim().isEmpty
                 ? null
                 : attachmentMimeController.text.trim(),
+
+        attachmentBytes:
+            _attachmentBytes,
 
         attachmentSize:
             int.tryParse(
