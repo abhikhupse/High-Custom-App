@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:high_custom_frontend/services/auth_api.dart';
 
 import 'tracking_report_screen.dart';
+import 'interested_leads_screen.dart';
 import 'integration_screen.dart';
 import '../profile/profile_screen.dart';
 import 'master/master_list_screen.dart';
@@ -528,6 +529,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Leads':
         return const LeadsScreen();
+
+      case 'Interested Leads':
+        return const InterestedLeadsScreen();
 
       // ========================================================
       // SOCIAL LINKS

@@ -215,6 +215,14 @@ class DashboardSidebar extends StatelessWidget {
                                 'Leads',
                           ),
 
+                          _menuItem(
+                            icon:
+                                Icons.person_search_outlined,
+
+                            title:
+                                'Interested Leads',
+                          ),
+
                           const SizedBox(
                             height: 18,
                           ),

@@ -2,6 +2,7 @@ const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
 const USER = require("../model/user.model");
 const LEAD = require("../model/leads.model");
+const LEAD_INTEREST_DETAILS = require("../model/lead_interest_details.model");
 const { getClientIp } = require("../utils/clientIp");
 
 // ============================================================
@@ -380,9 +381,17 @@ exports.trackResponse = async (req, res) => {
     );
 
     if (response === "interested") {
-      return sendResponsePage(res, {
-        title: "Thank You 🙌",
-        message: "Your response has been recorded as Interested.",
+      const lead = await LEAD.findById(delivery.leadId).lean();
+      const existingDetails = await LEAD_INTEREST_DETAILS.findOne({
+        trackingId,
+      }).lean();
+
+      return sendInterestForm(res, {
+        trackingId,
+        values: existingDetails || {
+          name: [lead?.firstName, lead?.lastName].filter(Boolean).join(" "),
+          companyName: lead?.company || "",
+        },
       });
     }
 
@@ -399,6 +408,145 @@ exports.trackResponse = async (req, res) => {
     });
   }
 };
+
+exports.submitInterestDetails = async (req, res) => {
+  try {
+    const trackingId = String(req.params.trackingId || "").trim();
+    const delivery = await SEQUENCE_DELIVERY.findOne({ trackingId });
+
+    if (!delivery) {
+      return sendResponsePage(res, {
+        title: "Link Not Found",
+        message: "This response link is no longer available.",
+        success: false,
+      });
+    }
+
+    const values = {
+      name: String(req.body.name || "").trim(),
+      mobileNumber: String(req.body.mobileNumber || "").trim(),
+      companyName: String(req.body.companyName || "").trim(),
+      city: String(req.body.city || "").trim(),
+      state: String(req.body.state || "").trim(),
+      country: String(req.body.country || "").trim(),
+    };
+
+    const missingRequired = [
+      "name",
+      "mobileNumber",
+      "city",
+      "state",
+      "country",
+    ].some((field) => !values[field]);
+
+    if (missingRequired) {
+      return sendInterestForm(res, {
+        trackingId,
+        values,
+        error: "Please complete all required fields.",
+        statusCode: 400,
+      });
+    }
+
+    await LEAD_INTEREST_DETAILS.findOneAndUpdate(
+      { trackingId },
+      {
+        $set: {
+          userId: delivery.userId,
+          leadId: delivery.leadId,
+          sequenceId: delivery.sequenceId,
+          ...values,
+          status: "interested",
+          submittedAt: new Date(),
+        },
+      },
+      { upsert: true, new: true, runValidators: true },
+    );
+
+    return sendResponsePage(res, {
+      title: "Thank You 🙌",
+      message:
+        "Your interest and contact details have been recorded. Our team will contact you shortly.",
+    });
+  } catch (error) {
+    console.error("SUBMIT INTEREST DETAILS ERROR:", error);
+    return sendResponsePage(res, {
+      title: "Unable to Save Details",
+      message: "Please check your details and try again.",
+      success: false,
+    });
+  }
+};
+
+exports.getInterestDetails = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const details = await LEAD_INTEREST_DETAILS.find({ userId })
+      .populate("leadId", "firstName lastName email")
+      .populate("sequenceId", "subject step variant")
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    return res.status(200).json({ success: true, details });
+  } catch (error) {
+    console.error("GET INTEREST DETAILS ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get interested lead details.",
+    });
+  }
+};
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function sendInterestForm(
+  res,
+  { trackingId, values = {}, error = "", statusCode = 200 },
+) {
+  const field = (name, label, { required = true, type = "text" } = {}) => `
+    <label>${escapeHtml(label)}${required ? " *" : ""}
+      <input type="${type}" name="${name}" value="${escapeHtml(values[name])}"
+        ${required ? "required" : ""} maxlength="160" />
+    </label>`;
+
+  res.set({
+    "Content-Type": "text/html; charset=UTF-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+  });
+
+  return res.status(statusCode).send(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Interested — Contact Details</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#050709;color:#fff;font-family:Arial,sans-serif}
+main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+section{width:100%;max-width:620px;background:#0b0e12;border:1px solid #5f4d27;border-radius:20px;padding:30px;box-shadow:0 20px 60px #0008}
+h1{margin:0 0 8px;color:#f2c45f;font-size:30px}p{color:#aeb4bf;line-height:1.5;margin:0 0 22px}
+.error{background:#35191c;color:#ffb4ab;padding:12px;border-radius:9px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{display:flex;flex-direction:column;gap:7px;color:#e6e8ec;font-size:14px}
+label:first-child,label:nth-child(2),label:nth-child(3){grid-column:1/-1}input{width:100%;padding:13px;border-radius:10px;border:1px solid #343942;background:#11151b;color:#fff;font-size:16px;outline:none}
+input:focus{border-color:#f2c45f;box-shadow:0 0 0 3px #f2c45f20}button{width:100%;margin-top:22px;padding:14px;border:0;border-radius:10px;background:#f2c45f;color:#080a0c;font-weight:800;font-size:16px;cursor:pointer}
+@media(max-width:560px){section{padding:24px 18px}.grid{grid-template-columns:1fr}.grid label{grid-column:1}}
+</style></head><body><main><section>
+<h1>Thank You 🙌</h1><p>Your response has been recorded as Interested. Please share your contact details.</p>
+${error ? `<div class="error">${escapeHtml(error)}</div>` : ""}
+<form method="post" action="/api/email-tracking/response/${encodeURIComponent(trackingId)}/interested">
+<div class="grid">
+${field("name", "Name")}${field("mobileNumber", "Mobile Number", { type: "tel" })}
+${field("companyName", "Company Name", { required: false })}${field("city", "City")}
+${field("state", "State")}${field("country", "Country")}
+</div><button type="submit">Submit Details</button></form>
+</section></main></body></html>`);
+}
 
 function sendResponsePage(res, { title, message, success = true }) {
   res.set({

@@ -20,6 +20,11 @@ router.get(
   emailTrackingController.trackResponse,
 );
 
+router.post(
+  "/response/:trackingId/interested",
+  emailTrackingController.submitInterestDetails,
+);
+
 // ============================================================
 // TRACKING REPORT
 // ============================================================
@@ -32,6 +37,12 @@ router.get(
   "/report",
   require("../middleware/auth.middleware"),
   emailTrackingController.getTrackingReport,
+);
+
+router.get(
+  "/interest-details",
+  require("../middleware/auth.middleware"),
+  emailTrackingController.getInterestDetails,
 );
 
 module.exports = router;

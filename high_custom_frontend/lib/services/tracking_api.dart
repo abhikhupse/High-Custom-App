@@ -179,6 +179,43 @@ class TrackingApi {
   }
 
   // ============================================================
+  // GET INTERESTED LEAD CONTACT DETAILS
+  // ============================================================
+
+  static Future<Map<String, dynamic>> getInterestDetails() async {
+    try {
+      final headers = await _headers();
+
+      if (headers == null) {
+        return {
+          'success': false,
+          'message':
+              'Authentication token not found. Please login again.',
+        };
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(
+              '$baseUrl/email-tracking/interest-details',
+            ),
+            headers: headers,
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          );
+
+      return _decodeResponse(response);
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Unable to connect to server.',
+        'error': error.toString(),
+      };
+    }
+  }
+
+  // ============================================================
   // RESPONSE DECODER
   // ============================================================
 
