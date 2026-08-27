@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
-const { Worker } = require("bullmq");
+const { Worker, DelayedError } = require("bullmq");
 const connectDB = require("../config/db");
 const { createRedisConnection } = require("../config/redis");
 const { EMAIL_QUEUE_NAME } = require("../queues/email.queue");
@@ -26,14 +26,14 @@ const EMAIL_GLOBAL_MAX_PER_SECOND = Math.max(
 
 const workerRedisConnection = createRedisConnection();
 
-async function processEmailJob(job) {
+async function processEmailJob(job, token) {
   const { userId, sequenceId, leadId, baseUrl } = job.data;
 
   const permit = await acquireUserSendPermit(userId);
 
   if (!permit.allowed) {
-    await job.moveToDelayed(Date.now() + permit.waitMs, job.token);
-    return;
+    await job.moveToDelayed(Date.now() + permit.waitMs, token);
+    throw new DelayedError();
   }
 
   const sequence = await SEQUENCE_COLLECTION.findOne({
