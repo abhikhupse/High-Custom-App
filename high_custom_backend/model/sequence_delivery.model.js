@@ -168,6 +168,37 @@ const sequenceDeliverySchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ============================================================
+    // EMAIL REPLY TRACKING
+    // ============================================================
+
+    repliedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    replyMessageId: {
+      type: String,
+      default: null,
+    },
+
+    replyFrom: {
+      type: String,
+      default: null,
+    },
+
+    replySubject: {
+      type: String,
+      default: null,
+    },
+
+    replySnippet: {
+      type: String,
+      default: null,
+      maxlength: 500,
+    },
   },
   {
     timestamps: true,
@@ -208,6 +239,20 @@ sequenceDeliverySchema.index({
 sequenceDeliverySchema.index({
   sequenceId: 1,
   status: 1,
+});
+
+sequenceDeliverySchema.index(
+  { userId: 1, replyMessageId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { replyMessageId: { $type: "string" } },
+  },
+);
+
+sequenceDeliverySchema.index({
+  userId: 1,
+  threadId: 1,
+  sentAt: -1,
 });
 
 module.exports = mongoose.model("SequenceDelivery", sequenceDeliverySchema);

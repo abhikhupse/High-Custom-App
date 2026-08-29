@@ -59,11 +59,50 @@ const gmailIntegrationSchema = new mongoose.Schema(
 
       default: Date.now,
     },
+
+    // Gmail push-notification cursor and watch lifecycle.
+    lastHistoryId: {
+      type: String,
+      default: null,
+    },
+
+    watchExpiration: {
+      type: Date,
+      default: null,
+    },
+
+    watchLastRenewedAt: {
+      type: Date,
+      default: null,
+    },
+
+    replySyncLockUntil: {
+      type: Date,
+      default: null,
+    },
+
+    replySyncLastCompletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    replySyncLastError: {
+      type: String,
+      default: null,
+    },
+
+    replySyncPendingHistoryId: {
+      type: String,
+      default: null,
+    },
   },
 
   {
     timestamps: true,
   },
 );
+
+gmailIntegrationSchema.index({ email: 1 });
+gmailIntegrationSchema.index({ watchExpiration: 1 });
 
 module.exports = mongoose.model("GmailIntegration", gmailIntegrationSchema);

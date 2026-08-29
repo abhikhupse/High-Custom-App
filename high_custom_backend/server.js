@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 const root = require("./routes/index");
 const path = require("path");
 const { startSequenceJob } = require("./jobs/sequence.job");
+const { startGmailReplyJob } = require("./jobs/gmail_reply.job");
 
 const app = express();
 
@@ -73,6 +74,7 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     await connectDB();
+    startGmailReplyJob();
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log("");

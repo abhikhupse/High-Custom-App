@@ -803,6 +803,7 @@ exports.getTrackingSummary = async (req, res) => {
     let opened = 0;
     let pending = 0;
     let clicked = 0;
+    let replied = 0;
     let interested = 0;
     let notInterested = 0;
 
@@ -843,6 +844,10 @@ exports.getTrackingSummary = async (req, res) => {
 
       if (delivery.clickedAt) {
         clicked++;
+      }
+
+      if (delivery.repliedAt) {
+        replied++;
       }
 
       if (delivery.response === "interested") {
@@ -931,6 +936,8 @@ exports.getTrackingSummary = async (req, res) => {
         opened,
 
         clicked,
+
+        replied,
 
         pending,
 

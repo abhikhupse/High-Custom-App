@@ -755,6 +755,11 @@ class _TrackingReportScreenState
       'totalOpened',
     );
 
+    final replied =
+        _number(
+      'totalReplied',
+    );
+
     // ==========================================================
     // SENT BUT NOT OPENED
     // ==========================================================
@@ -864,6 +869,25 @@ class _TrackingReportScreenState
                 width:
                     cardWidth,
                 title:
+                    'Replied',
+                value:
+                    replied.toString(),
+                subtitle:
+                    'Recipient replies',
+                icon:
+                    Icons.reply_rounded,
+                iconColor:
+                    green,
+                iconBackground:
+                    const Color(
+                  0xFF00331E,
+                ),
+              ),
+
+              _statCard(
+                width:
+                    cardWidth,
+                title:
                     'Open Rate',
                 value:
                     '${openRate.toStringAsFixed(1)}%',
@@ -884,12 +908,12 @@ class _TrackingReportScreenState
         }
 
         // ======================================================
-        // DESKTOP = 4 IN ONE ROW
+        // DESKTOP = 5 IN ONE ROW
         // ======================================================
 
         final cardWidth =
-            (width - 36) /
-                4;
+            (width - 48) /
+                5;
 
         return Wrap(
           spacing: 12,
@@ -955,6 +979,25 @@ class _TrackingReportScreenState
               iconBackground:
                   const Color(
                 0xFF062453,
+              ),
+            ),
+
+            _statCard(
+              width:
+                  cardWidth,
+              title:
+                  'Replied',
+              value:
+                  replied.toString(),
+              subtitle:
+                  'Recipient replies',
+              icon:
+                  Icons.reply_rounded,
+              iconColor:
+                  green,
+              iconBackground:
+                  const Color(
+                0xFF00331E,
               ),
             ),
 
@@ -1416,6 +1459,9 @@ class _TrackingReportScreenState
     final respondedAt =
         delivery['respondedAt'];
 
+    final repliedAt =
+        delivery['repliedAt'];
+
     final firstName =
         lead is Map
             ? lead['firstName']
@@ -1476,7 +1522,9 @@ class _TrackingReportScreenState
                 : 'Sent';
 
     final eventDate =
-        response.isNotEmpty
+        responseStatus == 'Replied'
+            ? (repliedAt ?? sentAt)
+            : response.isNotEmpty
             ? (respondedAt ?? sentAt)
             : opened
             ? openedAt
@@ -1635,7 +1683,8 @@ class _TrackingReportScreenState
                   style:
                       TextStyle(
                     color:
-                        statusLabel == 'Interested'
+                        statusLabel == 'Interested' ||
+                                statusLabel == 'Replied'
                             ? green
                             : statusLabel == 'Not Interested'
                                 ? const Color(0xFFFF5B66)
@@ -2148,7 +2197,7 @@ class _TrackingReportScreenState
   Widget _statusBadge(
     String status,
   ) {
-    final color = status == 'Interested'
+    final color = status == 'Interested' || status == 'Replied'
         ? green
         : status == 'Not Interested'
             ? const Color(0xFFFF5B66)
@@ -2169,7 +2218,9 @@ class _TrackingReportScreenState
       decoration:
           BoxDecoration(
         color:
-            status == 'Interested' || status == 'Opened'
+            status == 'Interested' ||
+                status == 'Replied' ||
+                status == 'Opened'
                 ? const Color(0xFF002F1C)
                 : status == 'Not Interested'
                     ? const Color(0xFF3A1014)

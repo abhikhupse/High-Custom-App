@@ -4,6 +4,11 @@ const jwt = require("jsonwebtoken");
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
 
 const createGoogleOAuthClient = require("../config/google_oauth");
+const {
+  registerGmailWatch,
+  recordPendingGmailNotification,
+  processGmailNotification,
+} = require("../services/gmail_reply.service");
 
 // ============================================================
 // DEEP LINK
@@ -269,7 +274,7 @@ exports.gmailCallback = async (req, res) => {
     // SAVE GMAIL INTEGRATION
     // ========================================================
 
-    await GMAIL_INTEGRATION.findOneAndUpdate(
+    const savedIntegration = await GMAIL_INTEGRATION.findOneAndUpdate(
       {
         userId: userId,
       },
@@ -290,6 +295,15 @@ exports.gmailCallback = async (req, res) => {
         expiryDate: tokens.expiry_date || null,
 
         connectedAt: new Date(),
+
+        ...(existingIntegration && existingIntegration.email !== gmailEmail
+          ? {
+              lastHistoryId: null,
+              watchExpiration: null,
+              watchLastRenewedAt: null,
+              replySyncLastError: null,
+            }
+          : {}),
       },
 
       {
@@ -297,6 +311,15 @@ exports.gmailCallback = async (req, res) => {
         upsert: true,
       },
     );
+
+    // Register reply notifications immediately after Gmail is connected. A
+    // missing Pub/Sub configuration does not block the Gmail connection.
+    try {
+      const watch = await registerGmailWatch(savedIntegration);
+      console.log("Gmail reply watch:", watch);
+    } catch (watchError) {
+      console.error("Gmail reply watch registration failed:", watchError.message);
+    }
 
     console.log("");
     console.log("================================================");
@@ -466,5 +489,161 @@ exports.disconnectGmail = async (req, res) => {
 
       error: error.message,
     });
+  }
+};
+
+// ============================================================
+// REGISTER / RENEW GMAIL REPLY WATCH
+// ============================================================
+
+exports.registerReplyWatch = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const integration = await GMAIL_INTEGRATION.findOne({ userId });
+
+    if (!integration) {
+      return res.status(404).json({
+        success: false,
+        message: "Gmail is not connected.",
+      });
+    }
+
+    const result = await registerGmailWatch(integration);
+
+    return res.status(result.enabled ? 200 : 503).json({
+      success: result.enabled,
+      message: result.enabled
+        ? "Gmail reply notifications enabled."
+        : result.reason,
+      watchExpiration: result.expiration || null,
+    });
+  } catch (error) {
+    console.error("Gmail reply watch error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to enable Gmail reply notifications.",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// GOOGLE CLOUD PUB/SUB PUSH WEBHOOK
+// ============================================================
+
+async function verifyPubSubRequest(req) {
+  const expectedSecret = String(
+    process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN || "",
+  ).trim();
+  const expectedAudience = String(
+    process.env.GMAIL_PUBSUB_OIDC_AUDIENCE || "",
+  ).trim();
+
+  if (expectedSecret) {
+    const receivedSecret = String(
+      req.query.token || req.get("X-Pubsub-Verification-Token") || "",
+    );
+
+    if (receivedSecret !== expectedSecret) return false;
+  }
+
+  if (expectedAudience) {
+    const authorization = String(req.get("Authorization") || "");
+    const idToken = authorization.startsWith("Bearer ")
+      ? authorization.substring(7).trim()
+      : "";
+
+    if (!idToken) return false;
+
+    const verifier = createGoogleOAuthClient();
+    await verifier.verifyIdToken({ idToken, audience: expectedAudience });
+  }
+
+  return Boolean(expectedSecret || expectedAudience);
+}
+
+exports.receiveGmailNotification = async (req, res) => {
+  try {
+    if (!(await verifyPubSubRequest(req))) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Pub/Sub notification authentication.",
+      });
+    }
+
+    const expectedSubscription = String(
+      process.env.GMAIL_PUBSUB_SUBSCRIPTION || "",
+    ).trim();
+
+    if (expectedSubscription && req.body?.subscription !== expectedSubscription) {
+      return res.status(403).json({
+        success: false,
+        message: "Unexpected Pub/Sub subscription.",
+      });
+    }
+
+    const encodedData = req.body?.message?.data;
+
+    if (!encodedData) {
+      return res.status(400).json({
+        success: false,
+        message: "Pub/Sub message data is required.",
+      });
+    }
+
+    let notification;
+
+    try {
+      notification = JSON.parse(
+        Buffer.from(String(encodedData), "base64url").toString("utf8"),
+      );
+    } catch (_) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Pub/Sub message data.",
+      });
+    }
+
+    if (!notification.emailAddress || !notification.historyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Gmail notification is missing required fields.",
+      });
+    }
+
+    const integrationFound = await recordPendingGmailNotification(notification);
+
+    if (!integrationFound) {
+      // Unknown Gmail accounts do not need Pub/Sub retries.
+      return res.status(204).send();
+    }
+
+    // Acknowledge promptly. Pub/Sub retries any non-successful or timed-out
+    // delivery; mailbox processing continues independently.
+    res.status(204).send();
+
+    setImmediate(() => {
+      processGmailNotification(notification)
+        .then((result) => {
+          console.log("Gmail reply notification processed:", result);
+        })
+        .catch((error) => {
+          console.error("Gmail reply notification failed:", error);
+        });
+    });
+
+    return undefined;
+  } catch (error) {
+    console.error("Gmail Pub/Sub webhook error:", error);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Unable to process Gmail notification.",
+      });
+    }
+
+    return undefined;
   }
 };

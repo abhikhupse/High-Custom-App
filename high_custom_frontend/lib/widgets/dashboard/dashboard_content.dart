@@ -55,6 +55,7 @@ class _DashboardContentState extends State<DashboardContent> {
     'sent': 0,
     'failed': 0,
     'opened': 0,
+    'replied': 0,
     'clicked': 0,
     'pending': 0,
     'interested': 0,
@@ -155,6 +156,9 @@ class _DashboardContentState extends State<DashboardContent> {
             ),
             'opened': _toInt(
               data['opened'],
+            ),
+            'replied': _toInt(
+              data['replied'],
             ),
             'clicked': _toInt(
               data['clicked'],
@@ -1938,7 +1942,7 @@ class _DashboardContentState extends State<DashboardContent> {
           physics:
               const NeverScrollableScrollPhysics(),
           itemCount:
-              10,
+              11,
           gridDelegate:
               SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount:
@@ -2070,6 +2074,23 @@ class _DashboardContentState extends State<DashboardContent> {
         iconColor:
             const Color(
           0xFF7542D8,
+        ),
+      ),
+
+      DashboardStatCard(
+        title:
+            'Replied',
+        value:
+            _countLabel(
+          'replied',
+        ),
+        subtitle:
+            'Recipient replies',
+        icon:
+            Icons.reply_rounded,
+        iconColor:
+            const Color(
+          0xFF36D67A,
         ),
       ),
 

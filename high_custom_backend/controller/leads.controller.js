@@ -120,72 +120,49 @@ exports.getLeads = async (req, res) => {
     // ========================================================
 
     const trackingByLead = new Map();
+    const trackingRank = {
+      Pending: 10,
+      Failed: 20,
+      Sent: 30,
+      Opened: 40,
+      Clicked: 50,
+      Replied: 60,
+      Interested: 70,
+      "Not Interested": 70,
+    };
 
     for (const delivery of deliveries) {
       const leadId = delivery.leadId.toString();
-
-      const existingStatus = trackingByLead.get(leadId);
-
-      if (
-        existingStatus === "Interested" ||
-        existingStatus === "Not Interested"
-      ) {
-        continue;
-      }
-
       let status = "Pending";
 
       if (delivery.response === "interested") {
         status = "Interested";
       } else if (delivery.response === "notInterested") {
         status = "Not Interested";
-      }
-
-      if (existingStatus && !delivery.response) {
-        continue;
-      }
-
-      // ------------------------------------------------------
-      // FAILED
-      // ------------------------------------------------------
-
-      else if (delivery.status === "failed" || delivery.status === "Failed") {
-        status = "Failed";
-      }
-
-      // ------------------------------------------------------
-      // OPENED
-      // ------------------------------------------------------
-      else if (delivery.openedAt) {
-        status = "Opened";
-      }
-
-      // ------------------------------------------------------
-      // CLICKED
-      // ------------------------------------------------------
-      else if (
+      } else if (delivery.repliedAt) {
+        status = "Replied";
+      } else if (
         delivery.clickedAt ||
         delivery.clickCount > 0 ||
         delivery.clicked === true
       ) {
         status = "Clicked";
-      }
-
-      // ------------------------------------------------------
-      // SENT
-      // ------------------------------------------------------
-      else if (delivery.status === "sent" || delivery.status === "Sent") {
+      } else if (delivery.openedAt) {
+        status = "Opened";
+      } else if (delivery.status === "sent" || delivery.status === "Sent") {
         status = "Sent";
+      } else if (delivery.status === "failed" || delivery.status === "Failed") {
+        status = "Failed";
       }
 
-      // ------------------------------------------------------
-      // PENDING
-      // ------------------------------------------------------
-      else if (delivery.status === "pending" || delivery.status === "Pending") {
-        status = "Pending";
-      }
+      const existingStatus = trackingByLead.get(leadId);
 
-      trackingByLead.set(leadId, status);
+      if (
+        !existingStatus ||
+        trackingRank[status] > trackingRank[existingStatus]
+      ) {
+        trackingByLead.set(leadId, status);
+      }
     }
 
     // ========================================================

@@ -25,6 +25,16 @@ router.get("/gmail/callback", gmailCtrl.gmailCallback);
 
 router.get("/gmail/status", authMiddleware, gmailCtrl.getGmailStatus);
 
+router.post(
+  "/gmail/reply-watch",
+  authMiddleware,
+  gmailCtrl.registerReplyWatch,
+);
+
+// Google Cloud Pub/Sub calls this route. It uses a verification token and/or
+// an OIDC identity token instead of the application's JWT middleware.
+router.post("/gmail/notifications", gmailCtrl.receiveGmailNotification);
+
 // ============================================================
 // GMAIL DISCONNECT
 // ============================================================
