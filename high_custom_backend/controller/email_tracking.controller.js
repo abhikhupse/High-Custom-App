@@ -191,7 +191,7 @@ exports.trackOpen = async (req, res) => {
               },
             },
             {
-              new: true,
+              returnDocument: "after",
             },
           );
 
@@ -461,7 +461,7 @@ exports.submitInterestDetails = async (req, res) => {
           submittedAt: new Date(),
         },
       },
-      { upsert: true, new: true, runValidators: true },
+      { upsert: true, returnDocument: "after", runValidators: true },
     );
 
     return sendResponsePage(res, {

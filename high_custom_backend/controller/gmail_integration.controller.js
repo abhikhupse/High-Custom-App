@@ -307,7 +307,7 @@ exports.gmailCallback = async (req, res) => {
       },
 
       {
-        new: true,
+        returnDocument: "after",
         upsert: true,
       },
     );

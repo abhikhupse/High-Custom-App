@@ -228,7 +228,7 @@ async function acquireSyncLock(email) {
         replySyncLockUntil: new Date(now.getTime() + LOCK_DURATION_MS),
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
 }
 
@@ -390,6 +390,19 @@ async function processGmailNotification({ emailAddress, historyId }) {
         });
         outcomes[result.outcome] = (outcomes[result.outcome] || 0) + 1;
       } catch (error) {
+        const status = error?.response?.status || error?.code;
+
+        // Gmail history can contain message IDs that are no longer available
+        // by the time a push notification is processed. A deleted or stale
+        // message must not block the cursor or every newer reply behind it.
+        if (Number(status) === 404) {
+          outcomes.missing = (outcomes.missing || 0) + 1;
+          console.warn(
+            `Gmail reply message no longer available; skipping: ${messageId}`,
+          );
+          continue;
+        }
+
         outcomes.error = (outcomes.error || 0) + 1;
         console.error("Gmail reply message processing failed:", error.message);
       }

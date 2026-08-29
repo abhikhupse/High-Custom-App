@@ -725,7 +725,7 @@ exports.editProfile = async (req, res) => {
         $set: updateData,
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       },
     );
