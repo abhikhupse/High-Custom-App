@@ -21,16 +21,16 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // ============================================================
 
   static const Color pageBackground = Color(0xFF090A0C);
-  static const Color surface = Color(0xFF101216);
-  static const Color surface2 = Color(0xFF15171C);
-  static const Color borderColor = Color(0xFF2C3038);
+  static const Color surface = Color(0xFF101113);
+  static const Color surface2 = Color(0xFF151619);
+  static const Color borderColor = Color(0xFF292B2F);
 
   static const Color white = Color(0xFFFFFFFF);
   static const Color lightText = Color(0xFFECEDEF);
-  static const Color mutedText = Color(0xFF969AA5);
+  static const Color mutedText = Color(0xFF9B9CA3);
 
   static const Color gold = Color(0xFFF2C45F);
-  static const Color purple = Color(0xFF7957E8);
+  static const Color purple = Color(0xFFF2C45F);
   static const Color blue = Color(0xFF1677FF);
   static const Color red = Color(0xFFFF5B66);
 
@@ -315,8 +315,8 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF5864E8),
-                Color(0xFF9B4CC7),
+                Color(0xFFF2C45F),
+                Color(0xFFD9A93F),
               ],
             ),
             borderRadius:
@@ -326,7 +326,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
           ),
           child: const Icon(
             Icons.qr_code_rounded,
-            color: white,
+            color: Color(0xFF090A0C),
             size: 30,
           ),
         ),
@@ -514,9 +514,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(
-          0xFF111318,
-        ),
+        color: surface2,
         borderRadius:
             BorderRadius.circular(
           14,
@@ -555,10 +553,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                       ),
                       child: Icon(
                         icon,
-                        color:
-                            const Color(
-                          0xFF8179FF,
-                        ),
+                        color: gold,
                         size: 19,
                       ),
                     ),
@@ -1607,8 +1602,8 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
         ),
         style:
             ElevatedButton.styleFrom(
-          backgroundColor: blue,
-          foregroundColor: white,
+          backgroundColor: gold,
+          foregroundColor: pageBackground,
           elevation: 0,
           shape:
               RoundedRectangleBorder(
@@ -1674,12 +1669,8 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
-              Color(
-                0xFF625BE1,
-              ),
-              Color(
-                0xFF9149B4,
-              ),
+              Color(0xFFF2C45F),
+              Color(0xFFD9A93F),
             ],
           ),
           borderRadius:
@@ -1708,7 +1699,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                 Colors.transparent,
             shadowColor:
                 Colors.transparent,
-            foregroundColor: white,
+            foregroundColor: pageBackground,
             elevation: 0,
             shape:
                 RoundedRectangleBorder(

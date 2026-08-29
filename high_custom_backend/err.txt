@@ -1,0 +1,206 @@
+============================================================
+============================================================
+🔥 EMAIL OPEN TRACKING REQUEST RECEIVED
+============================================================
+Time: 2026-08-29T10:28:29.278Z
+Tracking ID: 4ab1beb3-8ce6-446e-bfb9-8e2f307f7d50
+IP: 10.193.6.129
+User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)
+Referer: none
+============================================================
+🔎 Searching SequenceDelivery...
+✅ DELIVERY FOUND
+Delivery ID: new ObjectId('6a92b42105699c43cccb8efe')
+User ID: new ObjectId('6a8d575096c09a29086b63c4')
+Sequence ID: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+Lead ID: new ObjectId('6a92b41ea642afbdf4ef92ac')
+Email: undefined
+Current Status: sent
+Previous Opened At: 2026-08-29T10:28:11.377Z
+Previous Open Count: 3
+🔵 REPEAT OPEN / IMAGE REQUEST
+Original Opened At: 2026-08-29T10:28:11.377Z
+💾 Saving delivery...
+✅ DELIVERY SAVED
+Tracking ID: 4ab1beb3-8ce6-446e-bfb9-8e2f307f7d50
+Opened At: 2026-08-29T10:28:11.377Z
+Opened Count: 4
+Status: sent
+============================================================
+🔥 EMAIL OPEN TRACKING COMPLETED
+============================================================
+============================================================
+🔥 EMAIL OPEN TRACKING REQUEST RECEIVED
+============================================================
+Time: 2026-08-29T10:28:40.693Z
+Tracking ID: 4ab1beb3-8ce6-446e-bfb9-8e2f307f7d50
+IP: 10.195.79.129
+User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)
+Referer: none
+============================================================
+🔎 Searching SequenceDelivery...
+✅ DELIVERY FOUND
+Delivery ID: new ObjectId('6a92b42105699c43cccb8efe')
+User ID: new ObjectId('6a8d575096c09a29086b63c4')
+Sequence ID: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+Lead ID: new ObjectId('6a92b41ea642afbdf4ef92ac')
+Email: undefined
+Current Status: sent
+Previous Opened At: 2026-08-29T10:28:11.377Z
+Previous Open Count: 4
+🔵 REPEAT OPEN / IMAGE REQUEST
+Original Opened At: 2026-08-29T10:28:11.377Z
+💾 Saving delivery...
+✅ DELIVERY SAVED
+Tracking ID: 4ab1beb3-8ce6-446e-bfb9-8e2f307f7d50
+Opened At: 2026-08-29T10:28:11.377Z
+Opened Count: 5
+Status: sent
+============================================================
+🔥 EMAIL OPEN TRACKING COMPLETED
+============================================================
+Sequence queue pass finished. Sequences: 4
+Sequence queue pass finished. Sequences: 4
+Sequence queue pass finished. Sequences: 4
+==============================================
+SEQUENCE DELIVERY STARTED
+LEAD: abhikhupse2001@gmail.com
+SEQUENCE: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+STEP: 1
+VARIANT: A
+==============================================
+==============================================
+TRACKING URL GENERATED
+BASE URL: https://high-custom-app.onrender.com
+TRACKING URL: https://high-custom-app.onrender.com/api/email-tracking/open/a7a7c965-cadf-4dd3-b787-0b3e04d6bfd0?v=1787999488304
+==============================================
+==============================================
+GMAIL SEND STARTED
+USER: new ObjectId('6a8d575096c09a29086b63c4')
+LEAD: abhikhupse2001@gmail.com
+==============================================
+Gmail account: abhikhupse1009@gmail.com
+==============================================
+EMAIL ACCEPTED BY GMAIL
+TO: abhikhupse2001@gmail.com
+Message ID: 1a04d130df934eff
+Thread ID: 1a04d130df934eff
+==============================================
+==============================================
+SEQUENCE DELIVERY SUCCESS
+Lead: abhikhupse2001@gmail.com
+Sequence: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+Step: 1
+Variant: A
+Delivery: new ObjectId('6a92b50005699c43cccb8eff')
+Message ID: 1a04d130df934eff
+==============================================
+Email job completed: sequence-6a8d75ec40aeb7e5d32ba31d-lead-6a92b4fda642afbdf4ef92ad
+CUSTOM LABEL APPLIED TO SENDER COPY
+Label: High Custom Sequences
+Message ID: 1a04d130df934eff
+SENDER COPY MOVED TO GMAIL TRASH
+Message ID: 1a04d130df934eff
+Sequences processed after lead creation: {
+  leadId: new ObjectId('6a92b4fda642afbdf4ef92ad'),
+  email: 'abhikhupse2001@gmail.com',
+  result: {
+    userId: '6a8d575096c09a29086b63c4',
+    sequencesProcessed: 3,
+    results: [ [Object], [Object], [Object] ]
+  }
+}
+============================================================
+🔥 EMAIL OPEN TRACKING REQUEST RECEIVED
+============================================================
+Time: 2026-08-29T10:31:47.161Z
+Tracking ID: a7a7c965-cadf-4dd3-b787-0b3e04d6bfd0
+IP: 10.195.79.129
+User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)
+Referer: none
+============================================================
+🔎 Searching SequenceDelivery...
+============================================================
+🔥 EMAIL OPEN TRACKING REQUEST RECEIVED
+============================================================
+Time: 2026-08-29T10:31:47.269Z
+Tracking ID: 4ab1beb3-8ce6-446e-bfb9-8e2f307f7d50
+IP: 10.195.79.129
+User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)
+Referer: none
+============================================================
+🔎 Searching SequenceDelivery...
+✅ DELIVERY FOUND
+Delivery ID: new ObjectId('6a92b50005699c43cccb8eff')
+User ID: new ObjectId('6a8d575096c09a29086b63c4')
+Sequence ID: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+Lead ID: new ObjectId('6a92b4fda642afbdf4ef92ad')
+Email: undefined
+Current Status: sent
+Previous Opened At: NULL
+Previous Open Count: 0
+✅ DELIVERY FOUND
+Delivery ID: new ObjectId('6a92b42105699c43cccb8efe')
+User ID: new ObjectId('6a8d575096c09a29086b63c4')
+Sequence ID: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+Lead ID: new ObjectId('6a92b41ea642afbdf4ef92ac')
+Email: undefined
+Current Status: sent
+Previous Opened At: 2026-08-29T10:28:11.377Z
+Previous Open Count: 5
+🟢 FIRST OPEN DETECTED
+Opened At: 2026-08-29T10:31:47.161Z
+(node:74) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+🔵 REPEAT OPEN / IMAGE REQUEST
+Original Opened At: 2026-08-29T10:28:11.377Z
+💾 Saving delivery...
+✅ Sequence open statistics updated
+Sequence statistics.opened: 38
+💾 Saving delivery...
+✅ DELIVERY SAVED
+Tracking ID: 4ab1beb3-8ce6-446e-bfb9-8e2f307f7d50
+Opened At: 2026-08-29T10:28:11.377Z
+Opened Count: 6
+Status: sent
+============================================================
+🔥 EMAIL OPEN TRACKING COMPLETED
+============================================================
+✅ DELIVERY SAVED
+Tracking ID: a7a7c965-cadf-4dd3-b787-0b3e04d6bfd0
+Opened At: 2026-08-29T10:31:47.161Z
+Opened Count: 1
+Status: sent
+============================================================
+🔥 EMAIL OPEN TRACKING COMPLETED
+============================================================
+============================================================
+🔥 EMAIL OPEN TRACKING REQUEST RECEIVED
+============================================================
+Time: 2026-08-29T10:31:52.555Z
+Tracking ID: a7a7c965-cadf-4dd3-b787-0b3e04d6bfd0
+IP: 10.195.79.129
+User-Agent: Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)
+Referer: none
+============================================================
+🔎 Searching SequenceDelivery...
+✅ DELIVERY FOUND
+Delivery ID: new ObjectId('6a92b50005699c43cccb8eff')
+User ID: new ObjectId('6a8d575096c09a29086b63c4')
+Sequence ID: new ObjectId('6a8d75ec40aeb7e5d32ba31d')
+Lead ID: new ObjectId('6a92b4fda642afbdf4ef92ad')
+Email: undefined
+Current Status: sent
+Previous Opened At: 2026-08-29T10:31:47.161Z
+Previous Open Count: 1
+🔵 REPEAT OPEN / IMAGE REQUEST
+Original Opened At: 2026-08-29T10:31:47.161Z
+💾 Saving delivery...
+✅ DELIVERY SAVED
+Tracking ID: a7a7c965-cadf-4dd3-b787-0b3e04d6bfd0
+Opened At: 2026-08-29T10:31:47.161Z
+Opened Count: 2
+Status: sent
+============================================================
+🔥 EMAIL OPEN TRACKING COMPLETED
+============================================================
+Need better w

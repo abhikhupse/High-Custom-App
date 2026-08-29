@@ -7,6 +7,7 @@ import 'integration_screen.dart';
 import '../profile/profile_screen.dart';
 import 'master/master_list_screen.dart';
 import 'leads/leads_screen.dart';
+import 'leads/add_lead_screen.dart';
 import 'social_links/social_links_screen.dart';
 import 'link/link_screen.dart';
 import '../privacy/privacy_policy_screen.dart';
@@ -343,6 +344,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               background,
           resizeToAvoidBottomInset:
               true,
+          bottomNavigationBar:
+              isMobile
+                  ? _buildMobileFooter()
+                  : null,
           body:
               SafeArea(
             child:
@@ -497,6 +502,127 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  // ============================================================
+  // MOBILE FOOTER
+  // ============================================================
+
+  Widget _buildMobileFooter() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF070A0E),
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withOpacity(0.10),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.45),
+            blurRadius: 20,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 78,
+          child: Row(
+            children: [
+              _buildFooterItem(
+                label: 'Leads',
+                icon: Icons.people_outline_rounded,
+                selected: selectedMenu == 'Leads',
+                onTap: () => _handleSidebarMenu('Leads'),
+              ),
+              _buildFooterItem(
+                label: 'Add Lead',
+                icon: Icons.add_circle_outline_rounded,
+                selected: false,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AddLeadScreen(),
+                    ),
+                  );
+                },
+              ),
+              _buildFooterItem(
+                label: 'Analytics',
+                icon: Icons.bar_chart_rounded,
+                selected: selectedMenu == 'Tracking Report',
+                onTap: () =>
+                    _handleSidebarMenu('Tracking Report'),
+              ),
+              _buildFooterItem(
+                label: 'Profile',
+                icon: Icons.person_outline_rounded,
+                selected: selectedMenu == 'Profile',
+                onTap: () => _handleSidebarMenu('Profile'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterItem({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (selected)
+              const Positioned(
+                top: 0,
+                child: SizedBox(
+                  width: 48,
+                  child: Divider(
+                    height: 2,
+                    thickness: 2,
+                    color: gold,
+                  ),
+                ),
+              ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 28,
+                  color: selected
+                      ? gold
+                      : const Color(0xFFAEB4BF),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: selected
+                        ? gold
+                        : const Color(0xFFAEB4BF),
+                    fontSize: 12,
+                    fontWeight: selected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -23,19 +23,19 @@ class _TrackingReportScreenState
   // COLORS
   // ============================================================
 
-  static const Color background = Color(0xFF020507);
+  static const Color background = Color(0xFF090A0C);
 
-  static const Color cardColor = Color(0xFF071016);
+  static const Color cardColor = Color(0xFF101113);
 
-  static const Color cardColor2 = Color(0xFF081118);
+  static const Color cardColor2 = Color(0xFF151619);
 
-  static const Color borderColor = Color(0xFF1B2A35);
+  static const Color borderColor = Color(0xFF292B2F);
 
   static const Color white = Colors.white;
 
-  static const Color mutedText = Color(0xFFA7AFBD);
+  static const Color mutedText = Color(0xFF9B9CA3);
 
-  static const Color purple = Color(0xFF7C35FF);
+  static const Color purple = Color(0xFFF2C45F);
 
   static const Color green = Color(0xFF00E676);
 
@@ -424,12 +424,8 @@ class _TrackingReportScreenState
                     end:
                         Alignment.bottomRight,
                     colors: [
-                      Color(
-                        0xFF4438FF,
-                      ),
-                      Color(
-                        0xFF9400FF,
-                      ),
+                      Color(0xFFF2C45F),
+                      Color(0xFFD9A93F),
                     ],
                   ),
                   borderRadius:
@@ -442,7 +438,7 @@ class _TrackingReportScreenState
                   Icons
                       .trending_up_rounded,
                   color:
-                      Colors.white,
+                      Color(0xFF090A0C),
                   size: 31,
                 ),
               ),
@@ -525,12 +521,8 @@ class _TrackingReportScreenState
             gradient:
                 const LinearGradient(
               colors: [
-                Color(
-                  0xFF4438FF,
-                ),
-                Color(
-                  0xFF9400FF,
-                ),
+                Color(0xFFF2C45F),
+                Color(0xFFD9A93F),
               ],
             ),
             borderRadius:
@@ -543,7 +535,7 @@ class _TrackingReportScreenState
             Icons
                 .trending_up_rounded,
             color:
-                Colors.white,
+                Color(0xFF090A0C),
             size: 36,
           ),
         ),
@@ -614,10 +606,7 @@ class _TrackingReportScreenState
         ),
         decoration:
             BoxDecoration(
-          color:
-              const Color(
-            0xFF071016,
-          ),
+          color: cardColor,
           borderRadius:
               BorderRadius.circular(
             14,
@@ -1381,10 +1370,7 @@ class _TrackingReportScreenState
         ),
         filled:
             true,
-        fillColor:
-            const Color(
-          0xFF071016,
-        ),
+        fillColor: cardColor,
         contentPadding:
             const EdgeInsets.symmetric(
           vertical: 16,
