@@ -123,6 +123,13 @@ class _TrackingReportScreenState
 
       if (!mounted) return;
 
+      if (response['success'] != true) {
+        throw Exception(
+          response['message']?.toString() ??
+              'Unable to load tracking report.',
+        );
+      }
+
       setState(() {
         _statistics =
             response['statistics']

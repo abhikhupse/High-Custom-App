@@ -349,10 +349,12 @@ class _LeadsScreenState extends State<LeadsScreen> {
   // SUMMARY
   // ============================================================
 
-  int get totalLeadsCount => leads.length;
+  List<Map<String, dynamic>> get _summaryLeads => filteredLeads;
+
+  int get totalLeadsCount => _summaryLeads.length;
 
   int get contactedCount {
-    return leads.where((lead) {
+    return _summaryLeads.where((lead) {
       final status =
           lead['trackingStatus']
                   ?.toString()
@@ -372,7 +374,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   int get openedCount {
-    return leads.where((lead) {
+    return _summaryLeads.where((lead) {
       final status =
           lead['trackingStatus']
                   ?.toString()
@@ -386,7 +388,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   int get repliedCount {
-    return leads.where((lead) {
+    return _summaryLeads.where((lead) {
       final status =
           lead['trackingStatus']
                   ?.toString()
@@ -401,7 +403,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   int get todayAddedCount {
     final now = DateTime.now();
 
-    return leads.where((lead) {
+    return _summaryLeads.where((lead) {
       final date =
           lead['addedDate'] as DateTime;
 

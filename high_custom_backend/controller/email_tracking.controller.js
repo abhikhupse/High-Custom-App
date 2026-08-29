@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
 const USER = require("../model/user.model");
@@ -659,11 +660,23 @@ exports.getTrackingReport = async (req, res) => {
     // STATISTICS
     // ==========================================================
 
+    // Mongoose casts values for find(), but it does not cast values inside an
+    // aggregation pipeline. The JWT contains the user id as a string, while
+    // sequence deliveries store it as an ObjectId.
+    const statisticsMatch = {
+      ...deliveryQuery,
+      userId: new mongoose.Types.ObjectId(String(userId)),
+    };
+
+    if (statisticsMatch.sequenceId) {
+      statisticsMatch.sequenceId = new mongoose.Types.ObjectId(
+        String(statisticsMatch.sequenceId),
+      );
+    }
+
     const statistics = await SEQUENCE_DELIVERY.aggregate([
       {
-        $match: {
-          userId,
-        },
+        $match: statisticsMatch,
       },
 
       {
