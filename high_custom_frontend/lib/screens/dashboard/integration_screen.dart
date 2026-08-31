@@ -50,6 +50,10 @@ class _IntegrationScreenState
 
   bool isZohoConnected = false;
 
+  String? zohoEmail;
+
+  DateTime? zohoConnectedAt;
+
   bool isZohoLoading = false;
 
   // ============================================================
@@ -186,9 +190,7 @@ class _IntegrationScreenState
       '======================================',
     );
 
-    debugPrint(
-      'GMAIL CALLBACK RECEIVED',
-    );
+    debugPrint('INTEGRATION CALLBACK RECEIVED');
 
     debugPrint(
       'URI: $uri',
@@ -247,6 +249,9 @@ class _IntegrationScreenState
     final error =
         uri.queryParameters['error'];
 
+    final provider =
+        uri.queryParameters['provider'] ?? 'gmail';
+
     debugPrint(
       'Success: $success',
     );
@@ -269,19 +274,28 @@ class _IntegrationScreenState
       }
 
       setState(() {
-        isGmailConnected = true;
-
-        if (email != null &&
-            email.trim().isNotEmpty) {
-          gmailEmail = email;
+        if (provider == 'zoho') {
+          isZohoConnected = true;
+          zohoEmail = email;
+        } else {
+          isGmailConnected = true;
+          if (email != null && email.trim().isNotEmpty) {
+            gmailEmail = email;
+          }
         }
       });
 
       _showMessage(
-        'Gmail connected successfully.',
+        provider == 'zoho'
+            ? 'Zoho Mail connected successfully.'
+            : 'Gmail connected successfully.',
       );
 
-      await _getGmailStatus();
+      if (provider == 'zoho') {
+        await _getZohoStatus();
+      } else {
+        await _getGmailStatus();
+      }
 
       return;
     }
@@ -302,7 +316,11 @@ class _IntegrationScreenState
         );
       }
 
-      await _getGmailStatus();
+      if (provider == 'zoho') {
+        await _getZohoStatus();
+      } else {
+        await _getGmailStatus();
+      }
     }
   }
 
@@ -361,7 +379,10 @@ class _IntegrationScreenState
     }
 
     try {
-      await _getGmailStatus();
+      await Future.wait([
+        _getGmailStatus(),
+        _getZohoStatus(),
+      ]);
     } catch (error) {
       debugPrint(
         'Integration Status Error: $error',
@@ -376,6 +397,37 @@ class _IntegrationScreenState
           isLoadingStatus = false;
         });
       }
+    }
+  }
+
+  Future<void> _getZohoStatus() async {
+    try {
+      final data = await IntegrationApi.zohoStatus();
+      if (!mounted) return;
+      if (data['success'] != true) {
+        setState(() {
+          isZohoConnected = false;
+          zohoEmail = null;
+          zohoConnectedAt = null;
+        });
+        return;
+      }
+      final connected = data['connected'] == true;
+      setState(() {
+        isZohoConnected = connected;
+        zohoEmail = connected ? data['email']?.toString() : null;
+        zohoConnectedAt = connected && data['connectedAt'] != null
+            ? DateTime.tryParse(data['connectedAt'].toString())
+            : null;
+      });
+    } catch (error) {
+      debugPrint('Zoho Status Error: $error');
+      if (!mounted) return;
+      setState(() {
+        isZohoConnected = false;
+        zohoEmail = null;
+        zohoConnectedAt = null;
+      });
     }
   }
 
@@ -668,27 +720,31 @@ class _IntegrationScreenState
       return;
     }
 
-    setState(() {
-      isZohoLoading = true;
-    });
-
-    await Future.delayed(
-      const Duration(
-        milliseconds: 500,
-      ),
-    );
-
-    if (!mounted) {
-      return;
+    if (mounted) setState(() => isZohoLoading = true);
+    try {
+      final data = await IntegrationApi.connectZoho();
+      if (data['success'] != true) {
+        _showMessage(data['message']?.toString() ?? 'Failed to connect Zoho Mail.');
+        return;
+      }
+      final authUrl = data['authUrl']?.toString();
+      if (authUrl == null || authUrl.isEmpty) {
+        _showMessage('Zoho authorization URL was not received.');
+        return;
+      }
+      final uri = Uri.parse(authUrl);
+      if (!await canLaunchUrl(uri)) {
+        _showMessage('Unable to open Zoho authorization.');
+        return;
+      }
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      _showMessage('Complete Zoho authorization in your browser.');
+    } catch (error) {
+      debugPrint('Connect Zoho Error: $error');
+      _showMessage('Unable to connect Zoho Mail.');
+    } finally {
+      if (mounted) setState(() => isZohoLoading = false);
     }
-
-    setState(() {
-      isZohoLoading = false;
-    });
-
-    _showMessage(
-      'Zoho Mail integration is coming soon.',
-    );
   }
 
   // ============================================================
@@ -698,20 +754,31 @@ class _IntegrationScreenState
   Future<void> _disconnectZoho() async {
     _showDisconnectDialog(
       serviceName: 'Zoho Mail',
-      onConfirm: () async {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          isZohoConnected = false;
-        });
-
-        _showMessage(
-          'Zoho Mail disconnected.',
-        );
-      },
+      onConfirm: _performDisconnectZoho,
     );
+  }
+
+  Future<void> _performDisconnectZoho() async {
+    if (isZohoLoading) return;
+    if (mounted) setState(() => isZohoLoading = true);
+    try {
+      final data = await IntegrationApi.disconnectZoho();
+      if (data['success'] != true) {
+        _showMessage(data['message']?.toString() ?? 'Failed to disconnect Zoho Mail.');
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        isZohoConnected = false;
+        zohoEmail = null;
+        zohoConnectedAt = null;
+      });
+      _showMessage('Zoho Mail disconnected successfully.');
+    } catch (error) {
+      _showMessage('Failed to disconnect Zoho Mail.');
+    } finally {
+      if (mounted) setState(() => isZohoLoading = false);
+    }
   }
 
   // ============================================================
@@ -948,7 +1015,7 @@ class _IntegrationScreenState
                       isConnected:
                           isZohoConnected,
                       connectedEmail:
-                          null,
+                          zohoEmail,
                       isLoading:
                           isZohoLoading,
                       onConnect:

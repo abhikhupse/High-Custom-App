@@ -7,6 +7,7 @@ const root = require("./routes/index");
 const path = require("path");
 const { startSequenceJob } = require("./jobs/sequence.job");
 const { startGmailReplyJob } = require("./jobs/gmail_reply.job");
+const { startZohoReplyJob } = require("./jobs/zoho_reply.job");
 
 const app = express();
 
@@ -75,6 +76,7 @@ const startServer = async () => {
   try {
     await connectDB();
     startGmailReplyJob();
+    startZohoReplyJob();
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log("");

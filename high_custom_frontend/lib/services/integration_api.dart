@@ -189,6 +189,51 @@ class IntegrationApi {
     }
   }
 
+  static Future<Map<String, dynamic>> zohoStatus() =>
+      _authorizedRequest('GET', '/integrations/zoho/status');
+
+  static Future<Map<String, dynamic>> connectZoho() =>
+      _authorizedRequest('GET', '/integrations/zoho/connect');
+
+  static Future<Map<String, dynamic>> disconnectZoho() =>
+      _authorizedRequest('DELETE', '/integrations/zoho/disconnect');
+
+  static Future<Map<String, dynamic>> _authorizedRequest(
+    String method,
+    String path,
+  ) async {
+    try {
+      final token = await _token();
+      if (token == null || token.isEmpty) {
+        return {
+          'success': false,
+          'statusCode': 401,
+          'message': 'Authentication token not found.',
+        };
+      }
+      final uri = Uri.parse('$baseUrl$path');
+      final headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      final response = method == 'DELETE'
+          ? await http.delete(uri, headers: headers).timeout(
+                const Duration(seconds: 15),
+              )
+          : await http.get(uri, headers: headers).timeout(
+                const Duration(seconds: 15),
+              );
+      return _decodeResponse(response);
+    } catch (error) {
+      return {
+        'success': false,
+        'statusCode': 0,
+        'message': 'Unable to connect to the server.',
+        'error': error.toString(),
+      };
+    }
+  }
+
   // ============================================================
   // RESPONSE DECODER
   // ============================================================

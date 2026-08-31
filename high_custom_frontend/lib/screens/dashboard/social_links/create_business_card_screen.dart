@@ -641,14 +641,23 @@ class _BusinessCardPreview extends StatelessWidget {
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 
+  String get _displayWhatsapp {
+    final original = _value(whatsapp, 'WhatsApp');
+    final digits = original.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length == 12 && digits.startsWith('91')) {
+      return '+91 ${digits.substring(2, 7)} ${digits.substring(7)}';
+    }
+    if (digits.length == 10) {
+      return '+91 ${digits.substring(0, 5)} ${digits.substring(5)}';
+    }
+    return original;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF8),
-        border: Border.all(color: const Color(0xFFD8D5E5)),
-      ),
+      decoration: const BoxDecoration(color: Color(0xFFFFFDF8)),
       child: FittedBox(
         fit: BoxFit.fill,
         child: SizedBox(width: 1050, height: 600, child: _buildCardCanvas()),
@@ -658,118 +667,92 @@ class _BusinessCardPreview extends StatelessWidget {
 
   Widget _buildCardCanvas() {
     const navy = Color(0xFF06143D);
-    const lavender = Color(0xFFD6D3EA);
 
     return Stack(
       children: [
-        const Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: SizedBox(width: 42, child: ColoredBox(color: lavender)),
-        ),
-        const Positioned(
-          right: 0,
-          top: 0,
-          child: SizedBox(
-            width: 58,
-            height: 292,
-            child: ColoredBox(color: lavender),
-          ),
-        ),
-        const Positioned(
-          right: 0,
-          top: 79,
-          child: SizedBox(
-            width: 58,
-            height: 10,
-            child: ColoredBox(color: Color(0xFFFFFDF8)),
-          ),
-        ),
-        const Positioned(
-          right: 0,
-          top: 171,
-          child: SizedBox(
-            width: 58,
-            height: 10,
-            child: ColoredBox(color: Color(0xFFFFFDF8)),
-          ),
-        ),
-        const Positioned(
-          right: 0,
-          top: 268,
-          child: SizedBox(
-            width: 58,
-            height: 10,
-            child: ColoredBox(color: Color(0xFFFFFDF8)),
-          ),
-        ),
-        const Positioned(
-          right: 0,
-          top: 278,
-          child: SizedBox(
-            width: 58,
-            height: 11,
-            child: ColoredBox(color: navy),
-          ),
-        ),
-        Positioned.fill(
-          child: Center(
-            child: Opacity(
-              opacity: 0.055,
-              child: Image.asset(
-                'assets/images/business_card_watermark.png',
-                width: 520,
-                height: 520,
-                fit: BoxFit.contain,
-              ),
+        const Positioned.fill(child: CustomPaint(painter: _CardShapePainter())),
+        Positioned(
+          left: 285,
+          top: 22,
+          child: Opacity(
+            opacity: 0.038,
+            child: Image.asset(
+              'assets/images/business_card_watermark.png',
+              width: 465,
+              height: 465,
+              fit: BoxFit.contain,
             ),
           ),
         ),
         Positioned(
-          left: 50,
-          top: 45,
-          width: 435,
-          height: 150,
-          child: Image.asset(
-            'assets/images/business_card_wordmark.png',
-            fit: BoxFit.fill,
-            alignment: Alignment.centerLeft,
+          left: 44,
+          top: 32,
+          width: 455,
+          height: 165,
+          child: ColorFiltered(
+            colorFilter: const ColorFilter.mode(navy, BlendMode.srcIn),
+            child: Image.asset(
+              'assets/images/business_card_wordmark.png',
+              fit: BoxFit.fill,
+              alignment: Alignment.centerLeft,
+            ),
           ),
         ),
         Positioned(
-          right: 82,
-          top: 56,
+          right: 73,
+          top: 52,
           child: Container(
-            width: 228,
-            height: 228,
+            width: 204,
+            height: 204,
             padding: const EdgeInsets.all(8),
             color: Colors.white,
-            child: qrLink.trim().isEmpty
-                ? const Icon(
-                    Icons.qr_code_2_rounded,
-                    size: 190,
-                    color: Colors.black,
-                  )
-                : QrImageView(
-                    data: qrLink.trim(),
-                    padding: EdgeInsets.zero,
-                    backgroundColor: Colors.white,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: Colors.black,
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: Colors.black,
-                    ),
-                  ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: qrLink.trim().isEmpty
+                      ? const Icon(
+                          Icons.qr_code_2_rounded,
+                          size: 180,
+                          color: Colors.black,
+                        )
+                      : QrImageView(
+                          data: qrLink.trim(),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: Colors.white,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Colors.black,
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Colors.black,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Positioned(
+          right: 65,
+          top: 267,
+          width: 220,
+          child: Text(
+            'SCAN TO CONNECT',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              height: 1,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
           ),
         ),
         Positioned(
-          left: 82,
-          top: 226,
-          width: 560,
+          left: 54,
+          top: 214,
+          width: 575,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -779,40 +762,52 @@ class _BusinessCardPreview extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: navy,
-                  fontSize: 46,
+                  fontSize: 47,
                   height: 1,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
+                  letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
-                _displayRole,
+                _displayRole.replaceAll(RegExp(r'^\(|\)$'), ''),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: navy,
-                  fontSize: 24,
+                  fontSize: 25,
                   height: 1,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(SimpleIcons.whatsapp, color: navy, size: 44),
-                  const SizedBox(width: 12),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: navy,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: const Icon(
+                      SimpleIcons.whatsapp,
+                      color: Colors.white,
+                      size: 33,
+                    ),
+                  ),
+                  const SizedBox(width: 18),
                   Expanded(
                     child: Text(
-                      _value(whatsapp, 'WhatsApp'),
+                      _displayWhatsapp,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: navy,
-                        fontSize: 35,
+                        fontSize: 32,
                         height: 1,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 1.6,
+                        letterSpacing: 1.3,
                       ),
                     ),
                   ),
@@ -822,28 +817,29 @@ class _BusinessCardPreview extends StatelessWidget {
           ),
         ),
         Positioned(
-          left: 55,
-          right: 82,
-          bottom: 20,
+          left: 54,
+          width: 590,
+          bottom: 40,
           child: Column(
             children: [
               _contactRow(
-                icon: Icons.location_on,
+                icon: Icons.location_on_rounded,
                 text: _value(address, 'Business address'),
                 height: 66,
                 maxLines: 2,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
               _contactRow(
                 icon: Icons.mail_outline_rounded,
                 text: _value(email, 'Email address'),
-                height: 58,
+                height: 51,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
               _contactRow(
                 icon: Icons.language_rounded,
                 text: _displayWebsite,
-                height: 58,
+                height: 51,
+                showDivider: false,
               ),
             ],
           ),
@@ -857,37 +853,45 @@ class _BusinessCardPreview extends StatelessWidget {
     required String text,
     required double height,
     int maxLines = 1,
+    bool showDivider = true,
   }) {
     const navy = Color(0xFF06143D);
     return SizedBox(
       height: height,
       child: Row(
         children: [
-          SizedBox(
-            width: 88,
-            child: ColoredBox(
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
               color: navy,
-              child: Center(child: Icon(icon, color: Colors.white, size: 40)),
+              borderRadius: BorderRadius.circular(7),
             ),
+            child: Center(child: Icon(icon, color: Colors.white, size: 35)),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 14),
           Expanded(
-            child: ColoredBox(
-              color: const Color(0xCCD4D1E8),
+            child: Container(
+              height: double.infinity,
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                border: showDivider
+                    ? const Border(
+                        bottom: BorderSide(color: Color(0xFFB6B1D3), width: 2),
+                      )
+                    : null,
+              ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    text,
-                    maxLines: maxLines,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: navy,
-                      fontSize: maxLines == 1 ? 22 : 20,
-                      height: 1.14,
-                      fontWeight: FontWeight.w700,
-                    ),
+                padding: const EdgeInsets.symmetric(horizontal: 19),
+                child: Text(
+                  text,
+                  maxLines: maxLines,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: navy,
+                    fontSize: maxLines == 1 ? 21 : 19,
+                    height: 1.14,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -897,4 +901,80 @@ class _BusinessCardPreview extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CardShapePainter extends CustomPainter {
+  const _CardShapePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const navy = Color(0xFF06143D);
+    const lavender = Color(0xFFC9C5E2);
+
+    final navyPaint = Paint()..color = navy;
+    final lavenderPaint = Paint()..color = lavender;
+    final ivoryPaint = Paint()..color = const Color(0xFFFFFDF8);
+
+    final topRight = Path()
+      ..moveTo(624, 0)
+      ..lineTo(944, 0)
+      ..lineTo(1050, 106)
+      ..lineTo(1050, 280)
+      ..lineTo(893, 429)
+      ..lineTo(727, 256)
+      ..lineTo(764, 215)
+      ..lineTo(734, 182)
+      ..lineTo(763, 143)
+      ..close();
+    canvas.drawPath(topRight, navyPaint);
+
+    final lowerNavy = Path()
+      ..moveTo(1050, 397)
+      ..lineTo(1050, 600)
+      ..lineTo(868, 600)
+      ..close();
+    canvas.drawPath(lowerNavy, navyPaint);
+
+    final diagonal = Path()
+      ..moveTo(1050, 282)
+      ..lineTo(1050, 397)
+      ..lineTo(858, 600)
+      ..lineTo(737, 600)
+      ..close();
+    canvas.drawPath(diagonal, lavenderPaint);
+
+    final upperDiagonalCut = Path()
+      ..moveTo(1050, 282)
+      ..lineTo(1050, 291)
+      ..lineTo(746, 600)
+      ..lineTo(737, 600)
+      ..close();
+    canvas.drawPath(upperDiagonalCut, ivoryPaint);
+
+    final lowerDiagonalCut = Path()
+      ..moveTo(1050, 397)
+      ..lineTo(1050, 407)
+      ..lineTo(868, 600)
+      ..lineTo(858, 600)
+      ..close();
+    canvas.drawPath(lowerDiagonalCut, ivoryPaint);
+
+    final bottomLeft = Path()
+      ..moveTo(0, 492)
+      ..lineTo(0, 600)
+      ..lineTo(104, 600)
+      ..close();
+    canvas.drawPath(bottomLeft, lavenderPaint);
+
+    final bottomLeftCut = Path()
+      ..moveTo(0, 504)
+      ..lineTo(0, 516)
+      ..lineTo(83, 600)
+      ..lineTo(70, 600)
+      ..close();
+    canvas.drawPath(bottomLeftCut, ivoryPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
