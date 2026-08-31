@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:simple_icons/simple_icons.dart';
 
 import '../../../constants/app_theme.dart';
+import '../../../services/business_card_api.dart';
 
 class CreateBusinessCardScreen extends StatefulWidget {
   const CreateBusinessCardScreen({super.key});
@@ -39,6 +40,10 @@ class _CreateBusinessCardScreenState extends State<CreateBusinessCardScreen> {
         'T01, Himson House, Opp. Ravji Holidays, Gundal Sheri Naka, Laldarwaja, Surat-395003.',
   );
   bool _isExporting = false;
+  bool _isLoadingCard = true;
+  bool _isSavingCard = false;
+  bool _isDeletingCard = false;
+  bool _hasSavedCard = false;
 
   List<TextEditingController> get _controllers => [
     _fullNameController,
@@ -56,6 +61,7 @@ class _CreateBusinessCardScreenState extends State<CreateBusinessCardScreen> {
     for (final controller in _controllers) {
       controller.addListener(_refreshPreview);
     }
+    _loadBusinessCard();
   }
 
   @override
@@ -97,12 +103,101 @@ class _CreateBusinessCardScreenState extends State<CreateBusinessCardScreen> {
     return null;
   }
 
-  void _createCard() {
+  Future<void> _saveBusinessCard() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_isSavingCard) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Digital business card created.')),
+    setState(() => _isSavingCard = true);
+    final card = {
+      'fullName': _fullNameController.text.trim(),
+      'role': _roleController.text.trim(),
+      'companyName': _companyController.text.trim(),
+      'whatsapp': _whatsappController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+      'email': _emailController.text.trim(),
+      'qrLink': _qrLinkController.text.trim(),
+      'address': _addressController.text.trim(),
+    };
+    final result = _hasSavedCard
+        ? await BusinessCardApi.update(card: card)
+        : await BusinessCardApi.create(card: card);
+
+    if (!mounted) return;
+    setState(() {
+      _isSavingCard = false;
+      if (result['success'] == true) _hasSavedCard = true;
+    });
+    _showMessage(
+      result['message']?.toString() ??
+          (result['success'] == true
+              ? 'Business card saved successfully.'
+              : 'Could not save the business card.'),
+    );
+  }
+
+  Future<void> _loadBusinessCard() async {
+    final result = await BusinessCardApi.fetch();
+    if (!mounted) return;
+
+    final card = result['businessCard'];
+    if (result['success'] == true && card is Map) {
+      _fullNameController.text = card['fullName']?.toString() ?? '';
+      _roleController.text = card['role']?.toString() ?? '';
+      _companyController.text = card['companyName']?.toString() ?? '';
+      _whatsappController.text = card['whatsapp']?.toString() ?? '';
+      _emailController.text = card['email']?.toString() ?? '';
+      _qrLinkController.text = card['qrLink']?.toString() ?? '';
+      _addressController.text = card['address']?.toString() ?? '';
+      setState(() {
+        _hasSavedCard = true;
+        _isLoadingCard = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _hasSavedCard = false;
+      _isLoadingCard = false;
+    });
+    if (result['statusCode'] != 404) {
+      _showMessage(
+        result['message']?.toString() ?? 'Could not load the business card.',
+      );
+    }
+  }
+
+  Future<void> _deleteBusinessCard() async {
+    if (_isDeletingCard) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete business card?'),
+        content: const Text(
+          'This removes the saved business card from your account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeletingCard = true);
+    final result = await BusinessCardApi.delete();
+    if (!mounted) return;
+    setState(() {
+      _isDeletingCard = false;
+      if (result['success'] == true) _hasSavedCard = false;
+    });
+    _showMessage(
+      result['message']?.toString() ?? 'Could not delete the business card.',
     );
   }
 
@@ -201,6 +296,10 @@ class _CreateBusinessCardScreenState extends State<CreateBusinessCardScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 1050;
+
+            if (_isLoadingCard) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
             return SingleChildScrollView(
               padding: EdgeInsets.all(wide ? 28 : 16),
@@ -309,14 +408,43 @@ class _CreateBusinessCardScreenState extends State<CreateBusinessCardScreen> {
             SizedBox(
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: _createCard,
-                icon: const Icon(Icons.credit_card_rounded),
-                label: const Text(
-                  'Create Business Card',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                onPressed: _isSavingCard ? null : _saveBusinessCard,
+                icon: _isSavingCard
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        _hasSavedCard
+                            ? Icons.save_rounded
+                            : Icons.credit_card_rounded,
+                      ),
+                label: Text(
+                  _hasSavedCard
+                      ? 'Update Business Card'
+                      : 'Create Business Card',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
+            if (_hasSavedCard) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _isDeletingCard ? null : _deleteBusinessCard,
+                  icon: _isDeletingCard
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline_rounded),
+                  label: const Text('Delete Saved Card'),
+                ),
+              ),
+            ],
           ],
         ),
       ),

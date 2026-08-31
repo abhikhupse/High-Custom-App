@@ -1,16 +1,12 @@
 const express = require("express");
-
 const router = express.Router();
 
 const User = require("./user.routes");
-
 const Sequence = require("./sequence.routes");
-
 const Leads = require("./leads.router");
-
 const Integration = require("./gmail_integration.routes");
-
 const emailTrackingRoutes = require("./email_tracking.routes");
+const businessCard = require("./businessCard.routes");
 
 // ============================================================
 // USER
@@ -41,5 +37,7 @@ router.use("/integrations", Integration);
 // ============================================================
 
 router.use("/email-tracking", emailTrackingRoutes);
+
+router.use("/business-card", businessCard);
 
 module.exports = router;
