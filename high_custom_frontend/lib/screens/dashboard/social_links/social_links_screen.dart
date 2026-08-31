@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'create_business_card_screen.dart';
+
 // ============================================================
 // SOCIAL LINKS SCREEN
 // ============================================================
 
 class SocialLinksScreen extends StatefulWidget {
-  const SocialLinksScreen({
-    super.key,
-  });
+  const SocialLinksScreen({super.key});
 
   @override
-  State<SocialLinksScreen> createState() =>
-      _SocialLinksScreenState();
+  State<SocialLinksScreen> createState() => _SocialLinksScreenState();
 }
 
 class _SocialLinksScreenState extends State<SocialLinksScreen> {
@@ -31,7 +30,6 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
 
   static const Color gold = Color(0xFFF2C45F);
   static const Color purple = Color(0xFFF2C45F);
-  static const Color blue = Color(0xFF1677FF);
   static const Color red = Color(0xFFFF5B66);
 
   // ============================================================
@@ -163,16 +161,11 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       backgroundColor: pageBackground,
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final bool isMobile =
-                constraints.maxWidth < 800;
+          builder: (context, constraints) {
+            final bool isMobile = constraints.maxWidth < 800;
 
             return SingleChildScrollView(
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 isMobile ? 14 : 28,
                 isMobile ? 16 : 28,
@@ -181,24 +174,15 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
               ),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 950,
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 950),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildHeaderCard(
-                        isMobile,
-                      ),
+                      _buildHeaderCard(isMobile),
 
-                      const SizedBox(
-                        height: 16,
-                      ),
+                      const SizedBox(height: 16),
 
-                      _buildLinksCard(
-                        isMobile,
-                      ),
+                      _buildLinksCard(isMobile),
                     ],
                   ),
                 ),
@@ -214,90 +198,67 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // HEADER
   // ============================================================
 
-  Widget _buildHeaderCard(
-    bool isMobile,
-  ) {
+  Widget _buildHeaderCard(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(
-        isMobile ? 16 : 22,
-      ),
+      padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(
-          18,
-        ),
-        border: Border.all(
-          color: borderColor,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
       ),
       child: isMobile
           ? Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildBusinessTitle(),
 
-                const SizedBox(
-                  height: 18,
-                ),
+                const SizedBox(height: 18),
 
                 _blueActionButton(
                   icon: Icons.qr_code_2_rounded,
                   label: 'VIEW ALL QR',
                   onTap: () {
-                    _showMessage(
-                      'View All QR',
-                    );
+                    _showMessage('View All QR');
                   },
                 ),
 
-                const SizedBox(
-                  height: 10,
-                ),
+                const SizedBox(height: 10),
 
                 _outlineActionButton(
                   icon: Icons.badge_outlined,
                   label: 'BUSINESS CARD',
-                  onTap: () {
-                    _showMessage(
-                      'Business Card',
-                    );
-                  },
+                  onTap: _openBusinessCard,
                 ),
               ],
             )
           : Row(
               children: [
-                Expanded(
-                  child: _buildBusinessTitle(),
-                ),
+                Expanded(child: _buildBusinessTitle()),
 
                 _blueActionButton(
                   icon: Icons.qr_code_2_rounded,
                   label: 'VIEW ALL QR',
                   onTap: () {
-                    _showMessage(
-                      'View All QR',
-                    );
+                    _showMessage('View All QR');
                   },
                 ),
 
-                const SizedBox(
-                  width: 10,
-                ),
+                const SizedBox(width: 10),
 
                 _outlineActionButton(
                   icon: Icons.badge_outlined,
                   label: 'BUSINESS CARD',
-                  onTap: () {
-                    _showMessage(
-                      'Business Card',
-                    );
-                  },
+                  onTap: _openBusinessCard,
                 ),
               ],
             ),
     );
+  }
+
+  void _openBusinessCard() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CreateBusinessCardScreen()));
   }
 
   // ============================================================
@@ -314,15 +275,9 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF2C45F),
-                Color(0xFFD9A93F),
-              ],
+              colors: [Color(0xFFF2C45F), Color(0xFFD9A93F)],
             ),
-            borderRadius:
-                BorderRadius.circular(
-              16,
-            ),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: const Icon(
             Icons.qr_code_rounded,
@@ -331,14 +286,11 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
           ),
         ),
 
-        const SizedBox(
-          width: 14,
-        ),
+        const SizedBox(width: 14),
 
         const Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Digital Business Card',
@@ -346,22 +298,16 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                 style: TextStyle(
                   color: white,
                   fontSize: 20,
-                  fontWeight:
-                      FontWeight.w800,
+                  fontWeight: FontWeight.w800,
                   height: 1.15,
                 ),
               ),
 
-              SizedBox(
-                height: 6,
-              ),
+              SizedBox(height: 6),
 
               Text(
                 'Smart Social Links Manager',
-                style: TextStyle(
-                  color: mutedText,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: mutedText, fontSize: 12),
               ),
             ],
           ),
@@ -374,122 +320,86 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // LINKS CARD
   // ============================================================
 
-  Widget _buildLinksCard(
-    bool isMobile,
-  ) {
+  Widget _buildLinksCard(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(
-        isMobile ? 14 : 22,
-      ),
+      padding: EdgeInsets.all(isMobile ? 14 : 22),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(
-          18,
-        ),
-        border: Border.all(
-          color: borderColor,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ======================================================
           // GENERATE QR
           // ======================================================
-
           _purpleActionButton(
             icon: Icons.qr_code_2_rounded,
             label: 'Generate QR Code',
             onTap: () {
-              final selected =
-                  _getSelectedLinks();
+              final selected = _getSelectedLinks();
 
               if (selected.isEmpty) {
-                _showMessage(
-                  'Please select at least one link.',
-                );
+                _showMessage('Please select at least one link.');
 
                 return;
               }
 
-              _showMessage(
-                '${selected.length} links selected.',
-              );
+              _showMessage('${selected.length} links selected.');
             },
           ),
 
-          const SizedBox(
-            height: 18,
-          ),
+          const SizedBox(height: 18),
 
           // ======================================================
           // SOCIAL
           // ======================================================
-
           _buildExpandableSection(
             title: 'Social Media Links',
-            subtitle:
-                '${socialLinks.length} links',
+            subtitle: '${socialLinks.length} links',
             icon: Icons.share_rounded,
             expanded: socialExpanded,
             children: socialLinks,
             onTap: () {
               setState(() {
-                socialExpanded =
-                    !socialExpanded;
+                socialExpanded = !socialExpanded;
               });
             },
           ),
 
-          const SizedBox(
-            height: 12,
-          ),
+          const SizedBox(height: 12),
 
           // ======================================================
           // E-COMMERCE
           // ======================================================
-
           _buildExpandableSection(
             title: 'E-commerce Links',
-            subtitle:
-                '${ecommerceLinks.length} links',
-            icon:
-                Icons.shopping_cart_outlined,
-            expanded:
-                ecommerceExpanded,
-            children:
-                ecommerceLinks,
+            subtitle: '${ecommerceLinks.length} links',
+            icon: Icons.shopping_cart_outlined,
+            expanded: ecommerceExpanded,
+            children: ecommerceLinks,
             onTap: () {
               setState(() {
-                ecommerceExpanded =
-                    !ecommerceExpanded;
+                ecommerceExpanded = !ecommerceExpanded;
               });
             },
           ),
 
-          const SizedBox(
-            height: 12,
-          ),
+          const SizedBox(height: 12),
 
           // ======================================================
           // PAYMENT
           // ======================================================
-
           _buildExpandableSection(
             title: 'Payment Gateways',
-            subtitle:
-                '${paymentLinks.length} links',
-            icon:
-                Icons.credit_card_rounded,
-            expanded:
-                paymentExpanded,
-            children:
-                paymentLinks,
+            subtitle: '${paymentLinks.length} links',
+            icon: Icons.credit_card_rounded,
+            expanded: paymentExpanded,
+            children: paymentLinks,
             onTap: () {
               setState(() {
-                paymentExpanded =
-                    !paymentExpanded;
+                paymentExpanded = !paymentExpanded;
               });
             },
           ),
@@ -508,20 +418,14 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
     required IconData icon,
     required bool expanded,
     required VoidCallback onTap,
-    required List<Map<String, dynamic>>
-        children,
+    required List<Map<String, dynamic>> children,
   }) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: surface2,
-        borderRadius:
-            BorderRadius.circular(
-          14,
-        ),
-        border: Border.all(
-          color: borderColor,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
@@ -530,8 +434,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             child: InkWell(
               onTap: onTap,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 15,
                   vertical: 15,
                 ),
@@ -540,46 +443,29 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                     Container(
                       width: 38,
                       height: 38,
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            purple.withOpacity(
-                          0.10,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(
-                          10,
-                        ),
+                      decoration: BoxDecoration(
+                        color: purple.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(
-                        icon,
-                        color: gold,
-                        size: 19,
-                      ),
+                      child: Icon(icon, color: gold, size: 19),
                     ),
 
-                    const SizedBox(
-                      width: 12,
-                    ),
+                    const SizedBox(width: 12),
 
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             title,
                             style: const TextStyle(
                               color: lightText,
                               fontSize: 14,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 3,
-                          ),
+                          const SizedBox(height: 3),
 
                           Text(
                             subtitle,
@@ -593,15 +479,10 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                     ),
 
                     AnimatedRotation(
-                      duration:
-                          const Duration(
-                        milliseconds: 180,
-                      ),
-                      turns:
-                          expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      turns: expanded ? 0.5 : 0,
                       child: const Icon(
-                        Icons
-                            .keyboard_arrow_down_rounded,
+                        Icons.keyboard_arrow_down_rounded,
                         color: lightText,
                       ),
                     ),
@@ -612,24 +493,15 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
           ),
 
           if (expanded) ...[
-            Container(
-              height: 1,
-              color: borderColor,
-            ),
+            Container(height: 1, color: borderColor),
 
-            ...List.generate(
-              children.length,
-              (index) {
-                return _buildSavedLink(
-                  source: children,
-                  index: index,
-                  showBottomBorder:
-                      index !=
-                          children.length -
-                              1,
-                );
-              },
-            ),
+            ...List.generate(children.length, (index) {
+              return _buildSavedLink(
+                source: children,
+                index: index,
+                showBottomBorder: index != children.length - 1,
+              );
+            }),
           ],
         ],
       ),
@@ -641,25 +513,19 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // ============================================================
 
   Widget _buildSavedLink({
-    required List<Map<String, dynamic>>
-        source,
+    required List<Map<String, dynamic>> source,
     required int index,
     required bool showBottomBorder,
   }) {
-    final Map<String, dynamic> link =
-        source[index];
+    final Map<String, dynamic> link = source[index];
 
-    final String name =
-        link['name']?.toString() ?? '';
+    final String name = link['name']?.toString() ?? '';
 
-    final String url =
-        link['url']?.toString() ?? '';
+    final String url = link['url']?.toString() ?? '';
 
-    final String platform =
-        link['platform']?.toString() ?? '';
+    final String platform = link['platform']?.toString() ?? '';
 
-    final bool checked =
-        link['selected'] == true;
+    final bool checked = link['selected'] == true;
 
     return InkWell(
       onTap: () {
@@ -668,36 +534,22 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
         // ========================================================
 
         setState(() {
-          source[index]['selected'] =
-              !checked;
+          source[index]['selected'] = !checked;
         });
       },
       child: Container(
         decoration: BoxDecoration(
-          color: checked
-              ? purple.withOpacity(
-                  0.07,
-                )
-              : Colors.transparent,
+          color: checked ? purple.withOpacity(0.07) : Colors.transparent,
           border: showBottomBorder
-              ? const Border(
-                  bottom: BorderSide(
-                    color: borderColor,
-                  ),
-                )
+              ? const Border(bottom: BorderSide(color: borderColor))
               : null,
         ),
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 6,
-          vertical: 9,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
         child: Row(
           children: [
             // ====================================================
             // CHECKBOX
             // ====================================================
-
             SizedBox(
               width: 42,
               height: 42,
@@ -706,23 +558,10 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                   value: checked,
                   activeColor: purple,
                   checkColor: white,
-                  materialTapTargetSize:
-                      MaterialTapTargetSize
-                          .padded,
-                  side:
-                      const BorderSide(
-                    color:
-                        Color(
-                      0xFF727987,
-                    ),
-                    width: 1.5,
-                  ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      5,
-                    ),
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  side: const BorderSide(color: Color(0xFF727987), width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   onChanged: (value) {
                     // ============================================
@@ -730,9 +569,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                     // ============================================
 
                     setState(() {
-                      source[index]
-                              ['selected'] =
-                          value ?? false;
+                      source[index]['selected'] = value ?? false;
                     });
                   },
                 ),
@@ -742,52 +579,35 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             // ====================================================
             // PLATFORM LOGO
             // ====================================================
+            _buildPlatformLogo(platform),
 
-            _buildPlatformLogo(
-              platform,
-            ),
-
-            const SizedBox(
-              width: 11,
-            ),
+            const SizedBox(width: 11),
 
             // ====================================================
             // NAME + URL
             // ====================================================
-
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     name,
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: lightText,
                       fontSize: 13.5,
-                      fontWeight:
-                          FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 4,
-                  ),
+                  const SizedBox(height: 4),
 
                   Text(
                     url,
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
-                      color: mutedText,
-                      fontSize: 10.5,
-                    ),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: mutedText, fontSize: 10.5),
                   ),
                 ],
               ),
@@ -796,20 +616,14 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             // ====================================================
             // COPY
             // ====================================================
-
             IconButton(
               tooltip: 'Copy Link',
               onPressed: () {
-                _copyLink(
-                  url,
-                );
+                _copyLink(url);
               },
               icon: const Icon(
                 Icons.content_copy_rounded,
-                color:
-                    Color(
-                  0xFF9CA2AF,
-                ),
+                color: Color(0xFF9CA2AF),
                 size: 18,
               ),
             ),
@@ -817,21 +631,13 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             // ====================================================
             // THREE DOTS
             // ====================================================
-
             PopupMenuButton<String>(
               tooltip: 'Options',
               color: surface2,
               elevation: 14,
-              shape:
-                  RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(
-                  12,
-                ),
-                side:
-                    const BorderSide(
-                  color: borderColor,
-                ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: borderColor),
               ),
               icon: const Icon(
                 Icons.more_vert_rounded,
@@ -840,17 +646,11 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
               ),
               onSelected: (value) {
                 if (value == 'edit') {
-                  _showEditDialog(
-                    source: source,
-                    index: index,
-                  );
+                  _showEditDialog(source: source, index: index);
                 }
 
                 if (value == 'delete') {
-                  _showDeleteDialog(
-                    source: source,
-                    index: index,
-                  );
+                  _showDeleteDialog(source: source, index: index);
                 }
               },
               itemBuilder: (context) {
@@ -859,22 +659,13 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                     value: 'edit',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.edit_outlined,
-                          color: gold,
-                          size: 18,
-                        ),
+                        Icon(Icons.edit_outlined, color: gold, size: 18),
 
-                        SizedBox(
-                          width: 11,
-                        ),
+                        SizedBox(width: 11),
 
                         Text(
                           'Edit',
-                          style: TextStyle(
-                            color: lightText,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: lightText, fontSize: 13),
                         ),
                       ],
                     ),
@@ -885,22 +676,16 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons
-                              .delete_outline_rounded,
+                          Icons.delete_outline_rounded,
                           color: red,
                           size: 18,
                         ),
 
-                        SizedBox(
-                          width: 11,
-                        ),
+                        SizedBox(width: 11),
 
                         Text(
                           'Delete',
-                          style: TextStyle(
-                            color: red,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: red, fontSize: 13),
                         ),
                       ],
                     ),
@@ -918,19 +703,12 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // PLATFORM LOGO
   // ============================================================
 
-  Widget _buildPlatformLogo(
-    String platform,
-  ) {
-    IconData icon =
-        Icons.link_rounded;
+  Widget _buildPlatformLogo(String platform) {
+    IconData icon = Icons.link_rounded;
 
-    Color iconColor =
-        purple;
+    Color iconColor = purple;
 
-    Color background =
-        purple.withOpacity(
-      0.12,
-    );
+    Color background = purple.withOpacity(0.12);
 
     switch (platform.toLowerCase()) {
       // ========================================================
@@ -938,78 +716,33 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       // ========================================================
 
       case 'instagram':
-        icon =
-            Icons.camera_alt_rounded;
-        iconColor =
-            const Color(
-          0xFFE1306C,
-        );
-        background =
-            const Color(
-          0xFFE1306C,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.camera_alt_rounded;
+        iconColor = const Color(0xFFE1306C);
+        background = const Color(0xFFE1306C).withOpacity(0.12);
         break;
 
       case 'facebook':
-        icon =
-            Icons.facebook_rounded;
-        iconColor =
-            const Color(
-          0xFF1877F2,
-        );
-        background =
-            const Color(
-          0xFF1877F2,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.facebook_rounded;
+        iconColor = const Color(0xFF1877F2);
+        background = const Color(0xFF1877F2).withOpacity(0.12);
         break;
 
       case 'whatsapp':
-        icon =
-            Icons.chat_rounded;
-        iconColor =
-            const Color(
-          0xFF25D366,
-        );
-        background =
-            const Color(
-          0xFF25D366,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.chat_rounded;
+        iconColor = const Color(0xFF25D366);
+        background = const Color(0xFF25D366).withOpacity(0.12);
         break;
 
       case 'youtube':
-        icon =
-            Icons.play_circle_fill_rounded;
-        iconColor =
-            const Color(
-          0xFFFF0000,
-        );
-        background =
-            const Color(
-          0xFFFF0000,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.play_circle_fill_rounded;
+        iconColor = const Color(0xFFFF0000);
+        background = const Color(0xFFFF0000).withOpacity(0.12);
         break;
 
       case 'linkedin':
-        icon =
-            Icons.business_center_rounded;
-        iconColor =
-            const Color(
-          0xFF0A66C2,
-        );
-        background =
-            const Color(
-          0xFF0A66C2,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.business_center_rounded;
+        iconColor = const Color(0xFF0A66C2);
+        background = const Color(0xFF0A66C2).withOpacity(0.12);
         break;
 
       // ========================================================
@@ -1017,78 +750,33 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       // ========================================================
 
       case 'amazon':
-        icon =
-            Icons.shopping_bag_rounded;
-        iconColor =
-            const Color(
-          0xFFFF9900,
-        );
-        background =
-            const Color(
-          0xFFFF9900,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.shopping_bag_rounded;
+        iconColor = const Color(0xFFFF9900);
+        background = const Color(0xFFFF9900).withOpacity(0.12);
         break;
 
       case 'flipkart':
-        icon =
-            Icons.shopping_cart_rounded;
-        iconColor =
-            const Color(
-          0xFFFFD814,
-        );
-        background =
-            const Color(
-          0xFFFFD814,
-        ).withOpacity(
-          0.10,
-        );
+        icon = Icons.shopping_cart_rounded;
+        iconColor = const Color(0xFFFFD814);
+        background = const Color(0xFFFFD814).withOpacity(0.10);
         break;
 
       case 'meesho':
-        icon =
-            Icons.storefront_rounded;
-        iconColor =
-            const Color(
-          0xFFF43397,
-        );
-        background =
-            const Color(
-          0xFFF43397,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.storefront_rounded;
+        iconColor = const Color(0xFFF43397);
+        background = const Color(0xFFF43397).withOpacity(0.12);
         break;
 
       case 'myntra':
-        icon =
-            Icons.local_mall_rounded;
-        iconColor =
-            const Color(
-          0xFFFF3F6C,
-        );
-        background =
-            const Color(
-          0xFFFF3F6C,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.local_mall_rounded;
+        iconColor = const Color(0xFFFF3F6C);
+        background = const Color(0xFFFF3F6C).withOpacity(0.12);
         break;
 
       case 'website':
-        icon =
-            Icons.language_rounded;
-        iconColor =
-            const Color(
-          0xFF65A6FF,
-        );
-        background =
-            const Color(
-          0xFF65A6FF,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.language_rounded;
+        iconColor = const Color(0xFF65A6FF);
+        background = const Color(0xFF65A6FF).withOpacity(0.12);
         break;
 
       // ========================================================
@@ -1096,78 +784,33 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       // ========================================================
 
       case 'googlepay':
-        icon =
-            Icons.account_balance_wallet_rounded;
-        iconColor =
-            const Color(
-          0xFF4285F4,
-        );
-        background =
-            const Color(
-          0xFF4285F4,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.account_balance_wallet_rounded;
+        iconColor = const Color(0xFF4285F4);
+        background = const Color(0xFF4285F4).withOpacity(0.12);
         break;
 
       case 'phonepe':
-        icon =
-            Icons.account_balance_wallet_rounded;
-        iconColor =
-            const Color(
-          0xFF6739B7,
-        );
-        background =
-            const Color(
-          0xFF6739B7,
-        ).withOpacity(
-          0.14,
-        );
+        icon = Icons.account_balance_wallet_rounded;
+        iconColor = const Color(0xFF6739B7);
+        background = const Color(0xFF6739B7).withOpacity(0.14);
         break;
 
       case 'paytm':
-        icon =
-            Icons.payments_rounded;
-        iconColor =
-            const Color(
-          0xFF00BAF2,
-        );
-        background =
-            const Color(
-          0xFF00BAF2,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.payments_rounded;
+        iconColor = const Color(0xFF00BAF2);
+        background = const Color(0xFF00BAF2).withOpacity(0.12);
         break;
 
       case 'paypal':
-        icon =
-            Icons.payments_rounded;
-        iconColor =
-            const Color(
-          0xFF0070BA,
-        );
-        background =
-            const Color(
-          0xFF0070BA,
-        ).withOpacity(
-          0.14,
-        );
+        icon = Icons.payments_rounded;
+        iconColor = const Color(0xFF0070BA);
+        background = const Color(0xFF0070BA).withOpacity(0.14);
         break;
 
       case 'razorpay':
-        icon =
-            Icons.credit_card_rounded;
-        iconColor =
-            const Color(
-          0xFF528FF0,
-        );
-        background =
-            const Color(
-          0xFF528FF0,
-        ).withOpacity(
-          0.12,
-        );
+        icon = Icons.credit_card_rounded;
+        iconColor = const Color(0xFF528FF0);
+        background = const Color(0xFF528FF0).withOpacity(0.12);
         break;
     }
 
@@ -1176,16 +819,9 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       height: 41,
       decoration: BoxDecoration(
         color: background,
-        borderRadius:
-            BorderRadius.circular(
-          11,
-        ),
+        borderRadius: BorderRadius.circular(11),
       ),
-      child: Icon(
-        icon,
-        color: iconColor,
-        size: 20,
-      ),
+      child: Icon(icon, color: iconColor, size: 20),
     );
   }
 
@@ -1193,21 +829,11 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // SELECTED LINKS
   // ============================================================
 
-  List<Map<String, dynamic>>
-      _getSelectedLinks() {
+  List<Map<String, dynamic>> _getSelectedLinks() {
     return [
-      ...socialLinks.where(
-        (link) =>
-            link['selected'] == true,
-      ),
-      ...ecommerceLinks.where(
-        (link) =>
-            link['selected'] == true,
-      ),
-      ...paymentLinks.where(
-        (link) =>
-            link['selected'] == true,
-      ),
+      ...socialLinks.where((link) => link['selected'] == true),
+      ...ecommerceLinks.where((link) => link['selected'] == true),
+      ...paymentLinks.where((link) => link['selected'] == true),
     ];
   }
 
@@ -1215,22 +841,14 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // COPY LINK
   // ============================================================
 
-  Future<void> _copyLink(
-    String url,
-  ) async {
-    await Clipboard.setData(
-      ClipboardData(
-        text: url,
-      ),
-    );
+  Future<void> _copyLink(String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
 
     if (!mounted) {
       return;
     }
 
-    _showMessage(
-      'Link copied successfully.',
-    );
+    _showMessage('Link copied successfully.');
   }
 
   // ============================================================
@@ -1238,62 +856,38 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // ============================================================
 
   Future<void> _showEditDialog({
-    required List<Map<String, dynamic>>
-        source,
+    required List<Map<String, dynamic>> source,
     required int index,
   }) async {
-    final TextEditingController
-        nameController =
-        TextEditingController(
-      text:
-          source[index]['name']
-                  ?.toString() ??
-              '',
+    final TextEditingController nameController = TextEditingController(
+      text: source[index]['name']?.toString() ?? '',
     );
 
-    final TextEditingController
-        urlController =
-        TextEditingController(
-      text:
-          source[index]['url']
-                  ?.toString() ??
-              '',
+    final TextEditingController urlController = TextEditingController(
+      text: source[index]['url']?.toString() ?? '',
     );
 
     await showDialog(
       context: context,
-      builder: (
-        dialogContext,
-      ) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: surface2,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              18,
-            ),
-            side: const BorderSide(
-              color: borderColor,
-            ),
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: borderColor),
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons.edit_outlined,
-                color: gold,
-              ),
+              Icon(Icons.edit_outlined, color: gold),
 
-              SizedBox(
-                width: 10,
-              ),
+              SizedBox(width: 10),
 
               Text(
                 'Edit Link',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -1301,27 +895,20 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
           content: SizedBox(
             width: 420,
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _dialogInput(
-                  controller:
-                      nameController,
+                  controller: nameController,
                   hint: 'Link Name',
-                  icon:
-                      Icons.apps_rounded,
+                  icon: Icons.apps_rounded,
                 ),
 
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
 
                 _dialogInput(
-                  controller:
-                      urlController,
+                  controller: urlController,
                   hint: 'Link URL',
-                  icon:
-                      Icons.link_rounded,
+                  icon: Icons.link_rounded,
                 ),
               ],
             ),
@@ -1329,62 +916,36 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
               },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                  color: mutedText,
-                ),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: mutedText)),
             ),
 
             ElevatedButton.icon(
               onPressed: () {
-                final String name =
-                    nameController.text
-                        .trim();
+                final String name = nameController.text.trim();
 
-                final String url =
-                    urlController.text
-                        .trim();
+                final String url = urlController.text.trim();
 
-                if (name.isEmpty ||
-                    url.isEmpty) {
-                  _showMessage(
-                    'Please complete both fields.',
-                  );
+                if (name.isEmpty || url.isEmpty) {
+                  _showMessage('Please complete both fields.');
 
                   return;
                 }
 
                 setState(() {
-                  source[index]['name'] =
-                      name;
+                  source[index]['name'] = name;
 
-                  source[index]['url'] =
-                      url;
+                  source[index]['url'] = url;
                 });
 
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
 
-                _showMessage(
-                  'Link updated successfully.',
-                );
+                _showMessage('Link updated successfully.');
               },
-              icon: const Icon(
-                Icons.save_outlined,
-                size: 17,
-              ),
-              label: const Text(
-                'Save',
-              ),
-              style:
-                  ElevatedButton.styleFrom(
+              icon: const Icon(Icons.save_outlined, size: 17),
+              label: const Text('Save'),
+              style: ElevatedButton.styleFrom(
                 backgroundColor: purple,
                 foregroundColor: white,
               ),
@@ -1403,51 +964,27 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // ============================================================
 
   Widget _dialogInput({
-    required TextEditingController
-        controller,
+    required TextEditingController controller,
     required String hint,
     required IconData icon,
   }) {
     return TextField(
       controller: controller,
       cursorColor: purple,
-      style: const TextStyle(
-        color: white,
-        fontSize: 13,
-      ),
+      style: const TextStyle(color: white, fontSize: 13),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: mutedText,
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: mutedText,
-          size: 19,
-        ),
+        hintStyle: const TextStyle(color: mutedText),
+        prefixIcon: Icon(icon, color: mutedText, size: 19),
         filled: true,
         fillColor: pageBackground,
-        enabledBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            11,
-          ),
-          borderSide:
-              const BorderSide(
-            color: borderColor,
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(11),
+          borderSide: const BorderSide(color: borderColor),
         ),
-        focusedBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            11,
-          ),
-          borderSide:
-              const BorderSide(
-            color: purple,
-          ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(11),
+          borderSide: const BorderSide(color: purple),
         ),
       ),
     );
@@ -1458,94 +995,55 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // ============================================================
 
   Future<void> _showDeleteDialog({
-    required List<Map<String, dynamic>>
-        source,
+    required List<Map<String, dynamic>> source,
     required int index,
   }) async {
-    final String name =
-        source[index]['name']
-                ?.toString() ??
-            'this link';
+    final String name = source[index]['name']?.toString() ?? 'this link';
 
-    final bool? confirmed =
-        await showDialog<bool>(
+    final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (
-        dialogContext,
-      ) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: surface2,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              18,
-            ),
-            side: const BorderSide(
-              color: borderColor,
-            ),
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: borderColor),
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons
-                    .delete_outline_rounded,
-                color: red,
-              ),
+              Icon(Icons.delete_outline_rounded, color: red),
 
-              SizedBox(
-                width: 10,
-              ),
+              SizedBox(width: 10),
 
               Text(
                 'Delete Link',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
           content: Text(
             'Are you sure you want to delete $name?',
-            style: const TextStyle(
-              color: mutedText,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: mutedText, fontSize: 13),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  false,
-                );
+                Navigator.pop(dialogContext, false);
               },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                  color: mutedText,
-                ),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: mutedText)),
             ),
 
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
+                Navigator.pop(dialogContext, true);
               },
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 17,
-              ),
-              label: const Text(
-                'Delete',
-              ),
-              style:
-                  ElevatedButton.styleFrom(
+              icon: const Icon(Icons.delete_outline, size: 17),
+              label: const Text('Delete'),
+              style: ElevatedButton.styleFrom(
                 backgroundColor: red,
                 foregroundColor: white,
               ),
@@ -1564,14 +1062,10 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
     }
 
     setState(() {
-      source.removeAt(
-        index,
-      );
+      source.removeAt(index);
     });
 
-    _showMessage(
-      'Link deleted successfully.',
-    );
+    _showMessage('Link deleted successfully.');
   }
 
   // ============================================================
@@ -1587,30 +1081,18 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       height: 46,
       child: ElevatedButton.icon(
         onPressed: onTap,
-        icon: Icon(
-          icon,
-          size: 18,
-        ),
+        icon: Icon(icon, size: 18),
         label: Text(
           label,
           maxLines: 1,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight:
-                FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
-        style:
-            ElevatedButton.styleFrom(
+        style: ElevatedButton.styleFrom(
           backgroundColor: gold,
           foregroundColor: pageBackground,
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              10,
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
@@ -1626,31 +1108,17 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       height: 46,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(
-          icon,
-          size: 18,
-        ),
+        icon: Icon(icon, size: 18),
         label: Text(
           label,
           maxLines: 1,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight:
-                FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
-        style:
-            OutlinedButton.styleFrom(
+        style: OutlinedButton.styleFrom(
           foregroundColor: lightText,
-          side: const BorderSide(
-            color: borderColor,
-          ),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              10,
-            ),
+          side: const BorderSide(color: borderColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
@@ -1668,45 +1136,24 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [
-              Color(0xFFF2C45F),
-              Color(0xFFD9A93F),
-            ],
+            colors: [Color(0xFFF2C45F), Color(0xFFD9A93F)],
           ),
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child:
-            ElevatedButton.icon(
+        child: ElevatedButton.icon(
           onPressed: onTap,
-          icon: Icon(
-            icon,
-            size: 18,
-          ),
+          icon: Icon(icon, size: 18),
           label: Text(
             label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight:
-                  FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
           ),
-          style:
-              ElevatedButton.styleFrom(
-            backgroundColor:
-                Colors.transparent,
-            shadowColor:
-                Colors.transparent,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
             foregroundColor: pageBackground,
             elevation: 0,
-            shape:
-                RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         ),
@@ -1718,40 +1165,21 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        behavior:
-            SnackBarBehavior.floating,
-        backgroundColor:
-            const Color(
-          0xFF20242E,
-        ),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
-        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF20242E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         content: Text(
           message,
-          style: const TextStyle(
-            color: white,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: white, fontSize: 12),
         ),
       ),
     );

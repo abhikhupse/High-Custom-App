@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="LaunchTheme" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/launch_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/native_splash_animation</item>
-        <item name="windowSplashScreenAnimationDuration">1320</item>
-        <item name="postSplashScreenTheme">@style/NormalTheme</item>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/launch_background</item>
     </style>
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@color/launch_background</item>
