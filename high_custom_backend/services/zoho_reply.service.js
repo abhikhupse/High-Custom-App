@@ -54,11 +54,29 @@ async function refreshAccessToken(integration) {
 
 async function zohoGet(integration, path, params = {}) {
   const accessToken = await refreshAccessToken(integration);
-  const response = await axios.get(`${mailBaseUrl()}${path}`, {
-    params,
-    headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
-  });
-  return response.data;
+  const url = `${mailBaseUrl()}${path}`;
+  try {
+    const response = await axios.get(url, {
+      params,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    const detail =
+      error.response?.data?.data?.moreInfo ||
+      error.response?.data?.status?.description ||
+      error.response?.data?.error ||
+      error.message;
+    const wrapped = new Error(`Zoho Mail API request failed (${path}): ${detail}`);
+    wrapped.statusCode = error.response?.status;
+    wrapped.zohoResponse = error.response?.data;
+    wrapped.zohoPath = path;
+    throw wrapped;
+  }
 }
 
 async function syncZohoReplies(integration) {

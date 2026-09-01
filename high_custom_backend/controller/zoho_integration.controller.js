@@ -7,7 +7,9 @@ const { zohoGet, syncZohoReplies } = require("../services/zoho_reply.service");
 const APP_DEEP_LINK = "highcustom://integration";
 
 function accountsBaseUrl() {
-  return String(process.env.ZOHO_ACCOUNTS_BASE_URL || "https://accounts.zoho.in").replace(/\/$/, "");
+  return String(
+    process.env.ZOHO_ACCOUNTS_BASE_URL || "https://accounts.zoho.in",
+  ).replace(/\/$/, "");
 }
 
 function requiredConfig() {
@@ -29,12 +31,19 @@ function requiredConfig() {
 exports.connectZoho = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: "User authentication required." });
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "User authentication required." });
 
     const config = requiredConfig();
-    const state = jwt.sign({ userId: userId.toString(), provider: "zoho" }, process.env.JWT_SECRET, {
-      expiresIn: "10m",
-    });
+    const state = jwt.sign(
+      { userId: userId.toString(), provider: "zoho" },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "10m",
+      },
+    );
     const query = new URLSearchParams({
       scope: config.scopes,
       client_id: config.clientId,
@@ -58,7 +67,10 @@ exports.connectZoho = async (req, res) => {
 
 exports.zohoCallback = async (req, res) => {
   const redirectFailure = (error) =>
-    res.redirect(302, `${APP_DEEP_LINK}?provider=zoho&success=false&error=${encodeURIComponent(error)}`);
+    res.redirect(
+      302,
+      `${APP_DEEP_LINK}?provider=zoho&success=false&error=${encodeURIComponent(error)}`,
+    );
 
   try {
     const { code, state, error } = req.query;
@@ -72,7 +84,8 @@ exports.zohoCallback = async (req, res) => {
     } catch (_) {
       return redirectFailure("invalid_state");
     }
-    if (!decoded.userId || decoded.provider !== "zoho") return redirectFailure("invalid_state");
+    if (!decoded.userId || decoded.provider !== "zoho")
+      return redirectFailure("invalid_state");
 
     const config = requiredConfig();
     const tokenBody = new URLSearchParams({
@@ -82,11 +95,16 @@ exports.zohoCallback = async (req, res) => {
       redirect_uri: config.redirectUri,
       code: String(code),
     });
-    const tokenResponse = await axios.post(`${accountsBaseUrl()}/oauth/v2/token`, tokenBody, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const tokenResponse = await axios.post(
+      `${accountsBaseUrl()}/oauth/v2/token`,
+      tokenBody,
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      },
+    );
     const tokens = tokenResponse.data || {};
-    if (!tokens.access_token) return redirectFailure(tokens.error || "no_access_token");
+    if (!tokens.access_token)
+      return redirectFailure(tokens.error || "no_access_token");
 
     const existing = await ZOHO_INTEGRATION.findOne({ userId: decoded.userId });
     const refreshToken = tokens.refresh_token || existing?.refreshToken;
@@ -95,12 +113,17 @@ exports.zohoCallback = async (req, res) => {
     const temporary = {
       accessToken: tokens.access_token,
       refreshToken,
-      expiresAt: new Date(Date.now() + Number(tokens.expires_in || 3600) * 1000),
+      expiresAt: new Date(
+        Date.now() + Number(tokens.expires_in || 3600) * 1000,
+      ),
       save: async () => {},
     };
     const accountsPayload = await zohoGet(temporary, "/api/accounts");
-    const accounts = Array.isArray(accountsPayload?.data) ? accountsPayload.data : [];
-    const account = accounts.find((item) => item.primaryEmailAddress) || accounts[0];
+    const accounts = Array.isArray(accountsPayload?.data)
+      ? accountsPayload.data
+      : [];
+    const account =
+      accounts.find((item) => item.primaryEmailAddress) || accounts[0];
     const accountId = account?.accountId;
     const email = account?.primaryEmailAddress || account?.emailAddress;
     if (!accountId || !email) return redirectFailure("no_email");
@@ -117,7 +140,9 @@ exports.zohoCallback = async (req, res) => {
           apiDomain: tokens.api_domain || null,
           scope: config.scopes,
           tokenType: tokens.token_type || "Bearer",
-          expiresAt: new Date(Date.now() + Number(tokens.expires_in || 3600) * 1000),
+          expiresAt: new Date(
+            Date.now() + Number(tokens.expires_in || 3600) * 1000,
+          ),
           connectedAt: new Date(),
           lastSyncAt: new Date(),
           lastSyncError: null,
@@ -131,20 +156,45 @@ exports.zohoCallback = async (req, res) => {
       `${APP_DEEP_LINK}?provider=zoho&success=true&email=${encodeURIComponent(email)}`,
     );
   } catch (error) {
-    console.error("Zoho Callback Error:", error.response?.data || error.message);
-    return redirectFailure(error.response?.data?.error || error.message || "callback_failed");
+    console.error("Zoho Callback Error:", {
+      step: error.zohoPath ? "mail_account_lookup" : "oauth_token_exchange",
+      endpoint: error.zohoPath || `${accountsBaseUrl()}/oauth/v2/token`,
+      statusCode: error.statusCode || error.response?.status,
+      response: error.zohoResponse || error.response?.data,
+      message: error.message,
+    });
+
+    if (
+      error.zohoPath === "/api/accounts" &&
+      (error.statusCode === 500 || error.zohoResponse?.status?.code === 500)
+    ) {
+      return redirectFailure("zoho_mail_account_unavailable");
+    }
+
+    return redirectFailure(
+      error.response?.data?.error || error.message || "callback_failed",
+    );
   }
 };
 
 exports.getZohoStatus = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: "User authentication required." });
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "User authentication required." });
     const integration = await ZOHO_INTEGRATION.findOne({ userId }).select(
       "email connectedAt lastSyncAt lastSyncError",
     );
     if (!integration) {
-      return res.status(200).json({ success: true, connected: false, message: "Zoho Mail is not connected." });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          connected: false,
+          message: "Zoho Mail is not connected.",
+        });
     }
     return res.status(200).json({
       success: true,
@@ -156,29 +206,48 @@ exports.getZohoStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Zoho Status Error:", error.message);
-    return res.status(500).json({ success: false, message: "Failed to get Zoho Mail status." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to get Zoho Mail status." });
   }
 };
 
 exports.disconnectZoho = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: "User authentication required." });
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "User authentication required." });
     const integration = await ZOHO_INTEGRATION.findOne({ userId });
-    if (!integration) return res.status(404).json({ success: false, message: "Zoho Mail is not connected." });
+    if (!integration)
+      return res
+        .status(404)
+        .json({ success: false, message: "Zoho Mail is not connected." });
 
     try {
       await axios.post(`${accountsBaseUrl()}/oauth/v2/token/revoke`, null, {
         params: { token: integration.refreshToken },
       });
     } catch (error) {
-      console.warn("Zoho token revoke failed:", error.response?.data || error.message);
+      console.warn(
+        "Zoho token revoke failed:",
+        error.response?.data || error.message,
+      );
     }
     await ZOHO_INTEGRATION.deleteOne({ userId });
-    return res.status(200).json({ success: true, connected: false, message: "Zoho Mail disconnected successfully." });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        connected: false,
+        message: "Zoho Mail disconnected successfully.",
+      });
   } catch (error) {
     console.error("Zoho Disconnect Error:", error.message);
-    return res.status(500).json({ success: false, message: "Failed to disconnect Zoho Mail." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to disconnect Zoho Mail." });
   }
 };
 
@@ -186,11 +255,25 @@ exports.syncZoho = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
     const integration = await ZOHO_INTEGRATION.findOne({ userId });
-    if (!integration) return res.status(404).json({ success: false, message: "Zoho Mail is not connected." });
+    if (!integration)
+      return res
+        .status(404)
+        .json({ success: false, message: "Zoho Mail is not connected." });
     const result = await syncZohoReplies(integration);
-    return res.status(200).json({ success: true, message: "Zoho replies synchronized.", ...result });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Zoho replies synchronized.",
+        ...result,
+      });
   } catch (error) {
-    console.error("Zoho Manual Sync Error:", error.response?.data || error.message);
-    return res.status(500).json({ success: false, message: "Unable to synchronize Zoho replies." });
+    console.error(
+      "Zoho Manual Sync Error:",
+      error.response?.data || error.message,
+    );
+    return res
+      .status(500)
+      .json({ success: false, message: "Unable to synchronize Zoho replies." });
   }
 };

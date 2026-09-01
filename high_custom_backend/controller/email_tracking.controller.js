@@ -5,6 +5,7 @@ const USER = require("../model/user.model");
 const LEAD = require("../model/leads.model");
 const LEAD_INTEREST_DETAILS = require("../model/lead_interest_details.model");
 const { getClientIp } = require("../utils/clientIp");
+const { detectEmailOpenScanner } = require("../utils/emailOpenScanner");
 
 // ============================================================
 // TRACK EMAIL OPEN
@@ -135,6 +136,19 @@ exports.trackOpen = async (req, res) => {
       console.log(
         "============================================================",
       );
+
+      return sendTrackingPixel(res);
+    }
+
+    // ==========================================================
+    // IGNORE MAIL SECURITY SCANNERS AND AUTOMATED PREFETCHES
+    // ==========================================================
+
+    const scannerCheck = detectEmailOpenScanner(req, delivery, requestTime);
+
+    if (scannerCheck.isScanner) {
+      console.log(`IGNORED OPEN: ${scannerCheck.reason}`);
+      console.log("============================================================");
 
       return sendTrackingPixel(res);
     }

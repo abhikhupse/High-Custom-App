@@ -10,17 +10,13 @@ import '../../services/integration_api.dart';
 import '../../widgets/app_skeleton.dart';
 
 class IntegrationScreen extends StatefulWidget {
-  const IntegrationScreen({
-    super.key,
-  });
+  const IntegrationScreen({super.key});
 
   @override
-  State<IntegrationScreen> createState() =>
-      _IntegrationScreenState();
+  State<IntegrationScreen> createState() => _IntegrationScreenState();
 }
 
-class _IntegrationScreenState
-    extends State<IntegrationScreen>
+class _IntegrationScreenState extends State<IntegrationScreen>
     with WidgetsBindingObserver {
   // ============================================================
   // APP LINKS
@@ -98,23 +94,17 @@ class _IntegrationScreenState
   // ============================================================
 
   @override
-  void didChangeAppLifecycleState(
-    AppLifecycleState state,
-  ) {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.resumed) {
-      debugPrint(
-        'Flutter application resumed.',
-      );
+      debugPrint('Flutter application resumed.');
 
       if (!mounted) {
         return;
       }
 
-      _loadIntegrationStatus(
-        showLoader: false,
-      );
+      _loadIntegrationStatus(showLoader: false);
     }
   }
 
@@ -134,48 +124,34 @@ class _IntegrationScreenState
       // INITIAL LINK
       // --------------------------------------------------------
 
-      final Uri? initialUri =
-          await _appLinks.getInitialLink();
+      final Uri? initialUri = await _appLinks.getInitialLink();
 
       if (initialUri != null) {
-        debugPrint(
-          'Initial App Link: $initialUri',
-        );
+        debugPrint('Initial App Link: $initialUri');
 
-        await _handleAppLink(
-          initialUri,
-        );
+        await _handleAppLink(initialUri);
       }
 
       // --------------------------------------------------------
       // STREAM
       // --------------------------------------------------------
 
-      _appLinkSubscription =
-          _appLinks.uriLinkStream.listen(
+      _appLinkSubscription = _appLinks.uriLinkStream.listen(
         (Uri uri) async {
-          debugPrint(
-            'Received App Link: $uri',
-          );
+          debugPrint('Received App Link: $uri');
 
           if (!mounted) {
             return;
           }
 
-          await _handleAppLink(
-            uri,
-          );
+          await _handleAppLink(uri);
         },
         onError: (error) {
-          debugPrint(
-            'App Link Error: $error',
-          );
+          debugPrint('App Link Error: $error');
         },
       );
     } catch (error) {
-      debugPrint(
-        'App Link Initialization Error: $error',
-      );
+      debugPrint('App Link Initialization Error: $error');
     }
   }
 
@@ -183,43 +159,27 @@ class _IntegrationScreenState
   // HANDLE APP LINK
   // ============================================================
 
-  Future<void> _handleAppLink(
-    Uri uri,
-  ) async {
-    debugPrint(
-      '======================================',
-    );
+  Future<void> _handleAppLink(Uri uri) async {
+    debugPrint('======================================');
 
     debugPrint('INTEGRATION CALLBACK RECEIVED');
 
-    debugPrint(
-      'URI: $uri',
-    );
+    debugPrint('URI: $uri');
 
-    debugPrint(
-      'SCHEME: ${uri.scheme}',
-    );
+    debugPrint('SCHEME: ${uri.scheme}');
 
-    debugPrint(
-      'HOST: ${uri.host}',
-    );
+    debugPrint('HOST: ${uri.host}');
 
-    debugPrint(
-      'PARAMETERS: ${uri.queryParameters}',
-    );
+    debugPrint('PARAMETERS: ${uri.queryParameters}');
 
-    debugPrint(
-      '======================================',
-    );
+    debugPrint('======================================');
 
     // ----------------------------------------------------------
     // CHECK SCHEME
     // ----------------------------------------------------------
 
     if (uri.scheme != 'highcustom') {
-      debugPrint(
-        'Wrong deep-link scheme.',
-      );
+      debugPrint('Wrong deep-link scheme.');
 
       return;
     }
@@ -229,9 +189,7 @@ class _IntegrationScreenState
     // ----------------------------------------------------------
 
     if (uri.host != 'integration') {
-      debugPrint(
-        'Wrong deep-link host.',
-      );
+      debugPrint('Wrong deep-link host.');
 
       return;
     }
@@ -240,29 +198,19 @@ class _IntegrationScreenState
     // PARAMETERS
     // ----------------------------------------------------------
 
-    final success =
-        uri.queryParameters['success'];
+    final success = uri.queryParameters['success'];
 
-    final email =
-        uri.queryParameters['email'];
+    final email = uri.queryParameters['email'];
 
-    final error =
-        uri.queryParameters['error'];
+    final error = uri.queryParameters['error'];
 
-    final provider =
-        uri.queryParameters['provider'] ?? 'gmail';
+    final provider = uri.queryParameters['provider'] ?? 'gmail';
 
-    debugPrint(
-      'Success: $success',
-    );
+    debugPrint('Success: $success');
 
-    debugPrint(
-      'Email: $email',
-    );
+    debugPrint('Email: $email');
 
-    debugPrint(
-      'Error: $error',
-    );
+    debugPrint('Error: $error');
 
     // ----------------------------------------------------------
     // SUCCESS
@@ -305,15 +253,10 @@ class _IntegrationScreenState
     // ----------------------------------------------------------
 
     if (success == 'false') {
-      final errorText =
-          _friendlyOAuthError(
-        error,
-      );
+      final errorText = _friendlyOAuthError(error);
 
       if (mounted) {
-        _showMessage(
-          errorText,
-        );
+        _showMessage(errorText);
       }
 
       if (provider == 'zoho') {
@@ -328,9 +271,7 @@ class _IntegrationScreenState
   // OAUTH ERROR MESSAGE
   // ============================================================
 
-  String _friendlyOAuthError(
-    String? error,
-  ) {
+  String _friendlyOAuthError(String? error) {
     switch (error) {
       case 'cancelled':
         return 'Google authorization was cancelled.';
@@ -356,6 +297,9 @@ class _IntegrationScreenState
       case 'no_refresh_token':
         return 'Google refresh token was not received.';
 
+      case 'zoho_mail_account_unavailable':
+        return 'Zoho login succeeded, but this user does not have an active Zoho Mail mailbox or Mail API access.';
+
       default:
         return 'Gmail connection failed. Please try again.';
     }
@@ -365,9 +309,7 @@ class _IntegrationScreenState
   // LOAD STATUS
   // ============================================================
 
-  Future<void> _loadIntegrationStatus({
-    bool showLoader = true,
-  }) async {
+  Future<void> _loadIntegrationStatus({bool showLoader = true}) async {
     // ----------------------------------------------------------
     // SHOW LOADER
     // ----------------------------------------------------------
@@ -379,14 +321,9 @@ class _IntegrationScreenState
     }
 
     try {
-      await Future.wait([
-        _getGmailStatus(),
-        _getZohoStatus(),
-      ]);
+      await Future.wait([_getGmailStatus(), _getZohoStatus()]);
     } catch (error) {
-      debugPrint(
-        'Integration Status Error: $error',
-      );
+      debugPrint('Integration Status Error: $error');
     } finally {
       // --------------------------------------------------------
       // ALWAYS STOP LOADER
@@ -437,15 +374,11 @@ class _IntegrationScreenState
 
   Future<void> _getGmailStatus() async {
     try {
-      final data =
-          await IntegrationApi.gmailStatus();
+      final data = await IntegrationApi.gmailStatus();
 
-      debugPrint(
-        'Gmail Status Response: $data',
-      );
+      debugPrint('Gmail Status Response: $data');
 
-      final statusCode =
-          data['statusCode'];
+      final statusCode = data['statusCode'];
 
       // --------------------------------------------------------
       // AUTH ERROR
@@ -462,9 +395,7 @@ class _IntegrationScreenState
           gmailConnectedAt = null;
         });
 
-        _showMessage(
-          'Session expired. Please login again.',
-        );
+        _showMessage('Session expired. Please login again.');
 
         return;
       }
@@ -474,9 +405,7 @@ class _IntegrationScreenState
       // --------------------------------------------------------
 
       if (data['success'] != true) {
-        debugPrint(
-          'Gmail status failed: ${data['message']}',
-        );
+        debugPrint('Gmail status failed: ${data['message']}');
 
         if (mounted) {
           setState(() {
@@ -497,33 +426,23 @@ class _IntegrationScreenState
         return;
       }
 
-      final connected =
-          data['connected'] == true;
+      final connected = data['connected'] == true;
 
       DateTime? connectedAt;
 
       if (data['connectedAt'] != null) {
-        connectedAt =
-            DateTime.tryParse(
-          data['connectedAt'].toString(),
-        );
+        connectedAt = DateTime.tryParse(data['connectedAt'].toString());
       }
 
       setState(() {
         isGmailConnected = connected;
 
-        gmailEmail =
-            connected
-                ? data['email']?.toString()
-                : null;
+        gmailEmail = connected ? data['email']?.toString() : null;
 
-        gmailConnectedAt =
-            connectedAt;
+        gmailConnectedAt = connectedAt;
       });
     } catch (error) {
-      debugPrint(
-        'Gmail Status Error: $error',
-      );
+      debugPrint('Gmail Status Error: $error');
 
       if (!mounted) {
         return;
@@ -553,74 +472,47 @@ class _IntegrationScreenState
     }
 
     try {
-      final data =
-          await IntegrationApi.connectGmail();
+      final data = await IntegrationApi.connectGmail();
 
-      debugPrint(
-        'Gmail Connect Response: $data',
-      );
+      debugPrint('Gmail Connect Response: $data');
 
       if (data['statusCode'] == 401) {
-        _showMessage(
-          'Session expired. Please login again.',
-        );
+        _showMessage('Session expired. Please login again.');
 
         return;
       }
 
       if (data['success'] != true) {
-        _showMessage(
-          data['message']?.toString() ??
-              'Failed to connect Gmail.',
-        );
+        _showMessage(data['message']?.toString() ?? 'Failed to connect Gmail.');
 
         return;
       }
 
-      final authUrl =
-          data['authUrl']?.toString();
+      final authUrl = data['authUrl']?.toString();
 
-      if (authUrl == null ||
-          authUrl.trim().isEmpty) {
-        _showMessage(
-          'Google authorization URL was not received.',
-        );
+      if (authUrl == null || authUrl.trim().isEmpty) {
+        _showMessage('Google authorization URL was not received.');
 
         return;
       }
 
-      final googleUri =
-          Uri.parse(authUrl);
+      final googleUri = Uri.parse(authUrl);
 
-      final canOpen =
-          await canLaunchUrl(
-        googleUri,
-      );
+      final canOpen = await canLaunchUrl(googleUri);
 
       if (!canOpen) {
-        _showMessage(
-          'Unable to open Google authorization.',
-        );
+        _showMessage('Unable to open Google authorization.');
 
         return;
       }
 
-      await launchUrl(
-        googleUri,
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(googleUri, mode: LaunchMode.externalApplication);
 
-      _showMessage(
-        'Complete Gmail authorization in your browser.',
-      );
+      _showMessage('Complete Gmail authorization in your browser.');
     } catch (error) {
-      debugPrint(
-        'Connect Gmail Error: $error',
-      );
+      debugPrint('Connect Gmail Error: $error');
 
-      _showMessage(
-        'Unable to connect Gmail.',
-      );
+      _showMessage('Unable to connect Gmail.');
     } finally {
       if (mounted) {
         setState(() {
@@ -657,25 +549,19 @@ class _IntegrationScreenState
     }
 
     try {
-      final data =
-          await IntegrationApi.disconnectGmail();
+      final data = await IntegrationApi.disconnectGmail();
 
-      debugPrint(
-        'Gmail Disconnect Response: $data',
-      );
+      debugPrint('Gmail Disconnect Response: $data');
 
       if (data['statusCode'] == 401) {
-        _showMessage(
-          'Session expired. Please login again.',
-        );
+        _showMessage('Session expired. Please login again.');
 
         return;
       }
 
       if (data['success'] != true) {
         _showMessage(
-          data['message']?.toString() ??
-              'Failed to disconnect Gmail.',
+          data['message']?.toString() ?? 'Failed to disconnect Gmail.',
         );
 
         return;
@@ -691,17 +577,11 @@ class _IntegrationScreenState
         gmailConnectedAt = null;
       });
 
-      _showMessage(
-        'Gmail disconnected successfully.',
-      );
+      _showMessage('Gmail disconnected successfully.');
     } catch (error) {
-      debugPrint(
-        'Disconnect Gmail Error: $error',
-      );
+      debugPrint('Disconnect Gmail Error: $error');
 
-      _showMessage(
-        'Failed to disconnect Gmail.',
-      );
+      _showMessage('Failed to disconnect Gmail.');
     } finally {
       if (mounted) {
         setState(() {
@@ -724,7 +604,9 @@ class _IntegrationScreenState
     try {
       final data = await IntegrationApi.connectZoho();
       if (data['success'] != true) {
-        _showMessage(data['message']?.toString() ?? 'Failed to connect Zoho Mail.');
+        _showMessage(
+          data['message']?.toString() ?? 'Failed to connect Zoho Mail.',
+        );
         return;
       }
       final authUrl = data['authUrl']?.toString();
@@ -764,7 +646,9 @@ class _IntegrationScreenState
     try {
       final data = await IntegrationApi.disconnectZoho();
       if (data['success'] != true) {
-        _showMessage(data['message']?.toString() ?? 'Failed to disconnect Zoho Mail.');
+        _showMessage(
+          data['message']?.toString() ?? 'Failed to disconnect Zoho Mail.',
+        );
         return;
       }
       if (!mounted) return;
@@ -785,9 +669,7 @@ class _IntegrationScreenState
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }
@@ -801,76 +683,48 @@ class _IntegrationScreenState
 
   void _showDisconnectDialog({
     required String serviceName,
-    required Future<void> Function()
-        onConfirm,
+    required Future<void> Function() onConfirm,
   }) {
     showDialog(
       context: context,
-      builder: (
-        dialogContext,
-      ) {
+      builder: (dialogContext) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              16,
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
             'Disconnect $serviceName?',
-            style:
-                const TextStyle(
-              color:
-                  Color(0xFF101828),
-              fontWeight:
-                  FontWeight.w700,
+            style: const TextStyle(
+              color: Color(0xFF101828),
+              fontWeight: FontWeight.w700,
             ),
           ),
           content: Text(
             'Are you sure you want to disconnect your $serviceName account?',
-            style:
-                const TextStyle(
-              color:
-                  Color(0xFF667085),
-              height: 1.5,
-            ),
+            style: const TextStyle(color: Color(0xFF667085), height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
               },
               child: const Text(
                 'Cancel',
-                style: TextStyle(
-                  color:
-                      Color(0xFF667085),
-                ),
+                style: TextStyle(color: Color(0xFF667085)),
               ),
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
 
                 await onConfirm();
               },
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.red,
-                foregroundColor:
-                    Colors.white,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
                 elevation: 0,
               ),
-              child:
-                  const Text(
-                'Disconnect',
-              ),
+              child: const Text('Disconnect'),
             ),
           ],
         );
@@ -883,150 +737,87 @@ class _IntegrationScreenState
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final width =
-        MediaQuery.of(context).size.width;
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
 
-    final isMobile =
-        width < 700;
+    final isMobile = width < 700;
 
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color:
-          const Color(0xFFF5F7FA),
+      color: const Color(0xFFF5F7FA),
       child: isLoadingStatus
           ? const AppDashboardSkeleton(light: true)
           : RefreshIndicator(
-              onRefresh: () =>
-                  _loadIntegrationStatus(),
-              child:
-                  SingleChildScrollView(
-                physics:
-                    const AlwaysScrollableScrollPhysics(),
-                padding:
-                    EdgeInsets.symmetric(
-                  horizontal:
-                      isMobile
-                          ? 20
-                          : 32,
-                  vertical:
-                      isMobile
-                          ? 24
-                          : 30,
+              onRefresh: () => _loadIntegrationStatus(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 20 : 32,
+                  vertical: isMobile ? 24 : 30,
                 ),
-                child:
-                    Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildPageHeader(
-                      isMobile:
-                          isMobile,
-                    ),
+                    _buildPageHeader(isMobile: isMobile),
 
-                    SizedBox(
-                      height:
-                          isMobile
-                              ? 28
-                              : 36,
-                    ),
+                    SizedBox(height: isMobile ? 28 : 36),
 
                     const Text(
                       'Available Integrations',
-                      style:
-                          TextStyle(
-                        color:
-                            Color(0xFF101828),
-                        fontSize:
-                            22,
-                        fontWeight:
-                            FontWeight.w700,
+                      style: TextStyle(
+                        color: Color(0xFF101828),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 6,
-                    ),
+                    const SizedBox(height: 6),
 
                     const Text(
                       'Connect services that you use with your application.',
-                      style:
-                          TextStyle(
-                        color:
-                            Color(0xFF667085),
-                        fontSize:
-                            14,
-                      ),
+                      style: TextStyle(color: Color(0xFF667085), fontSize: 14),
                     ),
 
-                    const SizedBox(
-                      height: 18,
-                    ),
+                    const SizedBox(height: 18),
 
                     // ==================================================
                     // GMAIL
                     // ==================================================
-
                     _buildIntegrationCard(
-                      isMobile:
-                          isMobile,
-                      name:
-                          'Gmail',
+                      isMobile: isMobile,
+                      name: 'Gmail',
                       description:
                           'Connect your Gmail account to send emails directly from your application.',
-                      logoIcon:
-                          SimpleIcons.google,
-                      logoColor:
-                          SimpleIconColors.google,
-                      isConnected:
-                          isGmailConnected,
-                      connectedEmail:
-                          gmailEmail,
-                      isLoading:
-                          isGmailLoading,
-                      onConnect:
-                          _connectGmail,
-                      onDisconnect:
-                          _disconnectGmail,
+                      logoIcon: SimpleIcons.google,
+                      logoColor: SimpleIconColors.google,
+                      isConnected: isGmailConnected,
+                      connectedEmail: gmailEmail,
+                      isLoading: isGmailLoading,
+                      onConnect: _connectGmail,
+                      onDisconnect: _disconnectGmail,
                     ),
 
-                    const SizedBox(
-                      height: 16,
-                    ),
+                    const SizedBox(height: 16),
 
                     // ==================================================
                     // ZOHO
                     // ==================================================
-
                     _buildIntegrationCard(
-                      isMobile:
-                          isMobile,
-                      name:
-                          'Zoho Mail',
+                      isMobile: isMobile,
+                      name: 'Zoho Mail',
                       description:
                           'Connect your Zoho Mail account to send emails directly from your application.',
-                      logoIcon:
-                          SimpleIcons.zoho,
-                      logoColor:
-                          SimpleIconColors.zoho,
-                      isConnected:
-                          isZohoConnected,
-                      connectedEmail:
-                          zohoEmail,
-                      isLoading:
-                          isZohoLoading,
-                      onConnect:
-                          _connectZoho,
-                      onDisconnect:
-                          _disconnectZoho,
+                      logoIcon: SimpleIcons.zoho,
+                      logoColor: SimpleIconColors.zoho,
+                      isConnected: isZohoConnected,
+                      connectedEmail: zohoEmail,
+                      isLoading: isZohoLoading,
+                      onConnect: _connectZoho,
+                      onDisconnect: _disconnectZoho,
                     ),
 
-                    const SizedBox(
-                      height: 30,
-                    ),
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),
@@ -1038,80 +829,45 @@ class _IntegrationScreenState
   // PAGE HEADER
   // ============================================================
 
-  Widget _buildPageHeader({
-    required bool isMobile,
-  }) {
+  Widget _buildPageHeader({required bool isMobile}) {
     return Row(
       children: [
         Container(
-          width:
-              isMobile ? 54 : 60,
-          height:
-              isMobile ? 54 : 60,
-          decoration:
-              BoxDecoration(
-            color:
-                const Color(0xFFEFF4FF),
-            borderRadius:
-                BorderRadius.circular(
-              16,
-            ),
+          width: isMobile ? 54 : 60,
+          height: isMobile ? 54 : 60,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF4FF),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(
-            Icons
-                .integration_instructions_outlined,
-            color:
-                const Color(0xFF315BEF),
-            size:
-                isMobile
-                    ? 27
-                    : 30,
+            Icons.integration_instructions_outlined,
+            color: const Color(0xFF315BEF),
+            size: isMobile ? 27 : 30,
           ),
         ),
 
-        const SizedBox(
-          width: 15,
-        ),
+        const SizedBox(width: 15),
 
         Expanded(
-          child:
-              Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Integration',
-                style:
-                    TextStyle(
-                  color:
-                      const Color(
-                    0xFF101828,
-                  ),
-                  fontSize:
-                      isMobile
-                          ? 26
-                          : 30,
-                  fontWeight:
-                      FontWeight.w800,
+                style: TextStyle(
+                  color: const Color(0xFF101828),
+                  fontSize: isMobile ? 26 : 30,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
 
-              const SizedBox(
-                height: 5,
-              ),
+              const SizedBox(height: 5),
 
               Text(
                 'Connect your external services to your account.',
-                style:
-                    TextStyle(
-                  color:
-                      const Color(
-                    0xFF667085,
-                  ),
-                  fontSize:
-                      isMobile
-                          ? 13
-                          : 15,
+                style: TextStyle(
+                  color: const Color(0xFF667085),
+                  fontSize: isMobile ? 13 : 15,
                 ),
               ),
             ],
@@ -1134,116 +890,61 @@ class _IntegrationScreenState
     required bool isConnected,
     required String? connectedEmail,
     required bool isLoading,
-    required Future<void> Function()
-        onConnect,
-    required Future<void> Function()
-        onDisconnect,
+    required Future<void> Function() onConnect,
+    required Future<void> Function() onDisconnect,
   }) {
     return Container(
-      padding:
-          const EdgeInsets.all(20),
-      decoration:
-          BoxDecoration(
-        color:
-            Colors.white,
-        borderRadius:
-            BorderRadius.circular(
-          20,
-        ),
-        border:
-            Border.all(
-          color:
-              const Color(
-            0xFFE4E7EC,
-          ),
-          width: 1,
-        ),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE4E7EC), width: 1),
       ),
-      child:
-          Column(
+      child: Column(
         children: [
           // ======================================================
           // TOP SECTION
           // ======================================================
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width:
-                    isMobile
-                        ? 46
-                        : 52,
-                height:
-                    isMobile
-                        ? 46
-                        : 52,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      logoColor
-                          .withAlpha(
-                    26,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    14,
-                  ),
+                width: isMobile ? 46 : 52,
+                height: isMobile ? 46 : 52,
+                decoration: BoxDecoration(
+                  color: logoColor.withAlpha(26),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child:
-                    Icon(
+                child: Icon(
                   logoIcon,
-                  color:
-                      logoColor,
-                  size:
-                      isMobile
-                          ? 22
-                          : 24,
+                  color: logoColor,
+                  size: isMobile ? 22 : 24,
                 ),
               ),
 
-              const SizedBox(
-                width: 16,
-              ),
+              const SizedBox(width: 16),
 
               Expanded(
-                child:
-                    Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       name,
-                      style:
-                          const TextStyle(
-                        color:
-                            Color(
-                          0xFF101828,
-                        ),
-                        fontSize:
-                            18,
-                        fontWeight:
-                            FontWeight.w700,
+                      style: const TextStyle(
+                        color: Color(0xFF101828),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 4,
-                    ),
+                    const SizedBox(height: 4),
 
                     Text(
                       description,
-                      style:
-                          const TextStyle(
-                        color:
-                            Color(
-                          0xFF667085,
-                        ),
-                        fontSize:
-                            13,
-                        height:
-                            1.5,
+                      style: const TextStyle(
+                        color: Color(0xFF667085),
+                        fontSize: 13,
+                        height: 1.5,
                       ),
                     ),
                   ],
@@ -1252,38 +953,20 @@ class _IntegrationScreenState
 
               if (isConnected)
                 Container(
-                  padding:
-                      const EdgeInsets
-                          .symmetric(
-                    horizontal:
-                        10,
-                    vertical:
-                        6,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
                   ),
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        const Color(
-                      0xFFE6F9ED,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      999,
-                    ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F9ED),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  child:
-                      const Text(
+                  child: const Text(
                     'Connected',
-                    style:
-                        TextStyle(
-                      color:
-                          Color(
-                        0xFF0C9A5B,
-                      ),
-                      fontSize:
-                          11,
-                      fontWeight:
-                          FontWeight.w700,
+                    style: TextStyle(
+                      color: Color(0xFF0C9A5B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -1293,196 +976,96 @@ class _IntegrationScreenState
           // ======================================================
           // CONNECTED EMAIL
           // ======================================================
+          if (isConnected) ...[
+            const SizedBox(height: 16),
 
-          if (isConnected)
-            ...[
-              const SizedBox(
-                height: 16,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FB),
+                borderRadius: BorderRadius.circular(12),
               ),
-
-              Container(
-                width:
-                    double.infinity,
-                padding:
-                    const EdgeInsets.all(
-                  12,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      const Color(
-                    0xFFF8F9FB,
+              child: Row(
+                children: [
+                  Icon(
+                    connectedEmail != null
+                        ? Icons.email_outlined
+                        : Icons.check_circle_outline,
+                    color: const Color(0xFF315BEF),
+                    size: 18,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    12,
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: Text(
+                      connectedEmail != null && connectedEmail!.isNotEmpty
+                          ? connectedEmail!
+                          : 'Connected',
+                      style: const TextStyle(
+                        color: Color(0xFF101828),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                child:
-                    Row(
-                  children: [
-                    Icon(
-                      connectedEmail !=
-                              null
-                          ? Icons
-                              .email_outlined
-                          : Icons
-                              .check_circle_outline,
-                      color:
-                          const Color(
-                        0xFF315BEF,
-                      ),
-                      size:
-                          18,
-                    ),
-
-                    const SizedBox(
-                      width: 10,
-                    ),
-
-                    Expanded(
-                      child:
-                          Text(
-                        connectedEmail !=
-                                    null &&
-                                connectedEmail!
-                                    .isNotEmpty
-                            ? connectedEmail!
-                            : 'Connected',
-                        style:
-                            const TextStyle(
-                          color:
-                              Color(
-                            0xFF101828,
-                          ),
-                          fontSize:
-                              13,
-                          fontWeight:
-                              FontWeight.w600,
-                        ),
-                        overflow:
-                            TextOverflow
-                                .ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-            ],
+            ),
+          ],
 
-          const SizedBox(
-            height: 16,
-          ),
+          const SizedBox(height: 16),
 
           // ======================================================
           // BUTTON
           // ======================================================
-
           SizedBox(
-            width:
-                double.infinity,
-            height:
-                46,
-            child:
-                isConnected
-                    ? ElevatedButton.icon(
-                        onPressed:
-                            isLoading
-                                ? null
-                                : onDisconnect,
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(
-                            0xFFFEF2F2,
-                          ),
-                          foregroundColor:
-                              const Color(
-                            0xFFB42318,
-                          ),
-                          elevation:
-                              0,
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-                          ),
-                        ),
-                        icon:
-                            isLoading
-                                ? const SizedBox(
-                                    width:
-                                        16,
-                                    height:
-                                        16,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          2,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons
-                                        .link_off_rounded,
-                                  ),
-                        label:
-                            Text(
-                          isLoading
-                              ? 'Disconnecting...'
-                              : 'Disconnect',
-                        ),
-                      )
-                    : ElevatedButton.icon(
-                        onPressed:
-                            isLoading
-                                ? null
-                                : onConnect,
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(
-                            0xFF315BEF,
-                          ),
-                          foregroundColor:
-                              Colors.white,
-                          elevation:
-                              0,
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-                          ),
-                        ),
-                        icon:
-                            isLoading
-                                ? const SizedBox(
-                                    width:
-                                        16,
-                                    height:
-                                        16,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          2,
-                                      color:
-                                          Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons
-                                        .add_link_rounded,
-                                  ),
-                        label:
-                            Text(
-                          isLoading
-                              ? 'Connecting...'
-                              : 'Connect',
-                        ),
+            width: double.infinity,
+            height: 46,
+            child: isConnected
+                ? ElevatedButton.icon(
+                    onPressed: isLoading ? null : onDisconnect,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      foregroundColor: const Color(0xFFB42318),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                    ),
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.link_off_rounded),
+                    label: Text(isLoading ? 'Disconnecting...' : 'Disconnect'),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: isLoading ? null : onConnect,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF315BEF),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.add_link_rounded),
+                    label: Text(isLoading ? 'Connecting...' : 'Connect'),
+                  ),
           ),
         ],
       ),
