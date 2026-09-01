@@ -149,6 +149,11 @@ const sequenceDeliverySchema = new mongoose.Schema(
       default: 0,
     },
 
+    openCandidateAt: {
+      type: Date,
+      default: null,
+    },
+
     // ============================================================
     // CLICK TRACKING
     // ============================================================

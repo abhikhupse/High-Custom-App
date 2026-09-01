@@ -154,6 +154,50 @@ exports.trackOpen = async (req, res) => {
     }
 
     // ==========================================================
+    // REQUIRE CONFIRMATION FOR NON-GMAIL FIRST OPENS
+    // ==========================================================
+    //
+    // Security scanners can imitate a normal browser, so headers alone are
+    // not enough to distinguish them from a person. Hold the first clean
+    // request as a candidate and only confirm the open when another clean
+    // request arrives 10 seconds to 24 hours later.
+    //
+    // Gmail's image proxy keeps its existing one-request behavior because it
+    // normally caches the pixel and may never request it a second time.
+    // ==========================================================
+
+    const userAgent = String(req.headers["user-agent"] || "");
+    const isGmailImageProxy = /googleimageproxy/i.test(userAgent);
+
+    if (!delivery.openedAt && !isGmailImageProxy) {
+      const candidateTime = delivery.openCandidateAt
+        ? new Date(delivery.openCandidateAt).getTime()
+        : NaN;
+      const candidateAge = requestTime.getTime() - candidateTime;
+      const confirmationWindowStarted = Number.isFinite(candidateTime);
+      const confirmationIsValid =
+        confirmationWindowStarted &&
+        candidateAge >= 10_000 &&
+        candidateAge <= 24 * 60 * 60 * 1000;
+
+      if (!confirmationIsValid) {
+        if (!confirmationWindowStarted || candidateAge > 24 * 60 * 60 * 1000) {
+          delivery.openCandidateAt = requestTime;
+          await delivery.save();
+        }
+
+        console.log(
+          confirmationWindowStarted && candidateAge < 10_000
+            ? "IGNORED OPEN: confirmation request arrived too quickly"
+            : "UNCONFIRMED OPEN: waiting for a later clean request",
+        );
+        console.log("============================================================");
+
+        return sendTrackingPixel(res);
+      }
+    }
+
+    // ==========================================================
     // INCREMENT OPEN COUNT
     // ==========================================================
 
@@ -171,6 +215,7 @@ exports.trackOpen = async (req, res) => {
       console.log("🟢 FIRST OPEN DETECTED");
 
       delivery.openedAt = requestTime;
+      delivery.openCandidateAt = null;
 
       // --------------------------------------------------------
       // IMPORTANT
