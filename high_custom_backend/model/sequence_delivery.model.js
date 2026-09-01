@@ -24,6 +24,13 @@ const sequenceDeliverySchema = new mongoose.Schema(
       index: true,
     },
 
+    email: {
+      type: String,
+      default: null,
+      trim: true,
+      lowercase: true,
+    },
+
     // ============================================================
     // SEQUENCE
     // ============================================================

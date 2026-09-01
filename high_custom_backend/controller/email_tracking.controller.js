@@ -165,9 +165,29 @@ exports.trackOpen = async (req, res) => {
 
     const userAgent = String(req.headers["user-agent"] || "");
     const isGmailImageProxy = /googleimageproxy/i.test(userAgent);
+    let recipientEmail = String(delivery.email || "").trim().toLowerCase();
 
-    if (!isGmailImageProxy) {
-      console.log("IGNORED OPEN: non-Gmail tracking-pixel request");
+    if (!recipientEmail && delivery.leadId) {
+      const recipientLead = await LEAD.findById(delivery.leadId)
+        .select("email")
+        .lean();
+
+      recipientEmail = String(recipientLead?.email || "").trim().toLowerCase();
+    }
+
+    const recipientDomain = recipientEmail
+      .trim()
+      .toLowerCase()
+      .split("@")
+      .pop();
+    const isGmailRecipient = ["gmail.com", "googlemail.com"].includes(
+      recipientDomain,
+    );
+
+    if (!isGmailRecipient || !isGmailImageProxy) {
+      console.log(
+        `IGNORED OPEN: recipient domain ${recipientDomain || "unknown"} is not a Gmail recipient or request is not GoogleImageProxy`,
+      );
       console.log("============================================================");
 
       return sendTrackingPixel(res);
