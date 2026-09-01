@@ -401,6 +401,43 @@ exports.trackResponse = async (req, res) => {
       });
     }
 
+    return sendResponseConfirmationPage(res, {
+      trackingId,
+      response,
+    });
+  } catch (error) {
+    console.error("TRACK RESPONSE ERROR:", error);
+    return sendResponsePage(res, {
+      title: "Unable to Open Response",
+      message: "Please try again later.",
+      success: false,
+    });
+  }
+};
+
+exports.confirmResponse = async (req, res) => {
+  try {
+    const trackingId = String(req.params.trackingId || "").trim();
+    const response = String(req.params.response || "").trim();
+
+    if (!trackingId || !["interested", "notInterested"].includes(response)) {
+      return sendResponsePage(res, {
+        title: "Invalid Response",
+        message: "This response link is not valid.",
+        success: false,
+      });
+    }
+
+    const delivery = await SEQUENCE_DELIVERY.findOne({ trackingId });
+
+    if (!delivery) {
+      return sendResponsePage(res, {
+        title: "Link Not Found",
+        message: "This response link is no longer available.",
+        success: false,
+      });
+    }
+
     if (delivery.response !== response) {
       const increments = {};
 
@@ -455,7 +492,7 @@ exports.trackResponse = async (req, res) => {
       message: "You will no longer receive emails from us.",
     });
   } catch (error) {
-    console.error("TRACK RESPONSE ERROR:", error);
+    console.error("CONFIRM RESPONSE ERROR:", error);
     return sendResponsePage(res, {
       title: "Unable to Record Response",
       message: "Please try again later.",
@@ -463,6 +500,39 @@ exports.trackResponse = async (req, res) => {
     });
   }
 };
+
+function sendResponseConfirmationPage(res, { trackingId, response }) {
+  const interested = response === "interested";
+  const title = interested ? "Confirm Interest" : "Confirm Unsubscribe";
+  const message = interested
+    ? "Please confirm that you are interested and would like to share your contact details."
+    : "Please confirm that you are not interested and no longer want to receive these emails.";
+  const buttonLabel = interested ? "Yes, I am interested" : "Confirm unsubscribe";
+
+  res.set({
+    "Content-Type": "text/html; charset=UTF-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+  });
+
+  return res.status(200).send(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>${escapeHtml(title)}</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#050709;color:#fff;font-family:Arial,sans-serif}
+main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+section{width:100%;max-width:560px;text-align:center;background:#0b0e12;border:1px solid #5f4d27;border-radius:20px;padding:32px;box-shadow:0 20px 60px #0008}
+h1{margin:0 0 12px;color:#f2c45f;font-size:30px}p{color:#aeb4bf;line-height:1.6;margin:0 0 24px}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:#f2c45f;color:#080a0c;font-weight:800;font-size:16px;cursor:pointer}
+</style></head><body><main><section>
+<h1>${escapeHtml(title)}</h1>
+<p>${escapeHtml(message)}</p>
+<form method="post" action="/api/email-tracking/response/${encodeURIComponent(trackingId)}/${encodeURIComponent(response)}/confirm">
+<button type="submit">${escapeHtml(buttonLabel)}</button>
+</form>
+</section></main></body></html>`);
+}
 
 exports.submitInterestDetails = async (req, res) => {
   try {

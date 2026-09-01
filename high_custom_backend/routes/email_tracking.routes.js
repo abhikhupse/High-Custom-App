@@ -21,6 +21,11 @@ router.get(
 );
 
 router.post(
+  "/response/:trackingId/:response/confirm",
+  emailTrackingController.confirmResponse,
+);
+
+router.post(
   "/response/:trackingId/interested",
   emailTrackingController.submitInterestDetails,
 );
