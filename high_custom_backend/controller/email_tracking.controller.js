@@ -154,47 +154,23 @@ exports.trackOpen = async (req, res) => {
     }
 
     // ==========================================================
-    // REQUIRE CONFIRMATION FOR NON-GMAIL FIRST OPENS
+    // PRESERVE GMAIL OPEN TRACKING; IGNORE NON-GMAIL PIXEL OPENS
     // ==========================================================
     //
-    // Security scanners can imitate a normal browser, so headers alone are
-    // not enough to distinguish them from a person. Hold the first clean
-    // request as a candidate and only confirm the open when another clean
-    // request arrives 10 seconds to 24 hours later.
-    //
-    // Gmail's image proxy keeps its existing one-request behavior because it
-    // normally caches the pixel and may never request it a second time.
+    // Zoho and other mail-security proxies can make multiple requests that
+    // look like a normal browser. They cannot be reliably separated from a
+    // person using a tracking pixel, so do not allow them to mark a delivery
+    // as opened. Gmail keeps its existing GoogleImageProxy behavior.
     // ==========================================================
 
     const userAgent = String(req.headers["user-agent"] || "");
     const isGmailImageProxy = /googleimageproxy/i.test(userAgent);
 
-    if (!delivery.openedAt && !isGmailImageProxy) {
-      const candidateTime = delivery.openCandidateAt
-        ? new Date(delivery.openCandidateAt).getTime()
-        : NaN;
-      const candidateAge = requestTime.getTime() - candidateTime;
-      const confirmationWindowStarted = Number.isFinite(candidateTime);
-      const confirmationIsValid =
-        confirmationWindowStarted &&
-        candidateAge >= 10_000 &&
-        candidateAge <= 24 * 60 * 60 * 1000;
+    if (!isGmailImageProxy) {
+      console.log("IGNORED OPEN: non-Gmail tracking-pixel request");
+      console.log("============================================================");
 
-      if (!confirmationIsValid) {
-        if (!confirmationWindowStarted || candidateAge > 24 * 60 * 60 * 1000) {
-          delivery.openCandidateAt = requestTime;
-          await delivery.save();
-        }
-
-        console.log(
-          confirmationWindowStarted && candidateAge < 10_000
-            ? "IGNORED OPEN: confirmation request arrived too quickly"
-            : "UNCONFIRMED OPEN: waiting for a later clean request",
-        );
-        console.log("============================================================");
-
-        return sendTrackingPixel(res);
-      }
+      return sendTrackingPixel(res);
     }
 
     // ==========================================================
@@ -215,7 +191,6 @@ exports.trackOpen = async (req, res) => {
       console.log("🟢 FIRST OPEN DETECTED");
 
       delivery.openedAt = requestTime;
-      delivery.openCandidateAt = null;
 
       // --------------------------------------------------------
       // IMPORTANT
