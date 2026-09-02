@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:high_custom_frontend/widgets/app_feedback.dart';
+import 'package:high_custom_frontend/services/business_type_api.dart';
 
 // ============================================================
 // LINK SCREEN
@@ -25,8 +26,8 @@ class _LinkScreenState extends State<LinkScreen> {
   static const Color white = Colors.white;
   static const Color mutedText = Color(0xFF969CA8);
 
-  static const Color purple = Color(0xFF8055F5);
-  static const Color blue = Color(0xFF4A57E8);
+  static const Color gold = Color(0xFFF2C45F);
+  static const Color goldDark = Color(0xFFD9A93F);
 
   // ============================================================
   // STATE
@@ -34,6 +35,7 @@ class _LinkScreenState extends State<LinkScreen> {
 
   String? selectedActionLink;
   String? selectedBusinessType;
+  bool isLoadingBusinessTypes = true;
 
   String selectedLinksText = 'No links selected';
 
@@ -49,13 +51,36 @@ class _LinkScreenState extends State<LinkScreen> {
     'WhatsApp',
   ];
 
-  final List<String> businessTypes = [
-    'Jewellery',
-    'Retail',
-    'E-commerce',
-    'Services',
-    'Other',
-  ];
+  final List<String> businessTypes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusinessTypes();
+  }
+
+  Future<void> _loadBusinessTypes() async {
+    final response = await BusinessTypeApi.getBusinessTypes();
+    if (!mounted) return;
+
+    final values = <String>[];
+    final data = response['data'];
+    if (data is List) {
+      for (final item in data) {
+        if (item is Map && item['name'] != null) {
+          final name = item['name'].toString().trim();
+          if (name.isNotEmpty) values.add(name);
+        }
+      }
+    }
+
+    setState(() {
+      businessTypes
+        ..clear()
+        ..addAll(values);
+      isLoadingBusinessTypes = false;
+    });
+  }
 
   // ============================================================
   // BUILD
@@ -112,15 +137,15 @@ class _LinkScreenState extends State<LinkScreen> {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: purple.withOpacity(0.10),
+            color: gold.withOpacity(0.10),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: purple.withOpacity(0.35),
+              color: gold.withOpacity(0.35),
             ),
           ),
           child: const Icon(
             Icons.link_rounded,
-            color: purple,
+            color: gold,
             size: 25,
           ),
         ),
@@ -278,7 +303,7 @@ class _LinkScreenState extends State<LinkScreen> {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: purple.withOpacity(0.10),
+          color: gold.withOpacity(0.10),
           borderRadius: BorderRadius.circular(30),
         ),
         child: const Row(
@@ -286,7 +311,7 @@ class _LinkScreenState extends State<LinkScreen> {
           children: [
             Icon(
               Icons.layers_rounded,
-              color: purple,
+              color: gold,
               size: 20,
             ),
 
@@ -295,7 +320,7 @@ class _LinkScreenState extends State<LinkScreen> {
             Text(
               'Business Branding',
               style: TextStyle(
-                color: purple,
+                color: gold,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -316,7 +341,7 @@ class _LinkScreenState extends State<LinkScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: purple,
+          color: gold,
           width: 1.2,
         ),
       ),
@@ -368,7 +393,7 @@ class _LinkScreenState extends State<LinkScreen> {
       children: [
         const Icon(
           Icons.push_pin_rounded,
-          color: purple,
+          color: gold,
           size: 19,
         ),
 
@@ -417,7 +442,7 @@ class _LinkScreenState extends State<LinkScreen> {
               child: const Text(
                 'Choose File',
                 style: TextStyle(
-                  color: purple,
+                  color: gold,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -487,7 +512,7 @@ class _LinkScreenState extends State<LinkScreen> {
 
           Icon(
             Icons.chat_rounded,
-            color: Color(0xFF58C84A),
+            color: gold,
             size: 25,
           ),
 
@@ -537,16 +562,131 @@ class _LinkScreenState extends State<LinkScreen> {
   // ============================================================
 
   Widget _buildBusinessTypeDropdown() {
-    return _buildDropdown(
-      value: selectedBusinessType,
-      hint: 'Select Business Type',
-      items: businessTypes,
-      onChanged: (value) {
-        setState(() {
-          selectedBusinessType = value;
-        });
-      },
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDropdown(
+            value: selectedBusinessType,
+            hint: isLoadingBusinessTypes
+                ? 'Loading Business Types...'
+                : businessTypes.isEmpty
+                    ? 'No Business Type Added'
+                    : 'Select Business Type',
+            items: businessTypes,
+            onChanged: (value) {
+              setState(() {
+                selectedBusinessType = value;
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          height: 58,
+          child: ElevatedButton.icon(
+            onPressed: _showAddBusinessTypeDialog,
+            icon: const Icon(Icons.add_business_rounded, size: 19),
+            label: const Text('Add'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: gold,
+              foregroundColor: const Color(0xFF171208),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  Future<void> _showAddBusinessTypeDialog() async {
+    final controller = TextEditingController();
+    bool isSavingType = false;
+
+    final created = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: gold.withOpacity(0.35)),
+          ),
+          title: const Text(
+            'Add Business Type',
+            style: TextStyle(color: white, fontWeight: FontWeight.w700),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            enabled: !isSavingType,
+            cursorColor: gold,
+            style: const TextStyle(color: white),
+            decoration: InputDecoration(
+              hintText: 'Enter business type',
+              hintStyle: const TextStyle(color: mutedText),
+              filled: true,
+              fillColor: inputColor,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: borderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: gold),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSavingType
+                  ? null
+                  : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSavingType
+                  ? null
+                  : () async {
+                      final name = controller.text.trim();
+                      if (name.length < 2) {
+                        _showMessage('Please enter a valid business type.');
+                        return;
+                      }
+                      setDialogState(() => isSavingType = true);
+                      final response =
+                          await BusinessTypeApi.createBusinessType(name);
+                      if (!dialogContext.mounted) return;
+                      if (response['success'] == true) {
+                        Navigator.pop(dialogContext, name);
+                      } else {
+                        setDialogState(() => isSavingType = false);
+                        _showMessage(
+                          response['message']?.toString() ??
+                              'Unable to add business type.',
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: gold,
+                foregroundColor: const Color(0xFF171208),
+              ),
+              child: Text(isSavingType ? 'Adding...' : 'Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    controller.dispose();
+    if (created != null && mounted) {
+      await _loadBusinessTypes();
+      if (!mounted) return;
+      setState(() => selectedBusinessType = created);
+    }
   }
 
   // ============================================================
@@ -617,8 +757,8 @@ class _LinkScreenState extends State<LinkScreen> {
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
             colors: [
-              Color(0xFF4655E9),
-              Color(0xFF8D39B9),
+              Color(0xFFFFD978),
+              goldDark,
             ],
           ),
           borderRadius: BorderRadius.circular(15),
@@ -639,7 +779,7 @@ class _LinkScreenState extends State<LinkScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            foregroundColor: white,
+            foregroundColor: Color(0xFF171208),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),

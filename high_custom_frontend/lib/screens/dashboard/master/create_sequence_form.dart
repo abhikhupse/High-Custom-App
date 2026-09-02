@@ -1,5 +1,6 @@
 ﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../services/business_type_api.dart';
 import 'package:flutter/services.dart';
 
 import '../../../services/sequence_api.dart';
@@ -194,6 +195,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   @override
   void initState() {
     super.initState();
+    _loadBusinessTypes();
 
     final sequence = widget.sequence;
 
@@ -253,6 +255,32 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     if (scheduledAt != null && scheduledAt.trim().isNotEmpty) {
       scheduledDateTime = DateTime.tryParse(scheduledAt)?.toLocal();
     }
+  }
+
+  Future<void> _loadBusinessTypes() async {
+    final response = await BusinessTypeApi.getBusinessTypes();
+    if (!mounted) return;
+
+    final values = <String>[];
+    final data = response['data'];
+    if (data is List) {
+      for (final item in data) {
+        if (item is Map && item['name'] != null) {
+          final name = item['name'].toString().trim();
+          if (name.isNotEmpty) values.add(name);
+        }
+      }
+    }
+
+    setState(() {
+      final current = selectedBusinessType.trim();
+      businessTypes
+        ..clear()
+        ..addAll(values);
+      if (current.isNotEmpty && !businessTypes.contains(current)) {
+        businessTypes.add(current);
+      }
+    });
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
@@ -1446,7 +1474,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         child:
                             ElevatedButton.icon(
                           onPressed:
-                              () {
+                              () async {
                             final String
                                 value =
                                 draftBusinessType
@@ -1496,6 +1524,28 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                                   businessTypes[
                                       existingIndex];
                             } else {
+                              final response =
+                                  await BusinessTypeApi
+                                      .createBusinessType(
+                                value,
+                              );
+
+                              if (!sheetContext.mounted) {
+                                return;
+                              }
+
+                              if (response['success'] != true) {
+                                sheetSetState(
+                                  () {
+                                    validationMessage =
+                                        response['message']
+                                                ?.toString() ??
+                                            'Unable to add business type';
+                                  },
+                                );
+                                return;
+                              }
+
                               finalValue =
                                   value;
                             }

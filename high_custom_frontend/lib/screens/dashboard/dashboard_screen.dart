@@ -26,7 +26,10 @@ import '../../widgets/dashboard/dashboard_content.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     super.key,
+    this.initialMenu = 'Dashboard',
   });
+
+  final String initialMenu;
 
   @override
   State<DashboardScreen> createState() =>
@@ -64,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // SELECTED MENU
   // ============================================================
 
-  String selectedMenu = 'Dashboard';
+  late String selectedMenu;
 
   // ============================================================
   // INIT
@@ -73,6 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    selectedMenu = widget.initialMenu;
 
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
@@ -533,15 +537,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             children: [
               _buildFooterItem(
+                label: 'Dashboard',
+                icon: Icons.home_outlined,
+                selected: selectedMenu == 'Dashboard',
+                onTap: () => _handleSidebarMenu('Dashboard'),
+              ),
+              _buildFooterItem(
                 label: 'Leads',
                 icon: Icons.people_outline_rounded,
                 selected: selectedMenu == 'Leads',
                 onTap: () => _handleSidebarMenu('Leads'),
               ),
-              _buildFooterItem(
-                label: 'Add Lead',
-                icon: Icons.add_circle_outline_rounded,
-                selected: false,
+              _buildAddLeadFooterItem(
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -551,17 +558,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
               _buildFooterItem(
-                label: 'Analytics',
-                icon: Icons.bar_chart_rounded,
-                selected: selectedMenu == 'Tracking Report',
-                onTap: () =>
-                    _handleSidebarMenu('Tracking Report'),
+                label: 'Sequences',
+                icon: Icons.account_tree_outlined,
+                selected: selectedMenu == 'Master',
+                onTap: () => _handleSidebarMenu('Master'),
               ),
               _buildFooterItem(
-                label: 'Profile',
-                icon: Icons.person_outline_rounded,
+                label: 'Settings',
+                icon: Icons.settings_outlined,
                 selected: selectedMenu == 'Profile',
                 onTap: () => _handleSidebarMenu('Profile'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddLeadFooterItem({
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Transform.translate(
+          offset: const Offset(0, -7),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFFFD978),
+                      Color(0xFFD9A93F),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFFFFE6A6),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gold.withOpacity(0.30),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  size: 32,
+                  color: Color(0xFF111111),
+                ),
+              ),
+              const SizedBox(height: 3),
+              const Text(
+                'Add Lead',
+                maxLines: 1,
+                style: TextStyle(
+                  color: Color(0xFFF3F4F6),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),

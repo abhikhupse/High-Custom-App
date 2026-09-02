@@ -162,46 +162,13 @@ class DashboardSidebar extends StatelessWidget {
                           ),
 
                           // ==========================================
-                          // CAMPAIGNS
-                          // ==========================================
-
-                          _menuItem(
-                            icon:
-                                Icons.campaign_outlined,
-
-                            title:
-                                'Campaigns',
-                          ),
-
-                          // ==========================================
                           // TEMPLATES
                           // ==========================================
 
-                          _menuItem(
-                            icon:
-                                Icons.description_outlined,
-
-                            title:
-                                'Templates',
-                          ),
-
-                          // ==========================================
-                          // SOCIAL LINKS
-                          // ==========================================
-
-                          _menuItem(
-                            icon:
-                                Icons.link_rounded,
-
-                            title:
-                                'Social Links',
-                          ),
-
-                          // ==========================================
-                          // MAIL AUTOMATIONS
-                          // ==========================================
-
-                          _mailAutomationMenu(),
+                          // _menuItem(
+                          //   icon: Icons.description_outlined,
+                          //   title: 'Templates',
+                          // ),
 
                           // ==========================================
                           // LEADS
@@ -222,6 +189,12 @@ class DashboardSidebar extends StatelessWidget {
                             title:
                                 'Interested Leads',
                           ),
+
+                          // ==========================================
+                          // MASTER
+                          // ==========================================
+
+                          _mailAutomationMenu(),
 
                           const SizedBox(
                             height: 18,
@@ -678,11 +651,14 @@ class DashboardSidebar extends StatelessWidget {
   Widget _mailAutomationMenu() {
     final bool hasSelectedChild =
         selectedMenu == 'Link' ||
+            selectedMenu == 'Social Links' ||
             selectedMenu == 'Master' ||
             selectedMenu ==
                 'Tracking Report';
+    bool isExpanded = true;
 
-    return Container(
+    return StatefulBuilder(
+      builder: (context, setMenuState) => Container(
       margin: const EdgeInsets.only(
         bottom: 5,
       ),
@@ -706,16 +682,28 @@ class DashboardSidebar extends StatelessWidget {
           // TITLE
           // ====================================================
 
-          Container(
-            height: 48,
+          InkWell(
+            onTap: () {
+              setMenuState(() {
+                isExpanded = !isExpanded;
+              });
+            },
 
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 13,
+            borderRadius:
+                BorderRadius.circular(
+              12,
             ),
 
-            child: Row(
-              children: [
+            child: Container(
+              height: 48,
+
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 13,
+              ),
+
+              child: Row(
+                children: [
                 // ==============================================
                 // ICON
                 // ==============================================
@@ -749,7 +737,7 @@ class DashboardSidebar extends StatelessWidget {
 
                 Expanded(
                   child: Text(
-                    'Mail Automations',
+                    'Master',
 
                     style:
                         TextStyle(
@@ -773,16 +761,25 @@ class DashboardSidebar extends StatelessWidget {
                 // ARROW
                 // ==============================================
 
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                AnimatedRotation(
+                  turns: isExpanded ? 0 : -0.25,
 
-                  color: hasSelectedChild
-                      ? gold
-                      : mutedText,
+                  duration: const Duration(
+                    milliseconds: 180,
+                  ),
 
-                  size: 21,
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+
+                    color: hasSelectedChild
+                        ? gold
+                        : mutedText,
+
+                    size: 21,
+                  ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -790,7 +787,7 @@ class DashboardSidebar extends StatelessWidget {
           // SUB MENU
           // ====================================================
 
-          Padding(
+          if (isExpanded) Padding(
             padding: const EdgeInsets.only(
               left: 28,
               bottom: 5,
@@ -803,7 +800,12 @@ class DashboardSidebar extends StatelessWidget {
                 ),
 
                 _subMenuItem(
-                  title: 'Master',
+                  title: 'Social Links',
+                ),
+
+                _subMenuItem(
+                  title: 'Sequences',
+                  menuValue: 'Master',
                 ),
 
                 _subMenuItem(
@@ -815,6 +817,7 @@ class DashboardSidebar extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -824,9 +827,11 @@ class DashboardSidebar extends StatelessWidget {
 
   Widget _subMenuItem({
     required String title,
+    String? menuValue,
   }) {
+    final String selectedValue = menuValue ?? title;
     final bool isSelected =
-        selectedMenu == title;
+        selectedMenu == selectedValue;
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -839,7 +844,7 @@ class DashboardSidebar extends StatelessWidget {
         child: InkWell(
           onTap: () {
             onMenuSelected(
-              title,
+              selectedValue,
             );
           },
 
