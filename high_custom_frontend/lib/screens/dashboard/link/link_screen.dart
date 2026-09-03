@@ -603,7 +603,7 @@ class _LinkScreenState extends State<LinkScreen> {
   }
 
   Future<void> _showAddBusinessTypeDialog() async {
-    final controller = TextEditingController();
+    String draftBusinessType = '';
     bool isSavingType = false;
 
     final created = await showDialog<String>(
@@ -620,9 +620,11 @@ class _LinkScreenState extends State<LinkScreen> {
             style: TextStyle(color: white, fontWeight: FontWeight.w700),
           ),
           content: TextField(
-            controller: controller,
             autofocus: true,
             enabled: !isSavingType,
+            onChanged: (value) {
+              draftBusinessType = value;
+            },
             cursorColor: gold,
             style: const TextStyle(color: white),
             decoration: InputDecoration(
@@ -651,7 +653,7 @@ class _LinkScreenState extends State<LinkScreen> {
               onPressed: isSavingType
                   ? null
                   : () async {
-                      final name = controller.text.trim();
+                      final name = draftBusinessType.trim();
                       if (name.length < 2) {
                         _showMessage('Please enter a valid business type.');
                         return;
@@ -681,7 +683,6 @@ class _LinkScreenState extends State<LinkScreen> {
       ),
     );
 
-    controller.dispose();
     if (created != null && mounted) {
       await _loadBusinessTypes();
       if (!mounted) return;
@@ -699,46 +700,216 @@ class _LinkScreenState extends State<LinkScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 17,
-      ),
-      decoration: BoxDecoration(
-        color: inputColor,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: items.isEmpty
+            ? null
+            : () async {
+                final selected = await _showSelectionSheet(
+                  title: hint,
+                  value: value,
+                  items: items,
+                );
+                if (selected != null) onChanged(selected);
+              },
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: borderColor,
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          hint: Text(
-            hint,
-            style: const TextStyle(
-              color: mutedText,
-              fontSize: 14,
+        child: Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 17),
+          decoration: BoxDecoration(
+            color: inputColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: value == null
+                  ? borderColor
+                  : gold.withOpacity(0.55),
             ),
           ),
-          isExpanded: true,
-          dropdownColor: const Color(0xFF11151B),
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: Color(0xFFB5BAC4),
+          child: Row(
+            children: [
+              Icon(
+                value == null
+                    ? Icons.tune_rounded
+                    : Icons.check_circle_outline_rounded,
+                color: gold,
+                size: 20,
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  value ?? hint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: value == null ? mutedText : white,
+                    fontSize: 14,
+                    fontWeight:
+                        value == null ? FontWeight.w400 : FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: gold,
+                size: 25,
+              ),
+            ],
           ),
-          style: const TextStyle(
-            color: white,
-            fontSize: 14,
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _showSelectionSheet({
+    required String title,
+    required String? value,
+    required List<String> items,
+  }) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.72),
+      builder: (sheetContext) => SafeArea(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.65,
           ),
-          borderRadius: BorderRadius.circular(14),
-          items: items.map((item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: onChanged,
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111419),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(26),
+            ),
+            border: Border(
+              top: BorderSide(
+                color: gold.withOpacity(0.38),
+              ),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF555A64),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: gold.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.list_alt_rounded,
+                      color: gold,
+                      size: 21,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: mutedText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, index) {
+                    final item = items[index];
+                    final isSelected = item == value;
+                    return Material(
+                      color: isSelected
+                          ? gold.withOpacity(0.12)
+                          : const Color(0xFF181B20),
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        onTap: () => Navigator.pop(sheetContext, item),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 54),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 13,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? gold.withOpacity(0.58)
+                                  : borderColor,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: gold.withOpacity(0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.business_outlined,
+                                  color: gold,
+                                  size: 17,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  item,
+                                  style: TextStyle(
+                                    color: isSelected ? gold : white,
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: gold,
+                                  size: 21,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

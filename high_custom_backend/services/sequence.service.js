@@ -545,6 +545,13 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
     console.error("==============================================");
 
+    // BullMQ only applies attempts/backoff when the processor throws. Preserve
+    // the delivery diagnostics above, then rethrow transient provider/network
+    // failures so the configured queue retry policy actually runs.
+    if (error?.retryable === true) {
+      throw error;
+    }
+
     // ========================================================
     // RETURN FAILED
     // ========================================================

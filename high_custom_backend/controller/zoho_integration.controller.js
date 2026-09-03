@@ -19,7 +19,7 @@ function requiredConfig() {
     redirectUri: String(process.env.ZOHO_REDIRECT_URI || "").trim(),
     scopes: String(
       process.env.ZOHO_SCOPES ||
-        "ZohoMail.accounts.READ,ZohoMail.folders.READ,ZohoMail.messages.READ",
+        "ZohoMail.accounts.READ,ZohoMail.folders.READ,ZohoMail.messages.READ,ZohoMail.messages.CREATE",
     ).trim(),
   };
   if (!values.clientId || !values.clientSecret || !values.redirectUri) {

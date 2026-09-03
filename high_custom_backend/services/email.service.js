@@ -1,6 +1,10 @@
 const { google } = require("googleapis");
 
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
+const {
+  findZohoIntegration,
+  sendZohoSequenceEmail,
+} = require("./zoho_email.service");
 
 const createGoogleOAuthClient = require("../config/google_oauth");
 
@@ -302,7 +306,7 @@ function createEmailError({ message, failureType, failureReason }) {
 // SEND SEQUENCE EMAIL
 // ============================================================
 
-async function sendSequenceEmail({
+async function sendGmailSequenceEmail({
   userId,
   sequence,
   lead,
@@ -638,6 +642,62 @@ async function sendSequenceEmail({
 
     senderCopyProcessing: Boolean(senderCopyLabelId),
   };
+}
+
+// Prefer the integration connected most recently. This gives users a
+// deterministic way to switch providers without adding a second setting: the
+// provider they most recently authorized becomes the sender.
+async function sendSequenceEmail(options) {
+  const [zohoIntegration, gmailIntegration] = await Promise.all([
+    findZohoIntegration(options.userId),
+    GMAIL_INTEGRATION.findOne({ userId: options.userId }),
+  ]);
+
+  if (zohoIntegration) {
+    const zohoConnectedAt = new Date(
+      zohoIntegration.connectedAt || zohoIntegration.updatedAt || 0,
+    ).getTime();
+    const gmailConnectedAt = gmailIntegration
+      ? new Date(gmailIntegration.connectedAt || gmailIntegration.updatedAt || 0).getTime()
+      : 0;
+
+    if (!gmailIntegration || zohoConnectedAt >= gmailConnectedAt) {
+      const zohoScope = String(zohoIntegration.scope || "");
+      if (
+        !zohoScope.includes("ZohoMail.messages.CREATE") &&
+        !zohoScope.includes("ZohoMail.messages.ALL")
+      ) {
+        const error = createEmailError({
+          message:
+            "Zoho Mail was connected without send permission. Disconnect and reconnect Zoho Mail.",
+          failureType: "permission_error",
+          failureReason:
+            "Zoho Mail was connected without send permission. Disconnect and reconnect Zoho Mail.",
+        });
+        error.retryable = false;
+        throw error;
+      }
+
+      console.log("EMAIL PROVIDER SELECTED: ZOHO");
+      return sendZohoSequenceEmail({
+        ...options,
+        integration: zohoIntegration,
+      });
+    }
+  }
+
+  if (gmailIntegration) {
+    console.log("EMAIL PROVIDER SELECTED: GMAIL");
+    return sendGmailSequenceEmail(options);
+  }
+
+  const error = createEmailError({
+    message: "No email provider is connected. Connect Gmail or Zoho Mail.",
+    failureType: "email_provider_not_connected",
+    failureReason: "No email provider is connected. Connect Gmail or Zoho Mail.",
+  });
+  error.retryable = false;
+  throw error;
 }
 
 // ============================================================

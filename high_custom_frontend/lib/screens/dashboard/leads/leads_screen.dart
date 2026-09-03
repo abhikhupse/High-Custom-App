@@ -28,23 +28,16 @@ class _LeadsScreenState extends State<LeadsScreen> {
 
   static const Color pageBackground = Color(0xFF090A0C);
 
-  static const Color panelColor = Color(0xFF101113);
-
   static const Color cardBackground = Color(0xFF101113);
   static const Color cardBackground2 = Color(0xFF151619);
-
-  static const Color tableColor = Color(0xFF101113);
 
   static const Color borderColor = Color(0xFF292B2F);
 
   static const Color gold = Color(0xFFF4C451);
-  static const Color goldDark = Color(0xFFD9A93F);
-
   static const Color white = Color(0xFFFFFFFF);
   static const Color lightText = Color(0xFFE8E8EA);
   static const Color mutedText = Color(0xFF9B9CA3);
 
-  static const Color blue = Color(0xFF4285F4);
   static const Color green = Color(0xFF38C977);
   static const Color red = Color(0xFFFF4D5E);
   static const Color orange = Color(0xFFFF9D25);
@@ -346,85 +339,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   // ============================================================
-  // SUMMARY
-  // ============================================================
-
-  List<Map<String, dynamic>> get _summaryLeads => filteredLeads;
-
-  int get totalLeadsCount => _summaryLeads.length;
-
-  int get contactedCount {
-    return _summaryLeads.where((lead) {
-      final status =
-          lead['trackingStatus']
-                  ?.toString()
-                  .toLowerCase() ??
-              '';
-
-      return status == 'sent' ||
-          status == 'opened' ||
-          status == 'open' ||
-          status == 'seen' ||
-          status == 'clicked' ||
-          status == 'interested' ||
-          status == 'not interested' ||
-          status == 'replied' ||
-          status == 'reply';
-    }).length;
-  }
-
-  int get openedCount {
-    return _summaryLeads.where((lead) {
-      final status =
-          lead['trackingStatus']
-                  ?.toString()
-                  .toLowerCase() ??
-              '';
-
-      return status == 'opened' ||
-          status == 'open' ||
-          status == 'seen';
-    }).length;
-  }
-
-  int get repliedCount {
-    return _summaryLeads.where((lead) {
-      final status =
-          lead['trackingStatus']
-                  ?.toString()
-                  .toLowerCase() ??
-              '';
-
-      return status == 'replied' ||
-          status == 'reply';
-    }).length;
-  }
-
-  int get todayAddedCount {
-    final now = DateTime.now();
-
-    return _summaryLeads.where((lead) {
-      final date =
-          lead['addedDate'] as DateTime;
-
-      return date.year == now.year &&
-          date.month == now.month &&
-          date.day == now.day;
-    }).length;
-  }
-
-  double _percentage(
-    int value,
-    int total,
-  ) {
-    if (total <= 0) {
-      return 0;
-    }
-
-    return (value / total) * 100;
-  }
-
-  // ============================================================
   // FILTERED LEADS
   // ============================================================
 
@@ -721,12 +635,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   height: 24,
                 ),
 
-                _buildSummaryCards(),
-
-                const SizedBox(
-                  height: 20,
-                ),
-
                 _buildMobileSearch(),
 
                 const SizedBox(
@@ -897,222 +805,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  // ============================================================
-  // SUMMARY CARDS
-  // ============================================================
-
-  Widget _buildSummaryCards() {
-    final contactedPercentage =
-        _percentage(
-      contactedCount,
-      totalLeadsCount,
-    );
-
-    final openedPercentage =
-        _percentage(
-      openedCount,
-      contactedCount,
-    );
-
-    final repliedPercentage =
-        _percentage(
-      repliedCount,
-      contactedCount,
-    );
-
-    return LayoutBuilder(
-      builder: (
-        context,
-        constraints,
-      ) {
-        final cardWidth =
-            (constraints.maxWidth -
-                    12) /
-                2;
-
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            SizedBox(
-              width: cardWidth,
-              child: _summaryCard(
-                title: 'Total Leads',
-                value:
-                    '$totalLeadsCount',
-                subtitle:
-                    '$todayAddedCount added today',
-                icon: Icons
-                    .people_alt_rounded,
-                iconColor: gold,
-              ),
-            ),
-
-            SizedBox(
-              width: cardWidth,
-              child: _summaryCard(
-                title: 'Contacted',
-                value:
-                    '$contactedCount',
-                subtitle:
-                    '${contactedPercentage.toStringAsFixed(1)}% of total leads',
-                icon:
-                    Icons.email_rounded,
-                iconColor: green,
-              ),
-            ),
-
-            SizedBox(
-              width: cardWidth,
-              child: _summaryCard(
-                title: 'Opened',
-                value: '$openedCount',
-                subtitle:
-                    '${openedPercentage.toStringAsFixed(1)}% of contacted',
-                icon: Icons
-                    .visibility_rounded,
-                iconColor: orange,
-              ),
-            ),
-
-            SizedBox(
-              width: cardWidth,
-              child: _summaryCard(
-                title: 'Replied',
-                value:
-                    '$repliedCount',
-                subtitle:
-                    '${repliedPercentage.toStringAsFixed(1)}% of contacted',
-                icon:
-                    Icons.reply_rounded,
-                iconColor: purple,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _summaryCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    return Container(
-      constraints:
-          const BoxConstraints(
-        minHeight: 152,
-      ),
-      padding:
-          const EdgeInsets.all(
-        15,
-      ),
-      decoration:
-          BoxDecoration(
-        color: cardBackground,
-        borderRadius:
-            BorderRadius.circular(
-          15,
-        ),
-        border: Border.all(
-          color: borderColor,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration:
-                    BoxDecoration(
-                  color: iconColor
-                      .withOpacity(
-                    0.12,
-                  ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                    12,
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 27,
-                ),
-              ),
-
-              const SizedBox(
-                width: 8,
-              ),
-
-              Expanded(
-                child: Text(
-                  title,
-                  textAlign:
-                      TextAlign.right,
-                  maxLines: 2,
-                  overflow:
-                      TextOverflow
-                          .ellipsis,
-                  style:
-                      const TextStyle(
-                    color: lightText,
-                    fontSize: 14,
-                    fontWeight:
-                        FontWeight.w500,
-                    height: 1.2,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(
-            height: 14,
-          ),
-
-          Text(
-            value,
-            style:
-                const TextStyle(
-              color: white,
-              fontSize: 28,
-              fontWeight:
-                  FontWeight.w800,
-            ),
-          ),
-
-          const SizedBox(
-            height: 7,
-          ),
-
-          Text(
-            subtitle,
-            maxLines: 2,
-            overflow:
-                TextOverflow.ellipsis,
-            style:
-                const TextStyle(
-              color: mutedText,
-              fontSize: 11.5,
-              height: 1.3,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -3001,12 +2693,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
             CrossAxisAlignment.stretch,
         children: [
           _buildDesktopHeader(),
-
-          const SizedBox(
-            height: 24,
-          ),
-
-          _buildSummaryCards(),
 
           const SizedBox(
             height: 24,
