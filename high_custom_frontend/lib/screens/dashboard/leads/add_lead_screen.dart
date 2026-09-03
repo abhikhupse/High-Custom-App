@@ -38,17 +38,13 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // CONTROLLERS
   // ============================================================
 
-  final TextEditingController emailController =
-      TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
-  final TextEditingController firstNameController =
-      TextEditingController();
+  final TextEditingController firstNameController = TextEditingController();
 
-  final TextEditingController lastNameController =
-      TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
 
-  final TextEditingController companyController =
-      TextEditingController();
+  final TextEditingController companyController = TextEditingController();
 
   // ============================================================
   // STATE
@@ -128,22 +124,16 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: pageBackground,
-      bottomNavigationBar:
-          MediaQuery.sizeOf(context).width < 700
-              ? _buildMobileFooter()
-              : null,
+      bottomNavigationBar: MediaQuery.sizeOf(context).width < 700
+          ? _buildMobileFooter()
+          : null,
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final isMobile =
-                constraints.maxWidth < 700;
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 700;
 
             return SingleChildScrollView(
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 isMobile ? 16 : 28,
                 isMobile ? 16 : 28,
@@ -152,38 +142,19 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
               ),
               child: Center(
                 child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(
-                    maxWidth: 720,
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 720),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildTopBar(isMobile),
 
-                      SizedBox(
-                        height:
-                            isMobile
-                                ? 16
-                                : 24,
-                      ),
+                      SizedBox(height: isMobile ? 16 : 24),
 
-                      _buildHeader(
-                        isMobile,
-                      ),
+                      _buildHeader(isMobile),
 
-                      SizedBox(
-                        height:
-                            isMobile
-                                ? 16
-                                : 26,
-                      ),
+                      SizedBox(height: isMobile ? 16 : 26),
 
-                      _buildFormCard(
-                        isMobile,
-                      ),
+                      _buildFormCard(isMobile),
                     ],
                   ),
                 ),
@@ -199,9 +170,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // TOP BAR
   // ============================================================
 
-  Widget _buildTopBar(
-    bool isMobile,
-  ) {
+  Widget _buildTopBar(bool isMobile) {
     return Row(
       children: [
         InkWell(
@@ -217,15 +186,9 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
             decoration: BoxDecoration(
               color: surface,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: borderColor,
-              ),
+              border: Border.all(color: borderColor),
             ),
-            child: const Icon(
-              Icons.arrow_back_rounded,
-              color: gold,
-              size: 23,
-            ),
+            child: const Icon(Icons.arrow_back_rounded, color: gold, size: 23),
           ),
         ),
         const SizedBox(width: 14),
@@ -243,15 +206,10 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
               ),
               const SizedBox(height: 5),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: gold.withOpacity(0.45),
-                  ),
+                  border: Border.all(color: gold.withOpacity(0.45)),
                   color: gold.withOpacity(0.06),
                 ),
                 child: const Text(
@@ -274,26 +232,17 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // HEADER
   // ============================================================
 
-  Widget _buildHeader(
-    bool isMobile,
-  ) {
+  Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(
-        isMobile ? 18 : 22,
-      ),
+      padding: EdgeInsets.all(isMobile ? 18 : 22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF171711),
-            Color(0xFF111216),
-          ],
+          colors: [Color(0xFF171711), Color(0xFF111216)],
         ),
-        border: Border.all(
-          color: gold.withOpacity(0.28),
-        ),
+        border: Border.all(color: gold.withOpacity(0.28)),
         boxShadow: [
           BoxShadow(
             color: gold.withOpacity(0.06),
@@ -349,60 +298,37 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // FORM CARD
   // ============================================================
 
-  Widget _buildFormCard(
-    bool isMobile,
-  ) {
+  Widget _buildFormCard(bool isMobile) {
     return Container(
       padding: EdgeInsets.zero,
-      decoration:
-          BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(
-          18,
-        ),
-        border: Border.all(
-          color: Colors.transparent,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.transparent),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withOpacity(
-              0.18,
-            ),
+            color: Colors.black.withOpacity(0.18),
             blurRadius: 20,
-            offset:
-                const Offset(
-              0,
-              8,
-            ),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(),
 
-          const SizedBox(
-            height: 18,
-          ),
+          const SizedBox(height: 18),
 
           _buildInput(
-            controller:
-                emailController,
+            controller: emailController,
             hint: 'Email Address',
-            icon:
-                Icons.email_outlined,
-            keyboardType:
-                TextInputType.emailAddress,
+            icon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
             requiredField: true,
           ),
 
-          const SizedBox(
-            height: 12,
-          ),
+          const SizedBox(height: 12),
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,9 +351,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
             ],
           ),
 
-          const SizedBox(
-            height: 24,
-          ),
+          const SizedBox(height: 24),
 
           Row(
             children: [
@@ -460,27 +384,18 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
           const SizedBox(height: 14),
 
           _buildInput(
-            controller:
-                companyController,
-            hint:
-                'Company Name',
-            icon:
-                Icons.business_outlined,
+            controller: companyController,
+            hint: 'Company Name',
+            icon: Icons.business_outlined,
           ),
 
-          const SizedBox(
-            height: 12,
-          ),
+          const SizedBox(height: 12),
 
           _buildBusinessTypeDropdown(),
 
-          const SizedBox(
-            height: 18,
-          ),
+          const SizedBox(height: 18),
 
-          _buildActions(
-            isMobile,
-          ),
+          _buildActions(isMobile),
         ],
       ),
     );
@@ -499,9 +414,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: surface2,
-            border: Border.all(
-              color: borderColor,
-            ),
+            border: Border.all(color: borderColor),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.22),
@@ -532,10 +445,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
               SizedBox(height: 3),
               Text(
                 'Add the lead’s contact details',
-                style: TextStyle(
-                  color: mutedText,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: mutedText, fontSize: 11),
               ),
             ],
           ),
@@ -555,8 +465,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     TextInputType? keyboardType,
     bool requiredField = false,
   }) {
-    final bool isCompactName =
-        hint == 'First Name' || hint == 'Last Name';
+    final bool isCompactName = hint == 'First Name' || hint == 'Last Name';
 
     return Container(
       height: 72,
@@ -567,9 +476,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       decoration: BoxDecoration(
         color: surface2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: borderColor,
-        ),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.16),
@@ -580,11 +487,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: gold,
-            size: isCompactName ? 19 : 22,
-          ),
+          Icon(icon, color: gold, size: isCompactName ? 19 : 22),
           SizedBox(width: isCompactName ? 8 : 14),
           Expanded(
             child: Column(
@@ -663,9 +566,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
             padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
             decoration: const BoxDecoration(
               color: Color(0xFF14161A),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(26),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -681,11 +582,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                 const SizedBox(height: 18),
                 const Row(
                   children: [
-                    Icon(
-                      Icons.storefront_outlined,
-                      color: gold,
-                      size: 23,
-                    ),
+                    Icon(Icons.storefront_outlined, color: gold, size: 23),
                     SizedBox(width: 10),
                     Text(
                       'Select Business Type',
@@ -779,8 +676,8 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     final helper = isLoadingBusinessTypes
         ? 'Loading business types...'
         : businessTypes.isEmpty
-            ? 'Add a Business Type from the Link page first'
-            : selectedBusinessType ?? 'Select a business type';
+        ? 'Add a Business Type from the Link page first'
+        : selectedBusinessType ?? 'Select a business type';
 
     return Material(
       color: Colors.transparent,
@@ -808,11 +705,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.storefront_outlined,
-                color: gold,
-                size: 23,
-              ),
+              const Icon(Icons.storefront_outlined, color: gold, size: 23),
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
@@ -832,9 +725,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                       helper,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: selectedBusinessType == null
-                            ? mutedText
-                            : white,
+                        color: selectedBusinessType == null ? mutedText : white,
                         fontSize: 13.5,
                         fontWeight: selectedBusinessType == null
                             ? FontWeight.w400
@@ -848,10 +739,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                 const SizedBox(
                   width: 19,
                   height: 19,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: gold,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: gold),
                 )
               else
                 const Icon(
@@ -868,11 +756,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
 
   void _openDashboardSection(String menu) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => DashboardScreen(
-          initialMenu: menu,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => DashboardScreen(initialMenu: menu)),
       (route) => false,
     );
   }
@@ -881,11 +765,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF070A0E),
-        border: Border(
-          top: BorderSide(
-            color: Colors.white.withOpacity(0.10),
-          ),
-        ),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.10))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.45),
@@ -939,19 +819,12 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 25,
-              color: const Color(0xFFAEB4BF),
-            ),
+            Icon(icon, size: 25, color: const Color(0xFFAEB4BF)),
             const SizedBox(height: 5),
             Text(
               label,
               maxLines: 1,
-              style: const TextStyle(
-                color: Color(0xFFAEB4BF),
-                fontSize: 10.5,
-              ),
+              style: const TextStyle(color: Color(0xFFAEB4BF), fontSize: 10.5),
             ),
           ],
         ),
@@ -976,9 +849,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                   end: Alignment.bottomRight,
                   colors: [Color(0xFFFFD978), Color(0xFFD9A93F)],
                 ),
-                border: Border.all(
-                  color: const Color(0xFFFFE6A6),
-                ),
+                border: Border.all(color: const Color(0xFFFFE6A6)),
                 boxShadow: [
                   BoxShadow(
                     color: gold.withOpacity(0.30),
@@ -1012,18 +883,14 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // ACTIONS
   // ============================================================
 
-  Widget _buildActions(
-    bool isMobile,
-  ) {
+  Widget _buildActions(bool isMobile) {
     if (isMobile) {
       return Container(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
         decoration: BoxDecoration(
           color: surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: gold.withOpacity(0.16),
-          ),
+          border: Border.all(color: gold.withOpacity(0.16)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.35),
@@ -1059,20 +926,11 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
 
     return Row(
       children: [
-        Expanded(
-          child:
-              _buildCancelButton(),
-        ),
+        Expanded(child: _buildCancelButton()),
 
-        const SizedBox(
-          width: 12,
-        ),
+        const SizedBox(width: 12),
 
-        Expanded(
-          flex: 2,
-          child:
-              _buildSaveButton(),
-        ),
+        Expanded(flex: 2, child: _buildSaveButton()),
       ],
     );
   }
@@ -1084,63 +942,29 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   Widget _buildSaveButton() {
     return SizedBox(
       height: 52,
-      child:
-          ElevatedButton.icon(
-        onPressed:
-            isSaving
-                ? null
-                : _saveLead,
-        icon:
-            isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child:
-                        CircularProgressIndicator(
-                      strokeWidth:
-                          2,
-                      color:
-                          Color(
-                        0xFF171208,
-                      ),
-                    ),
-                  )
-                : const Icon(
-                    Icons
-                        .person_add_alt_1_rounded,
-                    size: 19,
-                  ),
-        label:
-            Text(
-          isSaving
-              ? 'Saving...'
-              : 'Save Lead',
-          style:
-              const TextStyle(
-            fontSize: 14,
-            fontWeight:
-                FontWeight.w800,
-          ),
+      child: ElevatedButton.icon(
+        onPressed: isSaving ? null : _saveLead,
+        icon: isSaving
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF171208),
+                ),
+              )
+            : const Icon(Icons.person_add_alt_1_rounded, size: 19),
+        label: Text(
+          isSaving ? 'Saving...' : 'Save Lead',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         ),
-        style:
-            ElevatedButton.styleFrom(
-          backgroundColor:
-              goldStrong,
-          foregroundColor:
-              const Color(
-            0xFF191406,
-          ),
-          disabledBackgroundColor:
-              const Color(
-            0xFF967D3C,
-          ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: goldStrong,
+          foregroundColor: const Color(0xFF191406),
+          disabledBackgroundColor: const Color(0xFF967D3C),
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              12,
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -1154,46 +978,22 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   Widget _buildCancelButton() {
     return SizedBox(
       height: 50,
-      child:
-          OutlinedButton.icon(
-        onPressed:
-            isSaving
-                ? null
-                : () {
-                    Navigator.pop(
-                      context,
-                    );
-                  },
-        icon:
-            const Icon(
-          Icons
-              .arrow_back_rounded,
-          size: 18,
-        ),
-        label:
-            const Text(
+      child: OutlinedButton.icon(
+        onPressed: isSaving
+            ? null
+            : () {
+                Navigator.pop(context);
+              },
+        icon: const Icon(Icons.arrow_back_rounded, size: 18),
+        label: const Text(
           'Cancel',
-          style:
-              TextStyle(
-            fontSize: 13,
-            fontWeight:
-                FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
-        style:
-            OutlinedButton.styleFrom(
-          foregroundColor:
-              lightText,
-          side:
-              const BorderSide(
-            color: borderColor,
-          ),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              12,
-            ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: lightText,
+          side: const BorderSide(color: borderColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -1205,37 +1005,24 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // ============================================================
 
   Future<void> _saveLead() async {
-    final String email =
-        emailController.text.trim();
+    final String email = emailController.text.trim();
 
-    final String firstName =
-        firstNameController.text.trim();
+    final String firstName = firstNameController.text.trim();
 
-    final String lastName =
-        lastNameController.text.trim();
+    final String lastName = lastNameController.text.trim();
 
-    final String company =
-        companyController.text.trim();
+    final String company = companyController.text.trim();
 
     if (email.isEmpty) {
-      _showMessage(
-        'Email is required.',
-      );
+      _showMessage('Email is required.');
 
       return;
     }
 
-    final RegExp emailRegex =
-        RegExp(
-      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-    );
+    final RegExp emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
-    if (!emailRegex.hasMatch(
-      email,
-    )) {
-      _showMessage(
-        'Please enter a valid email address.',
-      );
+    if (!emailRegex.hasMatch(email)) {
+      _showMessage('Please enter a valid email address.');
 
       return;
     }
@@ -1257,8 +1044,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     });
 
     try {
-      final response =
-          await LeadsApi.createLead(
+      final response = await LeadsApi.createLead(
         email: email,
         firstName: firstName,
         lastName: lastName,
@@ -1272,34 +1058,20 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
         return;
       }
 
-      if (response['success'] ==
-          true) {
+      if (response['success'] == true) {
         _showMessage(
-          response['message']
-                  ?.toString() ??
-              'Lead added successfully.',
+          response['message']?.toString() ?? 'Lead added successfully.',
         );
 
-        Navigator.pop(
-          context,
-          true,
-        );
+        Navigator.pop(context, true);
       } else {
-        _showMessage(
-          response['message']
-                  ?.toString() ??
-              'Unable to add lead.',
-        );
+        _showMessage(response['message']?.toString() ?? 'Unable to add lead.');
       }
     } catch (error) {
-      debugPrint(
-        'Add lead error: $error',
-      );
+      debugPrint('Add lead error: $error');
 
       if (mounted) {
-        _showMessage(
-          'Unable to add lead. Please try again.',
-        );
+        _showMessage('Unable to add lead. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -1314,9 +1086,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }

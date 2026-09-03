@@ -51,4 +51,42 @@ class BusinessTypeApi {
       return {'success': false, 'message': 'Unable to add business type.'};
     }
   }
+
+  static Future<Map<String, dynamic>> updateBusinessType(
+    String id,
+    String name,
+  ) async {
+    try {
+      final headers = await _headers();
+      if (headers == null) {
+        return {'success': false, 'message': 'Authentication required.'};
+      }
+      final response = await http.patch(
+        Uri.parse('$baseUrl/${Uri.encodeComponent(id)}'),
+        headers: headers,
+        body: jsonEncode({'name': name.trim()}),
+      );
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return {...body, 'statusCode': response.statusCode};
+    } catch (_) {
+      return {'success': false, 'message': 'Unable to update business type.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteBusinessType(String id) async {
+    try {
+      final headers = await _headers();
+      if (headers == null) {
+        return {'success': false, 'message': 'Authentication required.'};
+      }
+      final response = await http.delete(
+        Uri.parse('$baseUrl/${Uri.encodeComponent(id)}'),
+        headers: headers,
+      );
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return {...body, 'statusCode': response.statusCode};
+    } catch (_) {
+      return {'success': false, 'message': 'Unable to delete business type.'};
+    }
+  }
 }

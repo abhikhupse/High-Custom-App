@@ -52,6 +52,7 @@ class _LinkScreenState extends State<LinkScreen> {
   ];
 
   final List<String> businessTypes = [];
+  final Map<String, String> businessTypeIds = {};
 
   @override
   void initState() {
@@ -64,12 +65,17 @@ class _LinkScreenState extends State<LinkScreen> {
     if (!mounted) return;
 
     final values = <String>[];
+    final ids = <String, String>{};
     final data = response['data'];
     if (data is List) {
       for (final item in data) {
         if (item is Map && item['name'] != null) {
           final name = item['name'].toString().trim();
-          if (name.isNotEmpty) values.add(name);
+          final id = item['_id']?.toString().trim() ?? '';
+          if (name.isNotEmpty) {
+            values.add(name);
+            if (id.isNotEmpty) ids[name] = id;
+          }
         }
       }
     }
@@ -78,6 +84,9 @@ class _LinkScreenState extends State<LinkScreen> {
       businessTypes
         ..clear()
         ..addAll(values);
+      businessTypeIds
+        ..clear()
+        ..addAll(ids);
       isLoadingBusinessTypes = false;
     });
   }
@@ -573,6 +582,7 @@ class _LinkScreenState extends State<LinkScreen> {
                     ? 'No Business Type Added'
                     : 'Select Business Type',
             items: businessTypes,
+            manageBusinessTypes: true,
             onChanged: (value) {
               setState(() {
                 selectedBusinessType = value;
@@ -690,6 +700,125 @@ class _LinkScreenState extends State<LinkScreen> {
     }
   }
 
+  Future<void> _editBusinessType(String currentName, String id) async {
+    final controller = TextEditingController(text: currentName);
+    final updatedName = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: gold.withOpacity(0.35)),
+        ),
+        title: const Text(
+          'Edit Business Type',
+          style: TextStyle(color: white, fontWeight: FontWeight.w700),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          cursorColor: gold,
+          style: const TextStyle(color: white),
+          decoration: InputDecoration(
+            hintText: 'Enter business type',
+            hintStyle: const TextStyle(color: mutedText),
+            filled: true,
+            fillColor: inputColor,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: gold),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.length >= 2) Navigator.pop(dialogContext, value);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: gold,
+              foregroundColor: const Color(0xFF171208),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (updatedName == null || updatedName == currentName || !mounted) return;
+
+    final response = await BusinessTypeApi.updateBusinessType(id, updatedName);
+    if (!mounted) return;
+    if (response['success'] == true) {
+      if (selectedBusinessType == currentName) {
+        selectedBusinessType = updatedName;
+      }
+      await _loadBusinessTypes();
+      _showMessage('Business type updated.');
+    } else {
+      _showMessage(response['message']?.toString() ?? 'Unable to update business type.');
+    }
+  }
+
+  Future<void> _deleteBusinessType(String name, String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF71333C)),
+        ),
+        title: const Text(
+          'Delete Business Type?',
+          style: TextStyle(color: white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Delete “$name” from your business-type list?',
+          style: const TextStyle(color: mutedText),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_outline_rounded, size: 18),
+            label: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB83E4D),
+              foregroundColor: white,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final response = await BusinessTypeApi.deleteBusinessType(id);
+    if (!mounted) return;
+    if (response['success'] == true) {
+      if (selectedBusinessType == name) selectedBusinessType = null;
+      await _loadBusinessTypes();
+      _showMessage('Business type deleted.');
+    } else {
+      _showMessage(
+        response['message']?.toString() ?? 'Unable to delete business type.',
+        type: response['statusCode'] == 409 ? AppFeedbackType.error : null,
+      );
+    }
+  }
+
   // ============================================================
   // COMMON DROPDOWN
   // ============================================================
@@ -699,6 +828,7 @@ class _LinkScreenState extends State<LinkScreen> {
     required String hint,
     required List<String> items,
     required ValueChanged<String?> onChanged,
+    bool manageBusinessTypes = false,
   }) {
     return Material(
       color: Colors.transparent,
@@ -710,6 +840,7 @@ class _LinkScreenState extends State<LinkScreen> {
                   title: hint,
                   value: value,
                   items: items,
+                  manageBusinessTypes: manageBusinessTypes,
                 );
                 if (selected != null) onChanged(selected);
               },
@@ -765,6 +896,7 @@ class _LinkScreenState extends State<LinkScreen> {
     required String title,
     required String? value,
     required List<String> items,
+    bool manageBusinessTypes = false,
   }) {
     return showModalBottomSheet<String>(
       context: context,
@@ -900,6 +1032,43 @@ class _LinkScreenState extends State<LinkScreen> {
                                   color: gold,
                                   size: 21,
                                 ),
+                              if (manageBusinessTypes) ...[
+                                const SizedBox(width: 5),
+                                IconButton(
+                                  tooltip: 'Edit $item',
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () {
+                                    final id = businessTypeIds[item];
+                                    if (id == null) return;
+                                    Navigator.pop(sheetContext);
+                                    Future<void>.delayed(Duration.zero, () {
+                                      if (mounted) _editBusinessType(item, id);
+                                    });
+                                  },
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    color: gold,
+                                    size: 20,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Delete $item',
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () {
+                                    final id = businessTypeIds[item];
+                                    if (id == null) return;
+                                    Navigator.pop(sheetContext);
+                                    Future<void>.delayed(Duration.zero, () {
+                                      if (mounted) _deleteBusinessType(item, id);
+                                    });
+                                  },
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Color(0xFFFF7180),
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -975,11 +1144,11 @@ class _LinkScreenState extends State<LinkScreen> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {AppFeedbackType? type}) {
     if (!mounted) {
       return;
     }
 
-    AppFeedback.show(context, message);
+    AppFeedback.show(context, message, type: type);
   }
 }
