@@ -296,6 +296,10 @@ exports.gmailCallback = async (req, res) => {
 
         connectedAt: new Date(),
 
+        reconnectRequiredAt: null,
+
+        reconnectReason: null,
+
         ...(existingIntegration && existingIntegration.email !== gmailEmail
           ? {
               lastHistoryId: null,
@@ -349,7 +353,12 @@ exports.gmailCallback = async (req, res) => {
     console.error("================================================");
     console.error("GMAIL CALLBACK ERROR");
     console.error("================================================");
-    console.error(error);
+    console.error({
+      message: error?.message || "unknown_error",
+      code: error?.code || null,
+      status: error?.response?.status || null,
+      providerError: error?.response?.data?.error || null,
+    });
     console.error("================================================");
 
     const errorMessage = error?.message || "unknown_error";
@@ -397,6 +406,16 @@ exports.getGmailStatus = async (req, res) => {
     // ========================================================
     // CONNECTED
     // ========================================================
+
+    if (integration.reconnectRequiredAt) {
+      return res.status(200).json({
+        success: true,
+        connected: false,
+        reconnectRequired: true,
+        email: integration.email,
+        message: "Gmail authorization expired or was revoked. Reconnect Gmail.",
+      });
+    }
 
     return res.status(200).json({
       success: true,

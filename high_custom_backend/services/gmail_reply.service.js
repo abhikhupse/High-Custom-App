@@ -7,6 +7,33 @@ const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const activeSyncs = new Set();
 const LOCK_DURATION_MS = 2 * 60 * 1000;
 
+function isInvalidGrant(error) {
+  const values = [
+    error?.message,
+    error?.response?.data?.error,
+    error?.response?.data?.error_description,
+    error?.cause?.message,
+  ];
+  return values.some((value) => String(value || "").toLowerCase().includes("invalid_grant"));
+}
+
+async function requireGmailReconnect(integration, error) {
+  if (!integration?._id || !isInvalidGrant(error)) return false;
+  await GMAIL_INTEGRATION.updateOne(
+    { _id: integration._id },
+    { $set: {
+      reconnectRequiredAt: new Date(),
+      reconnectReason: "invalid_grant",
+      replySyncLastError: "Gmail authorization expired or was revoked. Reconnect Gmail.",
+      replySyncLockUntil: null,
+      replySyncPendingHistoryId: null,
+      watchExpiration: null,
+    } },
+  );
+  console.warn(`Gmail authorization expired for ${integration.email}; reconnect required.`);
+  return true;
+}
+
 function normalizeEmail(value) {
   const text = String(value || "").trim().toLowerCase();
   const angleMatch = text.match(/<([^<>\s]+@[^<>\s]+)>/);
@@ -449,6 +476,9 @@ async function processGmailNotification({ emailAddress, historyId }) {
     return { processed: true, messages: messageIds.size, outcomes };
   } catch (error) {
     if (integration?._id) {
+      if (await requireGmailReconnect(integration, error).catch(() => false)) {
+        return { processed: false, reason: "reconnect_required" };
+      }
       await GMAIL_INTEGRATION.updateOne(
         { _id: integration._id },
         {
@@ -469,6 +499,7 @@ async function processGmailNotification({ emailAddress, historyId }) {
 async function retryPendingGmailNotifications() {
   const integrations = await GMAIL_INTEGRATION.find({
     replySyncPendingHistoryId: { $ne: null },
+    reconnectRequiredAt: null,
   })
     .select({ email: 1, replySyncPendingHistoryId: 1 })
     .limit(100)
@@ -497,6 +528,7 @@ async function renewExpiringGmailWatches() {
 
   const renewalThreshold = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const integrations = await GMAIL_INTEGRATION.find({
+    reconnectRequiredAt: null,
     $or: [
       { watchExpiration: null },
       { watchExpiration: { $exists: false } },
@@ -511,7 +543,9 @@ async function renewExpiringGmailWatches() {
       await registerGmailWatch(integration);
       renewed++;
     } catch (error) {
-      console.error(`Gmail watch renewal failed for ${integration.email}:`, error.message);
+      if (!(await requireGmailReconnect(integration, error).catch(() => false))) {
+        console.error(`Gmail watch renewal failed for ${integration.email}:`, error.message);
+      }
     }
   }
 
@@ -525,4 +559,5 @@ module.exports = {
   processGmailNotification,
   retryPendingGmailNotifications,
   renewExpiringGmailWatches,
+  isInvalidGrant,
 };

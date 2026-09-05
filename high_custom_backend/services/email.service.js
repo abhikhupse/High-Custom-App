@@ -624,7 +624,10 @@ async function sendGmailSequenceEmail({
 async function sendSequenceEmail(options) {
   const [zohoIntegration, gmailIntegration] = await Promise.all([
     findZohoIntegration(options.userId),
-    GMAIL_INTEGRATION.findOne({ userId: options.userId }),
+    GMAIL_INTEGRATION.findOne({
+      userId: options.userId,
+      reconnectRequiredAt: null,
+    }),
   ]);
 
   if (zohoIntegration) {

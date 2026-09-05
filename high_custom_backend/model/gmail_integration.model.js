@@ -95,6 +95,17 @@ const gmailIntegrationSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    reconnectRequiredAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    reconnectReason: {
+      type: String,
+      default: null,
+    },
   },
 
   {
