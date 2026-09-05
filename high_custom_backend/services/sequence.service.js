@@ -20,12 +20,19 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   console.log("VARIANT:", sequence?.variant);
   console.log("==============================================");
 
-  if (lead.tracking === false || await EMAIL_SUPPRESSION.exists({
+  const suppression = lead.tracking === false ? null : await EMAIL_SUPPRESSION.findOne({
     userId: sequence.userId, email: String(lead.email || "").trim().toLowerCase(),
-  }) || await SEQUENCE_DELIVERY.exists({
+  }).select("reason").lean();
+  let skipReason = lead.tracking === false ? "lead_unsubscribed"
+    : suppression ? `lead_${suppression.reason}` : null;
+  if (!skipReason && await SEQUENCE_DELIVERY.exists({
     userId: sequence.userId, leadId: lead._id, repliedAt: { $ne: null },
   })) {
-    return { sent: false, skipped: true, reason: "lead_suppressed_or_replied" };
+    skipReason = "lead_already_replied";
+  }
+  if (skipReason) {
+    console.log("SEQUENCE EMAIL SKIPPED:", skipReason);
+    return { sent: false, skipped: true, reason: skipReason };
   }
   const deliveryChannel = sequence.channel || "Email";
 

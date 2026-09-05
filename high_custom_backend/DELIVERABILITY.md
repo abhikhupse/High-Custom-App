@@ -1,5 +1,19 @@
 # Local email sending safeguards
 
+## Registration OTP on Render
+
+Render uses the Gmail HTTPS API automatically (`RENDER` environment variable).
+Other environments keep SMTP by default. Set `OTP_EMAIL_TRANSPORT=gmail_api`
+explicitly to select the HTTPS transport, or `smtp` only on hosts that permit SMTP.
+`EMAIL_USER` is the dedicated application OTP sender and must have a connected Gmail
+integration using the same Google OAuth client as the deployment. An expired/revoked
+connection must be reauthorized in Integrations. Never choose an arbitrary user's mailbox.
+
+The OTP send has a 12-second deadline. A mail failure returns a clear 503 response;
+an unverified registration can retry with matching email, phone, employer code, and
+password without creating another account or replacing another account's credentials.
+Deploy the backend changes and rebuild the frontend to use the improved timeout messages.
+
 Sequence emails default to plain text for both Gmail and Zoho. This keeps the authored
 message and unsubscribe link, without automatically adding logos, hero images, CTA,
 WhatsApp, document links, response buttons, or open pixels. Links written in the body

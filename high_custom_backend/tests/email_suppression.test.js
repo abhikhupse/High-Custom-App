@@ -10,23 +10,23 @@ require.cache[transportPath] = { exports: { sendSequenceEmail: async () => {
 const { sendSequenceToLead } = require("../services/sequence.service");
 
 test("suppressed addresses and replied leads stop before provider or delivery creation", async () => {
-  const originals = [SUPPRESSION.exists, DELIVERY.exists];
+  const originals = [SUPPRESSION.findOne, DELIVERY.exists];
   const sequence = { _id: "sequence", userId: "user" };
   const lead = { _id: "reimported-lead", email: "LEAD@example.com", tracking: true };
   try {
-    SUPPRESSION.exists = async (filter) => {
+    SUPPRESSION.findOne = (filter) => {
       assert.equal(filter.email, "lead@example.com");
-      return true;
+      return { select: () => ({ lean: async () => ({ reason: "unsubscribe" }) }) };
     };
     DELIVERY.exists = async () => { throw new Error("Should short-circuit"); };
-    assert.equal((await sendSequenceToLead({ sequence, lead })).skipped, true);
-    SUPPRESSION.exists = async () => false;
+    assert.equal((await sendSequenceToLead({ sequence, lead })).reason, "lead_unsubscribe");
+    SUPPRESSION.findOne = () => ({ select: () => ({ lean: async () => null }) });
     DELIVERY.exists = async (filter) => {
       assert.deepEqual(filter.repliedAt, { $ne: null });
       return true;
     };
-    assert.equal((await sendSequenceToLead({ sequence, lead })).skipped, true);
+    assert.equal((await sendSequenceToLead({ sequence, lead })).reason, "lead_already_replied");
   } finally {
-    [SUPPRESSION.exists, DELIVERY.exists] = originals;
+    [SUPPRESSION.findOne, DELIVERY.exists] = originals;
   }
 });

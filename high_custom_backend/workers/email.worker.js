@@ -99,7 +99,11 @@ async function startEmailWorker() {
 
   worker.on("completed", (job, result) => {
     if (result) {
-      console.log(`Email job completed: ${job.id}`);
+      const outcome = result.sent ? "sent" : result.skipped ? "skipped" : "failed";
+      console.log(`Email job ${outcome}: ${job.id}`, {
+        reason: result.reason || result.failureType || null,
+        detail: result.failureReason || null,
+      });
     }
   });
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -332,7 +333,7 @@ class AuthApi {
           )
           .timeout(
             const Duration(
-              seconds: 20,
+              seconds: 60,
             ),
           );
 
@@ -361,6 +362,16 @@ class AuthApi {
         'message':
             data['message']?.toString() ??
                 'Registration failed. Please try again.',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'The server took too long to finish registration. If a verification email arrived, use its code. Otherwise retry Create Account with the same details.',
+      };
+    } on http.ClientException {
+      return {
+        'success': false,
+        'message': 'Could not reach the server. Check your internet connection and try again.',
       };
     } catch (e) {
       debugPrint(

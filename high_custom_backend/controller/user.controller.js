@@ -1,6 +1,6 @@
 const USER_COLLECTION = require("../model/user.model");
 const bcrypt = require("bcrypt");
-const nodemailer = require("nodemailer");
+const { createRegistrationTransport } = require("../services/registration_mail.service");
 const jwt = require("jsonwebtoken");
 const { getClientIp } = require("../utils/clientIp");
 
@@ -24,7 +24,12 @@ exports.register = async (req, res) => {
       ],
     });
 
-    if (userExists) {
+    const retryPendingRegistration = userExists && !userExists.isEmailVerified &&
+      userExists.email === cleanEmail && userExists.phone === cleanPhone &&
+      userExists.employerCode === cleanEmployerCode &&
+      await bcrypt.compare(password, userExists.password);
+
+    if (userExists && !retryPendingRegistration) {
       if (userExists.email === cleanEmail) {
         return res.status(400).json({
           success: false,
@@ -56,7 +61,7 @@ exports.register = async (req, res) => {
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     // Create user
-    const user = await USER_COLLECTION.create({
+    const user = retryPendingRegistration ? userExists : await USER_COLLECTION.create({
       firstName: cleanFirstName,
       lastName: cleanLastName,
       employerCode: cleanEmployerCode,
@@ -68,14 +73,14 @@ exports.register = async (req, res) => {
       emailOtpExpires: otpExpires,
     });
 
-    // Gmail transporter
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    if (retryPendingRegistration) {
+      user.emailOtp = otp;
+      user.emailOtpExpires = otpExpires;
+      await user.save();
+    }
+
+    // Bound SMTP waits so a failed OTP returns before the client timeout.
+    const transporter = createRegistrationTransport();
 
     const mailOptions = {
       from: `"High Custom Jewellers" <${process.env.EMAIL_USER}>`,
@@ -360,7 +365,29 @@ exports.register = async (req, res) => {
 `,
     };
 
-    await transporter.sendMail(mailOptions);
+    let mailDeadline;
+    try {
+      await Promise.race([
+        transporter.sendMail(mailOptions),
+        new Promise((_, reject) => {
+          mailDeadline = setTimeout(() => {
+            const error = new Error("OTP delivery timed out");
+            error.code = "ETIMEDOUT";
+            reject(error);
+          }, 12000);
+        }),
+      ]);
+    } catch (error) {
+      console.error("Registration OTP delivery failed:", error.code || "MAIL_ERROR");
+      return res.status(503).json({
+        success: false,
+        code: "OTP_DELIVERY_FAILED",
+        message: "We could not send your verification email. Your account is not verified yet. Please retry Create Account with the same details.",
+      });
+    } finally {
+      clearTimeout(mailDeadline);
+      transporter.close();
+    }
 
     const createdAtIST = user.createdAt.toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
