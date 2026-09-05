@@ -494,7 +494,7 @@ function buildSequenceEmail({
 
   let responseButtonsHtml = "";
 
-  if (process.env.EMAIL_RESPONSE_BUTTONS_ENABLED === "true" && isValidUrl(interestedUrl) && isValidUrl(notInterestedUrl)) {
+  if (process.env.EMAIL_RESPONSE_BUTTONS_ENABLED !== "false" && isValidUrl(interestedUrl) && isValidUrl(notInterestedUrl)) {
     responseButtonsHtml = `
       <tr>
         <td style="padding:4px 20px 24px 20px;">

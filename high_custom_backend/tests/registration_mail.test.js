@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const axios = require("axios");
 const GMAIL = require("../model/gmail_integration.model");
-const { createRegistrationTransport } = require("../services/registration_mail.service");
+const { createRegistrationTransport, configuredOtpSender } = require("../services/registration_mail.service");
 
 test("Render OTP uses HTTPS with only the configured sender and never SMTP", async () => {
   const saved = { ...process.env };
@@ -52,6 +52,17 @@ test("production and Render URL environments select HTTPS even without RENDER=tr
     delete process.env.RENDER_EXTERNAL_URL;
     process.env.NODE_ENV = "production";
     assert.equal(typeof createRegistrationTransport().sendMail, "function");
+  } finally {
+    process.env = saved;
+  }
+});
+
+test("dedicated OTP sender setting takes precedence over legacy EMAIL_USER", () => {
+  const saved = { ...process.env };
+  try {
+    process.env.EMAIL_USER = "legacy@example.com";
+    process.env.OTP_EMAIL_USER = " OTP-Sender@Example.com ";
+    assert.equal(configuredOtpSender(), "otp-sender@example.com");
   } finally {
     process.env = saved;
   }

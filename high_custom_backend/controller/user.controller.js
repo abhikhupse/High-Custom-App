@@ -1,6 +1,9 @@
 const USER_COLLECTION = require("../model/user.model");
 const bcrypt = require("bcrypt");
-const { createRegistrationTransport } = require("../services/registration_mail.service");
+const {
+  createRegistrationTransport,
+  configuredOtpSender,
+} = require("../services/registration_mail.service");
 const jwt = require("jsonwebtoken");
 const { getClientIp } = require("../utils/clientIp");
 
@@ -83,7 +86,7 @@ exports.register = async (req, res) => {
     const transporter = createRegistrationTransport();
 
     const mailOptions = {
-      from: `"High Custom Jewellers" <${process.env.EMAIL_USER}>`,
+      from: `"High Custom Jewellers" <${configuredOtpSender()}>`,
       to: cleanEmail,
       subject: "Your Email Verification OTP - High Custom Jewellers",
 

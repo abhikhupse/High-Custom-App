@@ -3,6 +3,12 @@ const axios = require("axios");
 const GMAIL = require("../model/gmail_integration.model");
 const { createMimeMessage } = require("../utils/emailMessage");
 
+function configuredOtpSender() {
+  return String(process.env.OTP_EMAIL_USER || process.env.EMAIL_USER || "")
+    .trim()
+    .toLowerCase();
+}
+
 function createRegistrationTransport() {
   const isHosted = process.env.RENDER === "true" ||
     Boolean(process.env.RENDER_EXTERNAL_URL) ||
@@ -18,7 +24,7 @@ function createRegistrationTransport() {
     close: () => controller.abort(),
     async sendMail(options) {
       // Only the explicitly configured application sender may send registration OTPs.
-      const sender = String(process.env.EMAIL_USER || "").trim().toLowerCase();
+      const sender = configuredOtpSender();
       if (!sender) throw Object.assign(new Error("OTP sender is not configured"), { code: "OTP_NOT_CONFIGURED" });
       const integration = await GMAIL.findOne({ email: sender }).sort({ connectedAt: -1 }).lean();
       if (!integration?.refreshToken) {
@@ -64,4 +70,4 @@ function createRegistrationTransport() {
   };
 }
 
-module.exports = { createRegistrationTransport };
+module.exports = { createRegistrationTransport, configuredOtpSender };

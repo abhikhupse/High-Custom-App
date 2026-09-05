@@ -5,7 +5,7 @@ const { buildSequenceText, createMimeMessage } = require("../utils/emailMessage"
 const { permanentFailures } = require("../utils/deliveryStatus");
 const { buildSequenceBodies } = require("../utils/emailMessage");
 
-test("default sequence format sends plain MIME without promotional extras, retaining unsubscribe", async () => {
+test("default sequence format keeps response buttons without promotional extras or tracking", async () => {
   const previous = process.env.EMAIL_SEQUENCE_FORMAT;
   delete process.env.EMAIL_SEQUENCE_FORMAT;
   try {
@@ -14,16 +14,21 @@ test("default sequence format sends plain MIME without promotional extras, retai
         actionLinks: { cta: { enabled: true, text: "Buy", url: "https://example.com/buy" } },
         attachment: { name: "Brochure", url: "/brochure.pdf" } },
       lead: { firstName: "Ana" }, baseUrl: "https://example.com",
-      trackingUrl: "https://example.com/pixel", notInterestedUrl: "https://example.com/unsubscribe",
+      trackingUrl: "https://example.com/pixel", interestedUrl: "https://example.com/interested",
+      notInterestedUrl: "https://example.com/unsubscribe",
     };
     for (const provider of ["gmail", "zoho"]) {
       const bodies = buildSequenceBodies(options, provider);
-      assert.equal(bodies.html, undefined);
+      assert.match(bodies.html, />Interested<\/a>/);
+      assert.match(bodies.html, />Unsubscribe<\/a>/);
+      assert.doesNotMatch(bodies.html, /example.com\/logo|example.com\/buy|brochure.pdf|example.com\/pixel/);
       assert.equal(bodies.text, "Hi Ana,\nCan we talk?\n\nUnsubscribe: https://example.com/unsubscribe");
       const raw = await createMimeMessage({ from: "sender@example.com", to: "ana@example.com", subject: "Hello", ...bodies });
       const mime = Buffer.from(raw, "base64url").toString();
       assert.match(mime, /Content-Type: text\/plain/);
-      assert.doesNotMatch(mime, /text\/html|multipart\/alternative|example.com\/buy|brochure.pdf|example.com\/pixel/);
+      assert.match(mime, /multipart\/alternative/);
+      assert.match(mime, /Content-Type: text\/html/);
+      assert.doesNotMatch(mime, /example.com\/buy|brochure.pdf|example.com\/pixel/);
     }
     process.env.EMAIL_SEQUENCE_FORMAT = "html";
     assert.match(buildSequenceBodies(options).html, /example.com\/logo/);

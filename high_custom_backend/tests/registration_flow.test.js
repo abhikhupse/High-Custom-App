@@ -4,6 +4,7 @@ const USER = require("../model/user.model");
 const bcrypt = require("bcrypt");
 let failMail = true;
 require.cache[require.resolve("../services/registration_mail.service")] = { exports: {
+  configuredOtpSender: () => "sender@example.com",
   createRegistrationTransport: () => ({ close() {}, async sendMail() {
     if (failMail) throw Object.assign(new Error("Blocked SMTP"), { code: "ETIMEDOUT" });
     return { messageId: "test" };

@@ -5,7 +5,8 @@
 Render uses the Gmail HTTPS API automatically (`RENDER` environment variable).
 Other environments keep SMTP by default. Set `OTP_EMAIL_TRANSPORT=gmail_api`
 explicitly to select the HTTPS transport, or `smtp` only on hosts that permit SMTP.
-`EMAIL_USER` is the dedicated application OTP sender and must have a connected Gmail
+`OTP_EMAIL_USER` is the dedicated application OTP sender (`EMAIL_USER` remains a
+legacy fallback) and must have a connected Gmail
 integration using the same Google OAuth client as the deployment. An expired/revoked
 connection must be reauthorized in Integrations. Never choose an arbitrary user's mailbox.
 
@@ -14,10 +15,10 @@ an unverified registration can retry with matching email, phone, employer code, 
 password without creating another account or replacing another account's credentials.
 Deploy the backend changes and rebuild the frontend to use the improved timeout messages.
 
-Sequence emails default to plain text for both Gmail and Zoho. This keeps the authored
-message and unsubscribe link, without automatically adding logos, hero images, CTA,
-WhatsApp, document links, response buttons, or open pixels. Links written in the body
-are preserved. Existing editor designs remain saved; they are used only in HTML mode.
+Sequence emails default to minimal personal HTML plus a plain-text alternative. This keeps
+the authored message and the Interested/Unsubscribe buttons without automatically adding
+logos, hero images, CTA, WhatsApp, document links, or open pixels. Links written in the body
+are preserved. Existing editor designs remain saved; they are used only in full HTML mode.
 Gmail uses Nodemailer's MIME composer and includes both plain text and HTML in HTML mode.
 This format does not guarantee Gmail Primary placement; recipient classification still applies.
 HTTPS unsubscribe URLs also receive RFC 8058 headers. Verify the received message:
@@ -28,12 +29,12 @@ Defaults (environment overrides require restarting the worker/server):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| EMAIL_SEQUENCE_FORMAT | plain | Set html to restore the rich template |
+| EMAIL_SEQUENCE_FORMAT | personal_html | Use plain for text only or html for the rich template |
 | EMAILS_PER_USER_WINDOW | 1 | Attempts allowed per short window |
 | EMAIL_USER_WINDOW_MS | 60000 | Short window duration |
 | EMAILS_PER_USER_DAY | 50 | Attempts per 24-hour window per app user |
 | EMAIL_OPEN_TRACKING_ENABLED | false | Set true to embed the open pixel |
-| EMAIL_RESPONSE_BUTTONS_ENABLED | false | Set true to show response buttons |
+| EMAIL_RESPONSE_BUTTONS_ENABLED | true | Set false to hide Interested/Unsubscribe buttons |
 | EMAIL_ZOHO_PLAIN_TEXT | false | Set true to send plain text through Zoho |
 
 The daily limit starts with the first reserved attempt; retries consume permits.
