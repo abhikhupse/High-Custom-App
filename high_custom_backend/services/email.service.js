@@ -1,4 +1,4 @@
-const { createMimeMessage, buildSequenceText } = require("../utils/emailMessage");
+const { createMimeMessage, buildSequenceBodies } = require("../utils/emailMessage");
 const { google } = require("googleapis");
 
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
@@ -10,7 +10,6 @@ const {
 const createGoogleOAuthClient = require("../config/google_oauth");
 
 const {
-  buildSequenceEmail,
   replaceLeadPlaceholders,
 } = require("../templates/sequenceEmail.template");
 
@@ -426,7 +425,7 @@ async function sendGmailSequenceEmail({
   // BUILD HTML
   // ==========================================================
 
-  const html = buildSequenceEmail({
+  const { text, html } = buildSequenceBodies({
     sequence,
     lead: {
       ...lead,
@@ -443,7 +442,7 @@ async function sendGmailSequenceEmail({
   // ==========================================================
 
   const raw = await createMimeMessage({
-    text: buildSequenceText({ sequence, lead, notInterestedUrl, baseUrl }),
+    text,
     unsubscribeUrl: notInterestedUrl ? `${notInterestedUrl}/confirm` : null,
     from: integration.email,
     to: leadEmail,

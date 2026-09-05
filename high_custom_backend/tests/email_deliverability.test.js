@@ -3,6 +3,35 @@ const assert = require("node:assert/strict");
 const { buildSequenceEmail, replaceLeadPlaceholders } = require("../templates/sequenceEmail.template");
 const { buildSequenceText, createMimeMessage } = require("../utils/emailMessage");
 const { permanentFailures } = require("../utils/deliveryStatus");
+const { buildSequenceBodies } = require("../utils/emailMessage");
+
+test("default sequence format sends plain MIME without promotional extras, retaining unsubscribe", async () => {
+  const previous = process.env.EMAIL_SEQUENCE_FORMAT;
+  delete process.env.EMAIL_SEQUENCE_FORMAT;
+  try {
+    const options = {
+      sequence: { content: "Hi {{firstName}},\nCan we talk?", brand: { logoUrl: "https://example.com/logo" },
+        actionLinks: { cta: { enabled: true, text: "Buy", url: "https://example.com/buy" } },
+        attachment: { name: "Brochure", url: "/brochure.pdf" } },
+      lead: { firstName: "Ana" }, baseUrl: "https://example.com",
+      trackingUrl: "https://example.com/pixel", notInterestedUrl: "https://example.com/unsubscribe",
+    };
+    for (const provider of ["gmail", "zoho"]) {
+      const bodies = buildSequenceBodies(options, provider);
+      assert.equal(bodies.html, undefined);
+      assert.equal(bodies.text, "Hi Ana,\nCan we talk?\n\nUnsubscribe: https://example.com/unsubscribe");
+      const raw = await createMimeMessage({ from: "sender@example.com", to: "ana@example.com", subject: "Hello", ...bodies });
+      const mime = Buffer.from(raw, "base64url").toString();
+      assert.match(mime, /Content-Type: text\/plain/);
+      assert.doesNotMatch(mime, /text\/html|multipart\/alternative|example.com\/buy|brochure.pdf|example.com\/pixel/);
+    }
+    process.env.EMAIL_SEQUENCE_FORMAT = "html";
+    assert.match(buildSequenceBodies(options).html, /example.com\/logo/);
+  } finally {
+    if (previous === undefined) delete process.env.EMAIL_SEQUENCE_FORMAT;
+    else process.env.EMAIL_SEQUENCE_FORMAT = previous;
+  }
+});
 
 test("DSN parser suppresses invalid recipients but not policy blocks, full mailboxes, or text claims", () => {
   const part = (status, action = "failed") => ({ mimeType: "message/delivery-status", body: {

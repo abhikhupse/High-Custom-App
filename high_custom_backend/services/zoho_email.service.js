@@ -1,9 +1,8 @@
-const { buildSequenceText } = require("../utils/emailMessage");
+const { buildSequenceBodies } = require("../utils/emailMessage");
 const axios = require("axios");
 
 const ZOHO_INTEGRATION = require("../model/zoho_integration.model");
 const {
-  buildSequenceEmail,
   replaceLeadPlaceholders,
 } = require("../templates/sequenceEmail.template");
 
@@ -156,21 +155,20 @@ async function sendZohoSequenceEmail({
   baseUrl,
   onAccepted,
 }) {
-  const html = buildSequenceEmail({
+  const { text, html } = buildSequenceBodies({
     sequence,
     lead,
     trackingUrl,
     interestedUrl,
     notInterestedUrl,
     baseUrl,
-  });
+  }, "zoho");
   const payload = {
     fromAddress: integration.email,
     toAddress: lead.email,
     subject: replaceLeadPlaceholders(sequence.subject || "", lead),
-    content: process.env.EMAIL_ZOHO_PLAIN_TEXT === "true"
-      ? buildSequenceText({ sequence, lead, notInterestedUrl, baseUrl }) : html,
-    mailFormat: process.env.EMAIL_ZOHO_PLAIN_TEXT === "true" ? "plaintext" : "html",
+    content: html || text,
+    mailFormat: html ? "html" : "plaintext",
     encoding: "UTF-8",
   };
 

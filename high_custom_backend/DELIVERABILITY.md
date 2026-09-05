@@ -1,6 +1,11 @@
 # Local email sending safeguards
 
-Sequence Gmail messages include plain text and HTML using Nodemailer's MIME composer.
+Sequence emails default to plain text for both Gmail and Zoho. This keeps the authored
+message and unsubscribe link, without automatically adding logos, hero images, CTA,
+WhatsApp, document links, response buttons, or open pixels. Links written in the body
+are preserved. Existing editor designs remain saved; they are used only in HTML mode.
+Gmail uses Nodemailer's MIME composer and includes both plain text and HTML in HTML mode.
+This format does not guarantee Gmail Primary placement; recipient classification still applies.
 HTTPS unsubscribe URLs also receive RFC 8058 headers. Verify the received message:
 the provider must DKIM-sign the unsubscribe headers for full one-click compliance.
 The visible unsubscribe link remains available when pixels/buttons are disabled.
@@ -9,6 +14,7 @@ Defaults (environment overrides require restarting the worker/server):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
+| EMAIL_SEQUENCE_FORMAT | plain | Set html to restore the rich template |
 | EMAILS_PER_USER_WINDOW | 1 | Attempts allowed per short window |
 | EMAIL_USER_WINDOW_MS | 60000 | Short window duration |
 | EMAILS_PER_USER_DAY | 50 | Attempts per 24-hour window per app user |

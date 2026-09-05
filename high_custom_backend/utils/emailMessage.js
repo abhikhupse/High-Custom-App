@@ -1,8 +1,9 @@
 const MailComposer = require("nodemailer/lib/mail-composer");
-const { replaceLeadPlaceholders, resolvePublicAssetUrl } = require("../templates/sequenceEmail.template");
+const { replaceLeadPlaceholders, resolvePublicAssetUrl, buildSequenceEmail } = require("../templates/sequenceEmail.template");
 
-function buildSequenceText({ sequence = {}, lead = {}, notInterestedUrl, baseUrl }) {
+function buildSequenceText({ sequence = {}, lead = {}, notInterestedUrl, baseUrl, includeExtras = true }) {
   const parts = [replaceLeadPlaceholders(sequence.content || "", lead)];
+  if (includeExtras) {
   for (const item of [sequence.actionLinks?.cta, sequence.actionLinks?.whatsapp]) {
     if (item?.enabled && /^https?:\/\//i.test(item.url || "")) {
       parts.push(`${item.text || "WhatsApp"}: ${item.url}`);
@@ -10,6 +11,7 @@ function buildSequenceText({ sequence = {}, lead = {}, notInterestedUrl, baseUrl
   }
   const attachment = resolvePublicAssetUrl(sequence.attachment?.url, baseUrl);
   if (attachment) parts.push(`${sequence.attachment?.name || "Document"}: ${attachment}`);
+  }
   if (notInterestedUrl) parts.push(`Unsubscribe: ${notInterestedUrl}`);
   return parts.join("\n\n");
 }
@@ -27,4 +29,13 @@ async function createMimeMessage({ from, to, subject, html, text, unsubscribeUrl
   return message.toString("base64url");
 }
 
-module.exports = { buildSequenceText, createMimeMessage };
+function buildSequenceBodies(options, provider = "gmail") {
+  const rich = process.env.EMAIL_SEQUENCE_FORMAT === "html" &&
+    !(provider === "zoho" && process.env.EMAIL_ZOHO_PLAIN_TEXT === "true");
+  return {
+    text: buildSequenceText({ ...options, includeExtras: rich }),
+    html: rich ? buildSequenceEmail(options) : undefined,
+  };
+}
+
+module.exports = { buildSequenceText, createMimeMessage, buildSequenceBodies };
