@@ -55,18 +55,17 @@ test("placeholder names never become a greeting", () => {
   assert.equal(replaceLeadPlaceholders("Hi {{fullName}},", { firstName: "Ana", lastName: "-" }), "Hi Ana,");
 });
 
-test("multipart message has encoded text and HTML, safe subject, and unsubscribe headers", async () => {
+test("multipart message has encoded text and HTML, safe subject, and no list headers", async () => {
   const raw = await createMimeMessage({
     from: "sender@example.com", to: "lead@example.com",
     subject: "Hello é\r\nBcc: victim@example.com",
     text: "Hi Ana,\nA plain text message.", html: "<p>Hi Ana,</p>",
-    unsubscribeUrl: "https://example.com/unsubscribe/opaque-token",
   });
   const mime = Buffer.from(raw, "base64url").toString();
   assert.match(mime, /multipart\/alternative/);
   assert.match(mime, /Content-Type: text\/plain/);
   assert.match(mime, /Content-Type: text\/html/);
-  assert.match(mime, /List-Unsubscribe-Post: List-Unsubscribe=One-Click/);
+  assert.doesNotMatch(mime, /List-Unsubscribe(?:-Post)?:/i);
   assert.match(mime, /Reply-To: sender@example.com/);
   assert.doesNotMatch(mime, /^Bcc:/m);
 });

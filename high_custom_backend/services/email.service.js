@@ -443,7 +443,6 @@ async function sendGmailSequenceEmail({
 
   const raw = await createMimeMessage({
     text,
-    unsubscribeUrl: notInterestedUrl ? `${notInterestedUrl}/confirm` : null,
     from: integration.email,
     to: leadEmail,
     subject: replaceLeadPlaceholders(sequence.subject || "", lead),

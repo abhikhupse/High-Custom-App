@@ -21,9 +21,10 @@ logos, hero images, CTA, WhatsApp, document links, or open pixels. Links written
 are preserved. Existing editor designs remain saved; they are used only in full HTML mode.
 Gmail uses Nodemailer's MIME composer and includes both plain text and HTML in HTML mode.
 This format does not guarantee Gmail Primary placement; recipient classification still applies.
-HTTPS unsubscribe URLs also receive RFC 8058 headers. Verify the received message:
-the provider must DKIM-sign the unsubscribe headers for full one-click compliance.
-The visible unsubscribe link remains available when pixels/buttons are disabled.
+Sequence emails do not add List-Unsubscribe headers, so Gmail does not render its
+header-level unsubscribe control. The visible Unsubscribe button and footer remain.
+If the sender reaches bulk-marketing thresholds, restore standards-compliant one-click
+unsubscribe headers because mailbox providers can require them.
 
 Defaults (environment overrides require restarting the worker/server):
 

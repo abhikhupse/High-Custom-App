@@ -43,15 +43,11 @@ function buildPersonalSequenceHtml({ sequence = {}, lead = {}, interestedUrl, no
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#fff;color:#111;font:16px/1.6 Arial,sans-serif"><div style="max-width:620px">${content}${buttons}${unsubscribe}</div></body></html>`;
 }
 
-async function createMimeMessage({ from, to, subject, html, text, unsubscribeUrl }) {
+async function createMimeMessage({ from, to, subject, html, text }) {
   const message = await new MailComposer({
     from, to, replyTo: from,
     subject: String(subject || "").replace(/[\r\n]+/g, " "),
     text, html,
-    ...(unsubscribeUrl?.startsWith("https://") ? { headers: {
-      "List-Unsubscribe": `<${unsubscribeUrl}>`,
-      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-    }} : {}),
   }).compile().build();
   return message.toString("base64url");
 }
