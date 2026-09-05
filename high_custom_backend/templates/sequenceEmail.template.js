@@ -472,7 +472,7 @@ function buildSequenceEmail({
 
   let trackingPixel = "";
 
-  if (process.env.EMAIL_OPEN_TRACKING_ENABLED === "true" && isValidUrl(trackingUrl)) {
+  if (process.env.EMAIL_OPEN_TRACKING_ENABLED !== "false" && sequence.tracking?.enabled !== false && isValidUrl(trackingUrl)) {
     trackingPixel = `
       <img
         src="${escapeHtml(trackingUrl)}"

@@ -25,11 +25,13 @@ function escapeHtml(value = "") {
     .replace(/'/g, "&#039;");
 }
 
-function buildPersonalSequenceHtml({ sequence = {}, lead = {}, interestedUrl, notInterestedUrl }) {
+function buildPersonalSequenceHtml({ sequence = {}, lead = {}, trackingUrl, interestedUrl, notInterestedUrl }) {
   const content = escapeHtml(replaceLeadPlaceholders(sequence.content || "", lead))
     .replace(/\r\n|\r|\n/g, "<br>");
   const validInterested = /^https?:\/\//i.test(interestedUrl || "");
   const validUnsubscribe = /^https?:\/\//i.test(notInterestedUrl || "");
+  const showTrackingPixel = process.env.EMAIL_OPEN_TRACKING_ENABLED !== "false" &&
+    sequence.tracking?.enabled !== false && /^https?:\/\//i.test(trackingUrl || "");
   const showButtons = process.env.EMAIL_RESPONSE_BUTTONS_ENABLED !== "false" &&
     validInterested && validUnsubscribe;
   const buttons = showButtons ? `
@@ -40,7 +42,10 @@ function buildPersonalSequenceHtml({ sequence = {}, lead = {}, interestedUrl, no
   const unsubscribe = validUnsubscribe
     ? `<p style="margin:24px 0 0;font-size:12px;color:#667085"><a href="${escapeHtml(notInterestedUrl)}" style="color:#667085">Unsubscribe</a> from future emails.</p>`
     : "";
-  return `<!doctype html><html><body style="margin:0;padding:24px;background:#fff;color:#111;font:16px/1.6 Arial,sans-serif"><div style="max-width:620px">${content}${buttons}${unsubscribe}</div></body></html>`;
+  const trackingPixel = showTrackingPixel
+    ? `<img src="${escapeHtml(trackingUrl)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;margin:0;padding:0">`
+    : "";
+  return `<!doctype html><html><body style="margin:0;padding:24px;background:#fff;color:#111;font:16px/1.6 Arial,sans-serif"><div style="max-width:620px">${content}${buttons}${unsubscribe}</div>${trackingPixel}</body></html>`;
 }
 
 async function createMimeMessage({ from, to, subject, html, text }) {

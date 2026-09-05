@@ -34,7 +34,7 @@ Defaults (environment overrides require restarting the worker/server):
 | EMAILS_PER_USER_WINDOW | 1 | Attempts allowed per short window |
 | EMAIL_USER_WINDOW_MS | 60000 | Short window duration |
 | EMAILS_PER_USER_DAY | 50 | Attempts per 24-hour window per app user |
-| EMAIL_OPEN_TRACKING_ENABLED | false | Set true to embed the open pixel |
+| EMAIL_OPEN_TRACKING_ENABLED | true | Set false to disable the open pixel |
 | EMAIL_RESPONSE_BUTTONS_ENABLED | true | Set false to hide Interested/Unsubscribe buttons |
 | EMAIL_ZOHO_PLAIN_TEXT | false | Set true to send plain text through Zoho |
 

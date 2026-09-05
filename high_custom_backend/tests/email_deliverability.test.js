@@ -10,7 +10,7 @@ test("default sequence format keeps response buttons without promotional extras 
   delete process.env.EMAIL_SEQUENCE_FORMAT;
   try {
     const options = {
-      sequence: { content: "Hi {{firstName}},\nCan we talk?", brand: { logoUrl: "https://example.com/logo" },
+      sequence: { content: "Hi {{firstName}},\nCan we talk?", tracking: { enabled: false }, brand: { logoUrl: "https://example.com/logo" },
         actionLinks: { cta: { enabled: true, text: "Buy", url: "https://example.com/buy" } },
         attachment: { name: "Brochure", url: "/brochure.pdf" } },
       lead: { firstName: "Ana" }, baseUrl: "https://example.com",
@@ -35,6 +35,26 @@ test("default sequence format keeps response buttons without promotional extras 
   } finally {
     if (previous === undefined) delete process.env.EMAIL_SEQUENCE_FORMAT;
     else process.env.EMAIL_SEQUENCE_FORMAT = previous;
+  }
+});
+
+test("personal HTML includes a unique open pixel when sequence tracking is enabled", () => {
+  const previous = process.env.EMAIL_OPEN_TRACKING_ENABLED;
+  delete process.env.EMAIL_OPEN_TRACKING_ENABLED;
+  try {
+    const enabled = buildSequenceBodies({
+      sequence: { content: "Hello", tracking: { enabled: true } }, lead: {},
+      trackingUrl: "https://example.com/open/unique?v=123",
+    });
+    assert.match(enabled.html, /src="https:\/\/example.com\/open\/unique\?v=123"/);
+    const disabled = buildSequenceBodies({
+      sequence: { content: "Hello", tracking: { enabled: false } }, lead: {},
+      trackingUrl: "https://example.com/open/unique?v=123",
+    });
+    assert.doesNotMatch(disabled.html, /open\/unique/);
+  } finally {
+    if (previous === undefined) delete process.env.EMAIL_OPEN_TRACKING_ENABLED;
+    else process.env.EMAIL_OPEN_TRACKING_ENABLED = previous;
   }
 });
 
