@@ -378,11 +378,26 @@ exports.register = async (req, res) => {
         }),
       ]);
     } catch (error) {
-      console.error("Registration OTP delivery failed:", error.code || "MAIL_ERROR");
+      const providerCode = error.code || error.response?.data?.error || "MAIL_ERROR";
+      console.error("Registration OTP delivery failed:", {
+        code: providerCode,
+        status: error.response?.status || null,
+        detail: error.response?.data?.error_description ||
+          error.response?.data?.error?.message || error.message,
+      });
+      const retryMessage = providerCode === "OTP_GMAIL_RECONNECT"
+        ? "The verification email sender needs to be reconnected by an administrator. Please try again after it is reconnected."
+        : providerCode === "OTP_GOOGLE_NOT_CONFIGURED" || providerCode === "OTP_GOOGLE_CLIENT_INVALID"
+          ? "Verification email is not configured correctly on the server. Please contact the administrator."
+          : providerCode === "OTP_GMAIL_PERMISSION"
+            ? "The verification email sender is missing Gmail send permission. Please contact the administrator."
+            : providerCode === "OTP_GMAIL_QUOTA"
+              ? "The verification email service has reached its sending limit. Please try again later."
+              : "We could not send your verification email. Your account is not verified yet. Please retry Create Account with the same details.";
       return res.status(503).json({
         success: false,
-        code: "OTP_DELIVERY_FAILED",
-        message: "We could not send your verification email. Your account is not verified yet. Please retry Create Account with the same details.",
+        code: providerCode,
+        message: retryMessage,
       });
     } finally {
       clearTimeout(mailDeadline);

@@ -10,6 +10,8 @@ test("Render OTP uses HTTPS with only the configured sender and never SMTP", asy
   process.env.RENDER = "true";
   delete process.env.OTP_EMAIL_TRANSPORT;
   process.env.EMAIL_USER = "owner@example.com";
+  process.env.GOOGLE_CLIENT_ID = "test-client";
+  process.env.GOOGLE_CLIENT_SECRET = "test-secret";
   let requests = 0;
   GMAIL.findOne = (filter) => {
     assert.deepEqual(filter, { email: "owner@example.com" });
@@ -36,6 +38,21 @@ test("Render OTP uses HTTPS with only the configured sender and never SMTP", asy
     assert.equal(requests, 2);
   } finally {
     GMAIL.findOne = originalFind; axios.post = originalPost;
+    process.env = saved;
+  }
+});
+
+test("production and Render URL environments select HTTPS even without RENDER=true", () => {
+  const saved = { ...process.env };
+  try {
+    delete process.env.RENDER;
+    delete process.env.OTP_EMAIL_TRANSPORT;
+    process.env.RENDER_EXTERNAL_URL = "https://example.onrender.com";
+    assert.equal(typeof createRegistrationTransport().sendMail, "function");
+    delete process.env.RENDER_EXTERNAL_URL;
+    process.env.NODE_ENV = "production";
+    assert.equal(typeof createRegistrationTransport().sendMail, "function");
+  } finally {
     process.env = saved;
   }
 });

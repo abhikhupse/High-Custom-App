@@ -23,7 +23,7 @@ test("failed OTP registration can retry with original credentials without creati
   try {
     await register(req, res);
     assert.equal(res.code, 503);
-    assert.equal(res.body.code, "OTP_DELIVERY_FAILED");
+    assert.equal(res.body.code, "ETIMEDOUT");
     assert.equal(stored.isEmailVerified, false);
     failMail = false;
     await register(req, res);
