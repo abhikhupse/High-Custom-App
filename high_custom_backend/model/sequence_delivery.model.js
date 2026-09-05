@@ -123,6 +123,10 @@ const sequenceDeliverySchema = new mongoose.Schema(
     // ERROR
     // ============================================================
 
+    failureType: { type: String, default: null },
+    failureReason: { type: String, default: null },
+    retryable: { type: Boolean, default: false },
+
     errorMessage: {
       type: String,
       default: null,

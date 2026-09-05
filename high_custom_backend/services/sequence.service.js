@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const EMAIL_SUPPRESSION = require("../model/email_suppression.model");
 
 const SEQUENCE_COLLECTION = require("../model/sequence.model");
 
@@ -19,6 +20,13 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   console.log("VARIANT:", sequence?.variant);
   console.log("==============================================");
 
+  if (lead.tracking === false || await EMAIL_SUPPRESSION.exists({
+    userId: sequence.userId, email: String(lead.email || "").trim().toLowerCase(),
+  }) || await SEQUENCE_DELIVERY.exists({
+    userId: sequence.userId, leadId: lead._id, repliedAt: { $ne: null },
+  })) {
+    return { sent: false, skipped: true, reason: "lead_suppressed_or_replied" };
+  }
   const deliveryChannel = sequence.channel || "Email";
 
   if (deliveryChannel !== "Email" || lead.type !== deliveryChannel) {
@@ -352,6 +360,7 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   // SEND EMAIL
   // ==========================================================
 
+  let acceptedRecorded = false;
   try {
     const result = await sendSequenceEmail({
       userId: sequence.userId,
@@ -382,6 +391,7 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
         delivery.failedAt = null;
 
         await delivery.save();
+        acceptedRecorded = true;
 
         await SEQUENCE_COLLECTION.updateOne(
           {
@@ -428,6 +438,7 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
       delivery.failedAt = null;
 
       await delivery.save();
+      acceptedRecorded = true;
 
       await SEQUENCE_COLLECTION.updateOne(
         {
@@ -494,7 +505,13 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
     // MARK DELIVERY FAILED
     // ========================================================
 
+    // Provider acceptance is final even if a later local statistics write fails.
+    if (acceptedRecorded) {
+      console.error("Email sent, but local statistics update failed:", failureReason);
+      return { sent: true, failed: false, messageId: delivery.messageId };
+    }
     delivery.status = "failed";
+    delivery.retryable = error?.retryable === true;
 
     delivery.errorMessage = failureReason;
 

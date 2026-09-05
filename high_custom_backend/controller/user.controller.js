@@ -82,6 +82,7 @@ exports.register = async (req, res) => {
       to: cleanEmail,
       subject: "Your Email Verification OTP - High Custom Jewellers",
 
+      text: `Your High Custom Jewellers verification code is ${otp}. It expires in 10 minutes. If you did not request this, ignore this email.`,
       html: `
 <!DOCTYPE html>
 <html lang="en">

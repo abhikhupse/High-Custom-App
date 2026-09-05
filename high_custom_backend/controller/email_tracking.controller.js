@@ -3,6 +3,7 @@ const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
 const USER = require("../model/user.model");
 const LEAD = require("../model/leads.model");
+const EMAIL_SUPPRESSION = require("../model/email_suppression.model");
 const LEAD_INTEREST_DETAILS = require("../model/lead_interest_details.model");
 const { getClientIp } = require("../utils/clientIp");
 const { detectEmailOpenScanner } = require("../utils/emailOpenScanner");
@@ -420,6 +421,10 @@ exports.confirmResponse = async (req, res) => {
     const trackingId = String(req.params.trackingId || "").trim();
     const response = String(req.params.response || "").trim();
 
+    // RFC 8058 clients POST directly without visiting the confirmation page.
+    const oneClick = req.body?.["List-Unsubscribe"] === "One-Click";
+    if (oneClick && response !== "notInterested") return res.sendStatus(400);
+
     if (!trackingId || !["interested", "notInterested"].includes(response)) {
       return sendResponsePage(res, {
         title: "Invalid Response",
@@ -461,6 +466,12 @@ exports.confirmResponse = async (req, res) => {
       await SEQUENCE.updateOne({ _id: delivery.sequenceId }, { $inc: increments });
     }
 
+    if (response === "notInterested" && delivery.email) {
+      await EMAIL_SUPPRESSION.updateOne(
+        { userId: delivery.userId, email: delivery.email.toLowerCase().trim() },
+        { $setOnInsert: { reason: "unsubscribe" } }, { upsert: true },
+      );
+    }
     await LEAD.updateOne(
       { _id: delivery.leadId, userId: delivery.userId },
       {
@@ -487,6 +498,7 @@ exports.confirmResponse = async (req, res) => {
       });
     }
 
+    if (oneClick) return res.sendStatus(200);
     return sendResponsePage(res, {
       title: "Unsubscribed Successfully",
       message: "You will no longer receive emails from us.",

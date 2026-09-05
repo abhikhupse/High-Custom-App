@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../services/tracking_api.dart';
@@ -22,53 +24,68 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
   final _searchController = TextEditingController();
   List<_Activity> _activities = [];
   bool _loading = true;
+  bool _isRefreshing = false;
   String? _error;
   int _currentPage = 1;
   int _totalPages = 1;
   int _totalRecords = 0;
   static const int _pageSize = 10;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadReport();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _loadReport(page: _currentPage, showLoading: false),
+    );
   }
 
-  Future<void> _loadReport({int page = 1}) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadReport({int page = 1, bool showLoading = true}) async {
+    if (_isRefreshing) return;
+    _isRefreshing = true;
 
-    final response = await TrackingApi.getTrackingReport(
-      page: page,
-      limit: _pageSize,
-    );
-    if (!mounted) return;
-
-    if (response['success'] != true) {
+    if (showLoading) {
       setState(() {
-        _loading = false;
-        _error = response['message']?.toString() ?? 'Unable to load report.';
+        _loading = true;
+        _error = null;
       });
-      return;
     }
 
-    final deliveries = response['deliveries'] as List<dynamic>? ?? const [];
-    final pagination = response['pagination'];
-    setState(() {
-      _activities = deliveries
-          .whereType<Map>()
-          .map((item) => _activityFromDelivery(Map<String, dynamic>.from(item)))
-          .toList();
-      if (pagination is Map) {
-        _currentPage = (pagination['page'] as num?)?.toInt() ?? page;
-        _totalPages = (pagination['totalPages'] as num?)?.toInt() ?? 1;
-        _totalRecords =
-            (pagination['total'] as num?)?.toInt() ?? _activities.length;
+    try {
+      final response = await TrackingApi.getTrackingReport(
+        page: page,
+        limit: _pageSize,
+      );
+      if (!mounted) return;
+
+      if (response['success'] != true) {
+        setState(() {
+          _loading = false;
+          _error = response['message']?.toString() ?? 'Unable to load report.';
+        });
+        return;
       }
-      _loading = false;
-    });
+
+      final deliveries = response['deliveries'] as List<dynamic>? ?? const [];
+      final pagination = response['pagination'];
+      setState(() {
+        _activities = deliveries
+            .whereType<Map>()
+            .map((item) => _activityFromDelivery(Map<String, dynamic>.from(item)))
+            .toList();
+        if (pagination is Map) {
+          _currentPage = (pagination['page'] as num?)?.toInt() ?? page;
+          _totalPages = (pagination['totalPages'] as num?)?.toInt() ?? 1;
+          _totalRecords =
+              (pagination['total'] as num?)?.toInt() ?? _activities.length;
+        }
+        _loading = false;
+      });
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   _Activity _activityFromDelivery(Map<String, dynamic> delivery) {
@@ -158,6 +175,7 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }

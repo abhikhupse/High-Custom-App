@@ -1,3 +1,4 @@
+const { buildSequenceText } = require("../utils/emailMessage");
 const axios = require("axios");
 
 const ZOHO_INTEGRATION = require("../model/zoho_integration.model");
@@ -167,8 +168,10 @@ async function sendZohoSequenceEmail({
     fromAddress: integration.email,
     toAddress: lead.email,
     subject: replaceLeadPlaceholders(sequence.subject || "", lead),
-    content: html,
-    mailFormat: "html",
+    content: process.env.EMAIL_ZOHO_PLAIN_TEXT === "true"
+      ? buildSequenceText({ sequence, lead, notInterestedUrl, baseUrl }) : html,
+    mailFormat: process.env.EMAIL_ZOHO_PLAIN_TEXT === "true" ? "plaintext" : "html",
+    encoding: "UTF-8",
   };
 
   console.log("ZOHO SEND STARTED", {

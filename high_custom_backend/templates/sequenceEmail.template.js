@@ -137,8 +137,12 @@ function resolvePublicAssetUrl(value, baseUrl) {
 // ============================================================
 
 function replaceLeadPlaceholders(value = "", lead = {}) {
-  const firstName = String(lead.firstName || "").trim();
-  const lastName = String(lead.lastName || "").trim();
+  const clean = (value) => {
+    const text = String(value || "").trim();
+    return /^(?:[-–—]+|n\/?a|null|undefined|unknown)$/i.test(text) ? "" : text;
+  };
+  const firstName = clean(lead.firstName);
+  const lastName = clean(lead.lastName);
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   const replacements = {
@@ -146,8 +150,8 @@ function replaceLeadPlaceholders(value = "", lead = {}) {
     lastName,
     fullName: fullName || "there",
     email: String(lead.email || "").trim(),
-    company: String(lead.company || "").trim(),
-    businessType: String(lead.businessType || "").trim(),
+    company: clean(lead.company),
+    businessType: clean(lead.businessType),
   };
 
   return String(value).replace(
@@ -468,7 +472,7 @@ function buildSequenceEmail({
 
   let trackingPixel = "";
 
-  if (isValidUrl(trackingUrl)) {
+  if (process.env.EMAIL_OPEN_TRACKING_ENABLED === "true" && isValidUrl(trackingUrl)) {
     trackingPixel = `
       <img
         src="${escapeHtml(trackingUrl)}"
@@ -490,7 +494,7 @@ function buildSequenceEmail({
 
   let responseButtonsHtml = "";
 
-  if (isValidUrl(interestedUrl) && isValidUrl(notInterestedUrl)) {
+  if (process.env.EMAIL_RESPONSE_BUTTONS_ENABLED === "true" && isValidUrl(interestedUrl) && isValidUrl(notInterestedUrl)) {
     responseButtonsHtml = `
       <tr>
         <td style="padding:4px 20px 24px 20px;">
@@ -508,7 +512,7 @@ function buildSequenceEmail({
                   href="${escapeHtml(notInterestedUrl)}"
                   target="_blank"
                   style="display:block;background:#667085;color:#FFFFFF;text-decoration:none;text-align:center;padding:12px 8px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;"
-                >Not Interested</a>
+                >Unsubscribe</a>
               </td>
             </tr>
           </table>
@@ -611,6 +615,8 @@ ${attachmentHtml}
 
 ${responseButtonsHtml}
 
+${isValidUrl(notInterestedUrl) ? `<tr><td style="padding:16px 20px;font:13px Arial;color:#667085;"><a href="${escapeHtml(notInterestedUrl)}">Unsubscribe</a> from future emails.</td></tr>` : ""}
+
 </table>
 
 </td>
@@ -628,6 +634,7 @@ ${trackingPixel}
 }
 
 module.exports = {
+  resolvePublicAssetUrl,
   buildSequenceEmail,
   replaceLeadPlaceholders,
 };

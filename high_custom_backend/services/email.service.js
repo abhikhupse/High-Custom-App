@@ -1,3 +1,4 @@
+const { createMimeMessage, buildSequenceText } = require("../utils/emailMessage");
 const { google } = require("googleapis");
 
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
@@ -128,18 +129,6 @@ async function processSenderCopy({ gmail, messageId, labelId, accountEmail }) {
 }
 
 // ============================================================
-// BASE64 URL ENCODE
-// ============================================================
-
-function encodeBase64Url(input) {
-  return Buffer.from(input)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-// ============================================================
 // EMAIL VALIDATION
 // ============================================================
 
@@ -158,28 +147,12 @@ function isValidEmail(email) {
 }
 
 // ============================================================
-// CREATE MIME MESSAGE
-// ============================================================
-
-function createMimeMessage({ from, to, subject, html }) {
-  const message = [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    "MIME-Version: 1.0",
-    "Content-Type: text/html; charset=UTF-8",
-    "",
-    html,
-  ].join("\r\n");
-
-  return encodeBase64Url(message);
-}
-
-// ============================================================
 // DETECT EMAIL FAILURE TYPE
 // ============================================================
 
 function getFailureType(error) {
+  const status = Number(error?.response?.status || error?.code || 0);
+  if (status === 429 || status >= 500) return "temporary_failure";
   const response = error?.response?.data;
 
   const message =
@@ -296,6 +269,7 @@ function createEmailError({ message, failureType, failureReason }) {
   const error = new Error(message || failureReason || "Email sending failed");
 
   error.failureType = failureType || "unknown";
+  error.retryable = failureType === "temporary_failure";
 
   error.failureReason = failureReason || message || "Email sending failed";
 
@@ -468,7 +442,9 @@ async function sendGmailSequenceEmail({
   // CREATE MIME
   // ==========================================================
 
-  const raw = createMimeMessage({
+  const raw = await createMimeMessage({
+    text: buildSequenceText({ sequence, lead, notInterestedUrl, baseUrl }),
+    unsubscribeUrl: notInterestedUrl ? `${notInterestedUrl}/confirm` : null,
     from: integration.email,
     to: leadEmail,
     subject: replaceLeadPlaceholders(sequence.subject || "", lead),

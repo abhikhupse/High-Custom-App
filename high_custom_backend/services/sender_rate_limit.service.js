@@ -2,48 +2,32 @@ const { createRedisConnection } = require("../config/redis");
 
 const redis = createRedisConnection();
 
-const EMAILS_PER_USER_WINDOW = Math.max(
-  1,
-  Number(process.env.EMAILS_PER_USER_WINDOW || 3),
-);
+function positiveInteger(value, fallback) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : fallback;
+}
+const EMAILS_PER_USER_WINDOW = positiveInteger(process.env.EMAILS_PER_USER_WINDOW, 1);
+const EMAIL_USER_WINDOW_MS = positiveInteger(process.env.EMAIL_USER_WINDOW_MS, 60000);
+const EMAILS_PER_USER_DAY = positiveInteger(process.env.EMAILS_PER_USER_DAY, 50);
 
-const EMAIL_USER_WINDOW_MS = Math.max(
-  1000,
-  Number(process.env.EMAIL_USER_WINDOW_MS || 15000),
-);
-
+// Check both windows before consuming either permit. Redis keeps this atomic
+// across workers. The daily budget resets 24 hours after its first permit.
 const RESERVE_SEND_SCRIPT = `
-local key = KEYS[1]
-local now = tonumber(ARGV[1])
-local windowMs = tonumber(ARGV[2])
-local maxPerWindow = tonumber(ARGV[3])
-
-local windowStart = tonumber(redis.call("GET", key) or "0")
-
-if windowStart <= 0 or windowStart + windowMs <= now then
-  windowStart = now
-  redis.call("SET", key, windowStart, "PX", windowMs)
-  redis.call("SET", key .. ":count", 1, "PX", windowMs)
-  return {1, 0}
-end
-
-local count = tonumber(redis.call("GET", key .. ":count") or "0")
-
-if count < maxPerWindow then
-  redis.call("INCR", key .. ":count")
-  local ttl = redis.call("PTTL", key)
-  if ttl > 0 then
-    redis.call("PEXPIRE", key .. ":count", ttl)
+local waitMs = 0
+local limits = {tonumber(ARGV[1]), tonumber(ARGV[2])}
+local durations = {tonumber(ARGV[3]), 86400000}
+for i = 1, 2 do
+  local count = tonumber(redis.call("GET", KEYS[i]) or "0")
+  if count >= limits[i] then
+    waitMs = math.max(waitMs, redis.call("PTTL", KEYS[i]), 1)
   end
-  return {1, 0}
 end
-
-local waitMs = (windowStart + windowMs) - now
-if waitMs < 1 then
-  waitMs = 1
+if waitMs > 0 then return {0, waitMs} end
+for i = 1, 2 do
+  local count = redis.call("INCR", KEYS[i])
+  if count == 1 then redis.call("PEXPIRE", KEYS[i], durations[i]) end
 end
-
-return {0, waitMs}
+return {1, 0}
 `;
 
 async function acquireUserSendPermit(userId) {
@@ -51,16 +35,10 @@ async function acquireUserSendPermit(userId) {
     throw new Error("userId is required for the sender rate limit.");
   }
 
-  const key = `highcustom:sender-rate:${String(userId)}`;
-  const now = Date.now();
-
+  const key = `highcustom:sender-rate:v2:${String(userId)}`;
   const result = await redis.eval(
-    RESERVE_SEND_SCRIPT,
-    1,
-    key,
-    now,
-    EMAIL_USER_WINDOW_MS,
-    EMAILS_PER_USER_WINDOW,
+    RESERVE_SEND_SCRIPT, 2, key, `${key}:day`,
+    EMAILS_PER_USER_WINDOW, EMAILS_PER_USER_DAY, EMAIL_USER_WINDOW_MS,
   );
 
   return {
@@ -72,5 +50,6 @@ async function acquireUserSendPermit(userId) {
 module.exports = {
   acquireUserSendPermit,
   EMAILS_PER_USER_WINDOW,
+  EMAILS_PER_USER_DAY,
   EMAIL_USER_WINDOW_MS,
 };

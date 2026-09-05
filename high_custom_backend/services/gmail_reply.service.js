@@ -164,6 +164,22 @@ async function processInboundMessage({ gmail, integration, messageId }) {
   }
 
   if (isAutomatedReply(headers, from, subject)) {
+    if (/^(mailer-daemon|postmaster)@/i.test(from)) {
+      const full = await gmail.users.messages.get({ userId: "me", id: messageId, format: "full" });
+      const { permanentFailures } = require("../utils/deliveryStatus");
+      const SUPPRESSION = require("../model/email_suppression.model");
+      for (const email of permanentFailures(full.data?.payload)) {
+        // Require a matching outgoing thread and recipient before suppressing.
+        const sent = await SEQUENCE_DELIVERY.exists({
+          userId: integration.userId, email, status: "sent",
+          threadId: message.threadId,
+        });
+        if (message.threadId && sent) {
+          await SUPPRESSION.updateOne({ userId: integration.userId, email },
+            { $setOnInsert: { reason: "hard_bounce" } }, { upsert: true });
+        }
+      }
+    }
     return { outcome: "automated" };
   }
 

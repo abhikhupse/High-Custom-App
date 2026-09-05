@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -69,6 +70,8 @@ class _DashboardContentState extends State<DashboardContent> {
 
   bool _isRefreshing = false;
 
+  Timer? _refreshTimer;
+
   String? _summaryError;
 
   // ============================================================
@@ -80,6 +83,10 @@ class _DashboardContentState extends State<DashboardContent> {
     super.initState();
 
     _loadTrackingSummary();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _loadTrackingSummary(showLoading: false),
+    );
   }
 
   // ============================================================
@@ -214,6 +221,12 @@ class _DashboardContentState extends State<DashboardContent> {
         _isRefreshing = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   // ============================================================

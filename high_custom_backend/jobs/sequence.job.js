@@ -133,7 +133,7 @@ async function processOneSequence(sequence) {
       sequenceId: sequence._id,
       leadId: { $in: leadIds },
     })
-      .select({ leadId: 1, status: 1 })
+      .select({ leadId: 1, status: 1, retryable: 1 })
       .lean();
 
     const currentDeliveryByLead = new Map(
@@ -166,7 +166,8 @@ async function processOneSequence(sequence) {
       try {
         const existingDelivery = currentDeliveryByLead.get(String(lead._id));
 
-        if (existingDelivery?.status === "sent") {
+        if (existingDelivery?.status === "sent" ||
+            (existingDelivery?.status === "failed" && !existingDelivery.retryable)) {
           skipped++;
           continue;
         }

@@ -22,6 +22,7 @@ router.get(
 
 router.post(
   "/response/:trackingId/:response/confirm",
+  express.urlencoded({ extended: false, limit: "2kb" }),
   emailTrackingController.confirmResponse,
 );
 
