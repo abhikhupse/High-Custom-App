@@ -48,8 +48,6 @@ app.get("/", (req, res) => {
 
 app.use("/api", root);
 
-startSequenceJob();
-
 // ==========================================
 // ERROR HANDLER
 // ==========================================
@@ -75,6 +73,11 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Do not schedule database work until MongoDB is ready. This avoids failed
+    // queued jobs during startup or while a deployment is establishing its DB
+    // connection.
+    startSequenceJob();
     startGmailReplyJob();
     startZohoReplyJob();
 
