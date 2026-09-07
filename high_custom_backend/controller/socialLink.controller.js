@@ -13,6 +13,9 @@ const cleanLink = (item) => ({
   selected: item.selected,
   qrCode: item.qrCode,
   qrTarget: item.qrTarget,
+  trackingTarget:
+    item.trackingTarget ||
+    String(item.qrTarget || "").replace("source=qr", "source=link"),
   qrTitle: item.qrTitle,
   qrGeneratedAt: item.qrGeneratedAt,
   linkClicks: item.linkClicks,
@@ -69,6 +72,7 @@ exports.update = async (req, res) => {
       link.url = value;
       link.qrCode = "";
       link.qrTarget = "";
+      link.trackingTarget = "";
       link.qrGeneratedAt = undefined;
     }
     if (selected !== undefined) link.selected = selected === true;
@@ -96,10 +100,12 @@ exports.generateQr = async (req, res) => {
     const ids = Array.isArray(req.body.linkIds) ? req.body.linkIds : [];
     const links = await SocialLink.find({ _id: { $in: ids }, userId: req.user.id });
     await Promise.all(links.map(async (link) => {
-      const target = `${publicBaseUrl}/api/social-links/r/${link._id}?source=qr`;
-      link.qrTarget = target;
+      const redirectBase = `${publicBaseUrl}/api/social-links/r/${link._id}`;
+      const qrTarget = `${redirectBase}?source=qr`;
+      link.qrTarget = qrTarget;
+      link.trackingTarget = `${redirectBase}?source=link`;
       if (!link.qrTitle) link.qrTitle = link.name;
-      link.qrCode = await QRCode.toDataURL(target, { width: 600, margin: 2 });
+      link.qrCode = await QRCode.toDataURL(qrTarget, { width: 600, margin: 2 });
       link.qrGeneratedAt = new Date();
       await link.save();
     }));
@@ -127,6 +133,7 @@ exports.deleteQr = async (req, res) => {
     if (!link) return res.status(404).json({ success: false, message: "QR code not found." });
     link.qrCode = "";
     link.qrTarget = "";
+    link.trackingTarget = "";
     link.qrTitle = "";
     link.qrGeneratedAt = undefined;
     await link.save();
@@ -140,8 +147,11 @@ exports.redirect = async (req, res) => {
   try {
     const link = await SocialLink.findById(req.params.id);
     if (!link) return res.status(404).send("Link not found.");
-    link.linkClicks += 1;
-    if (req.query.source === "qr") link.qrScans += 1;
+    if (req.query.source === "qr") {
+      link.qrScans += 1;
+    } else {
+      link.linkClicks += 1;
+    }
     await link.save();
     return res.redirect(302, link.url);
   } catch (_) {

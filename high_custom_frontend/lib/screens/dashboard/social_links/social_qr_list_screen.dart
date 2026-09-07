@@ -45,7 +45,7 @@ class _SocialQrListScreenState extends State<SocialQrListScreen> {
     appBar: AppBar(
       backgroundColor: const Color(0xFF101113),
       foregroundColor: Colors.white,
-      title: const Text('Generated QR Codes'),
+      title: const Text('My QR Codes'),
       actions: [IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded))],
     ),
     body: _loading
@@ -54,16 +54,22 @@ class _SocialQrListScreenState extends State<SocialQrListScreen> {
             ? Center(child: Text(_error!, style: const TextStyle(color: Colors.white70)))
             : _links.isEmpty
                 ? const Center(child: Text('No QR codes generated yet.', style: TextStyle(color: Colors.white70)))
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 280,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: .65,
-                    ),
-                    itemCount: _links.length,
-                    itemBuilder: (_, index) => _card(_links[index]),
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                    itemCount: _links.length + 1,
+                    separatorBuilder: (_, _) => const SizedBox(height: 14),
+                    itemBuilder: (_, index) {
+                      if (index == 0) {
+                        return Text(
+                          '${_links.length} active QR code${_links.length == 1 ? '' : 's'}',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 15,
+                          ),
+                        );
+                      }
+                      return _card(_links[index - 1]);
+                    },
                   ),
   );
 
@@ -71,95 +77,116 @@ class _SocialQrListScreenState extends State<SocialQrListScreen> {
     final rawQr = link['qrCode']?.toString() ?? '';
     final encoded = rawQr.contains(',') ? rawQr.split(',').last : rawQr;
     return Container(
-      clipBehavior: Clip.antiAlias,
+      constraints: const BoxConstraints(minHeight: 176),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF151619),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF2C45F).withValues(alpha: .38)),
+        border: Border.all(color: Colors.white.withValues(alpha: .09)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-        Expanded(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Positioned.fill(
-                child: Container(
-                  margin: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF090A0C),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFF2C45F).withValues(alpha: .8),
-                      width: 1.2,
+          Container(
+            width: 122,
+            height: 122,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: rawQr.isEmpty
+                ? const Icon(Icons.qr_code_2_rounded,
+                    color: Color(0xFF090A0C), size: 90)
+                : Image.memory(base64Decode(encoded), fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        link['qrTitle']?.toString().isNotEmpty == true
+                            ? link['qrTitle'].toString()
+                            : link['name']?.toString() ?? 'Untitled QR',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
+                    PopupMenuButton<String>(
+                      color: const Color(0xFF202226),
+                      icon: const Icon(Icons.more_vert_rounded,
+                          color: Color(0xFFF2C45F)),
+                      onSelected: (value) {
+                        if (value == 'edit') _editTitle(link);
+                        if (value == 'delete') _deleteQr(link);
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
+                    ),
+                  ],
+                ),
+                InkWell(
+                  onTap: () async {
+                    await Clipboard.setData(ClipboardData(
+                        text: link['trackingTarget']?.toString() ??
+                            link['qrTarget']
+                                ?.toString()
+                                .replaceFirst('source=qr', 'source=link') ??
+                            ''));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('QR link copied.')));
+                    }
+                  },
+                  child: Text(
+                    link['trackingTarget']?.toString() ??
+                        link['qrTarget']
+                            ?.toString()
+                            .replaceFirst('source=qr', 'source=link') ??
+                        '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
                   ),
                 ),
-              ),
-              const Positioned(top: 25, left: 25, child: Icon(Icons.auto_awesome_rounded, color: Color(0xFFF2C45F), size: 15)),
-              const Positioned(top: 40, right: 29, child: Icon(Icons.auto_awesome_rounded, color: Color(0xFFF2C45F), size: 11)),
-              const Positioned(bottom: 28, left: 30, child: Icon(Icons.auto_awesome_rounded, color: Color(0xFFF2C45F), size: 10)),
-              if (rawQr.isEmpty)
-                const Icon(Icons.qr_code_2_rounded, color: Color(0xFFF2C45F), size: 100)
-              else
-                Container(
-                  width: 164,
-                  height: 164,
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                  child: Image.memory(base64Decode(encoded)),
+                const SizedBox(height: 12),
+                const Divider(color: Color(0xFF303238), height: 18),
+                Row(
+                  children: [
+                    Expanded(child: _metric('Scans', link['qrScans'] ?? 0,
+                        Icons.qr_code_scanner_rounded)),
+                    Container(width: 1, height: 35, color: const Color(0xFF4A4131)),
+                    Expanded(child: _metric('Clicks', link['linkClicks'] ?? 0,
+                        Icons.ads_click_rounded)),
+                  ],
                 ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 9, 14, 12),
-          child: Column(children: [
-            Text(link['qrTitle']?.toString().isNotEmpty == true ? link['qrTitle'].toString() : link['name']?.toString() ?? 'Untitled QR', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 9),
-            Row(children: [
-              Expanded(child: OutlinedButton.icon(onPressed: () => _editTitle(link), icon: const Icon(Icons.edit_outlined, size: 15), label: const Text('Edit'), style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF2C45F), side: const BorderSide(color: Color(0xFFF2C45F))))),
-              const SizedBox(width: 8),
-              Expanded(child: OutlinedButton.icon(onPressed: () => _deleteQr(link), icon: const Icon(Icons.delete_outline_rounded, size: 15), label: const Text('Delete'), style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFF6975), side: const BorderSide(color: Color(0xFFFF6975))))),
-            ]),
-            const SizedBox(height: 9),
-            InkWell(
-              onTap: () async {
-                await Clipboard.setData(ClipboardData(text: link['qrTarget']?.toString() ?? ''));
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('QR link copied.')));
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-                decoration: BoxDecoration(color: const Color(0xFF090A0C), borderRadius: BorderRadius.circular(8)),
-                child: Row(children: [
-                  const Icon(Icons.link_rounded, color: Colors.white60, size: 14),
-                  const SizedBox(width: 6),
-                  Expanded(child: Text(link['qrTarget']?.toString() ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 10))),
-                ]),
-              ),
+              ],
             ),
-            const SizedBox(height: 9),
-            Row(children: [
-              Expanded(child: _stat(Icons.qr_code_scanner_rounded, '${link['qrScans'] ?? 0} Scans')),
-              const SizedBox(width: 8),
-              Expanded(child: _stat(Icons.ads_click_rounded, '${link['linkClicks'] ?? 0} Clicks')),
-            ]),
-          ]),
-        ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _stat(IconData icon, String label) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 7),
-    decoration: BoxDecoration(color: const Color(0xFF20242E), borderRadius: BorderRadius.circular(8)),
-    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(icon, size: 13, color: const Color(0xFFF2C45F)),
-      const SizedBox(width: 4),
-      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-    ]),
+  Widget _metric(String label, dynamic value, IconData icon) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 16, color: const Color(0xFFF2C45F)),
+      const SizedBox(height: 3),
+      Text(value.toString(), style: const TextStyle(
+          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+      Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+    ],
   );
 
   Future<void> _editTitle(Map<String, dynamic> link) async {

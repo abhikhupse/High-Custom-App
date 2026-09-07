@@ -93,8 +93,11 @@ class _LinkScreenState extends State<LinkScreen> {
   Future<void> _loadRegisteredWhatsapp() async {
     final response = await ProfileApi.getProfile();
     if (!mounted || response['success'] != true) return;
-    final phone = response['user'] is Map ? response['user']['phone']?.toString() ?? '' : '';
-    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final Object? user = response['user'];
+    final String phone = user is Map && user['phone'] != null
+        ? user['phone'].toString()
+        : '';
+    final String digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isNotEmpty) setState(() => whatsappLink = 'https://wa.me/$digits');
   }
 
@@ -553,7 +556,8 @@ class _LinkScreenState extends State<LinkScreen> {
       setState(() => selectedActionLinks.clear());
       return;
     }
-    final names = (data['actionLinkNames'] as List? ?? const [])
+    final Object? rawNames = data['actionLinkNames'];
+    final names = (rawNames is List ? rawNames : const <Object>[])
         .map((item) => item.toString())
         .where(actionLinks.contains)
         .toList();

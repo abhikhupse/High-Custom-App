@@ -19,6 +19,7 @@ const socialLinkSchema = new mongoose.Schema(
     selected: { type: Boolean, default: false },
     qrCode: { type: String, default: "" },
     qrTarget: { type: String, default: "" },
+    trackingTarget: { type: String, default: "" },
     qrTitle: { type: String, default: "" },
     qrGeneratedAt: { type: Date },
     linkClicks: { type: Number, default: 0, min: 0 },

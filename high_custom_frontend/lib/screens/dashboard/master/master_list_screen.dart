@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'create_sequence_screen.dart';
 import '../../../services/sequence_api.dart';
 import '../../../widgets/app_feedback.dart';
-import '../../../widgets/app_skeleton.dart';
 
 // ============================================================
 // MASTER / SEQUENCE LIST SCREEN
@@ -121,6 +120,12 @@ class _MasterListScreenState extends State<MasterListScreen> {
         page: page,
         limit: entriesPerPage,
         search: searchController.text.trim(),
+      ).timeout(
+        const Duration(seconds: 12),
+        onTimeout: () => {
+          'success': false,
+          'message': 'Sequences are taking too long to load. Please try again.',
+        },
       );
 
       if (!mounted) return;
@@ -333,38 +338,37 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
     final bool isMobile = width < 600;
 
-    return Scaffold(
-      backgroundColor: pageBackground,
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: gold,
-          backgroundColor: elevatedCard,
-          onRefresh: _refreshSequences,
-          child: SingleChildScrollView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              isMobile ? 18 : 28,
-              isMobile ? 20 : 28,
-              isMobile ? 18 : 28,
-              40,
-            ),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                _buildPageHeader(isMobile),
+    // DashboardScreen already provides the page scaffold and safe area.
+    // Keeping this screen inside that shell prevents a nested scaffold from
+    // blanking the dashboard body while this route is being mounted on web.
+    return ColoredBox(
+      color: pageBackground,
+      child: RefreshIndicator(
+        color: gold,
+        backgroundColor: elevatedCard,
+        onRefresh: _refreshSequences,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            isMobile ? 18 : 28,
+            isMobile ? 20 : 28,
+            isMobile ? 18 : 28,
+            40,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPageHeader(isMobile),
 
-                SizedBox(
-                  height: isMobile ? 24 : 30,
-                ),
+              SizedBox(
+                height: isMobile ? 24 : 30,
+              ),
 
-                if (isMobile)
-                  _buildMobileContent()
-                else
-                  _buildDesktopContent(),
-              ],
-            ),
+              if (isMobile)
+                _buildMobileContent()
+              else
+                _buildDesktopContent(),
+            ],
           ),
         ),
       ),
@@ -1844,8 +1848,34 @@ class _MasterListScreenState extends State<MasterListScreen> {
   // ============================================================
 
   Widget _buildLoadingState() {
-    return const AppCardSkeletonList(
-      itemCount: 5,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
+      decoration: BoxDecoration(
+        color: elevatedCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderSoft),
+      ),
+      child: const Column(
+        children: [
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              color: gold,
+              strokeWidth: 3,
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading sequences...',
+            style: TextStyle(
+              color: mutedText,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
