@@ -1,6 +1,7 @@
 const SEQUENCE_COLLECTION = require("../model/sequence.model");
 const LEADS_COLLECTION = require("../model/leads.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
+const BusinessLinkSettings = require("../model/businessLinkSettings.model");
 const crypto = require("crypto");
 
 const { processSequencesForUser } = require("../jobs/sequence.job");
@@ -228,13 +229,20 @@ exports.createSequence = async (req, res) => {
     // BRAND / LOGO
     // ==========================================================
 
+    const businessSettings = await BusinessLinkSettings.findOne({
+      userId,
+      businessType: formattedBusinessType,
+    }).lean();
+
     let logoUrl = null;
 
     if (brandLogoFile) {
       logoUrl = `${baseUrl}/uploads/brand/${brandLogoFile.filename}`;
+    } else if (businessSettings?.logoUrl) {
+      logoUrl = businessSettings.logoUrl;
     }
 
-    const logoEnabled = Boolean(brandLogoFile);
+    const logoEnabled = Boolean(logoUrl);
 
     const logoPosition = ["Left", "Center", "Right"].includes(
       parsedBrand?.logoPosition,
@@ -322,6 +330,10 @@ exports.createSequence = async (req, res) => {
       }
     }
 
+    if (!whatsappUrl && businessSettings?.whatsappUrl) {
+      whatsappUrl = businessSettings.whatsappUrl;
+    }
+
     const whatsappEnabled = Boolean(whatsappUrl);
 
     // ==========================================================
@@ -353,6 +365,19 @@ exports.createSequence = async (req, res) => {
           enabled: true,
           text: ctaText,
           url: ctaUrl,
+        };
+      }
+    }
+
+    if (!ctaData.enabled) {
+      const selectedLink = Array.isArray(businessSettings?.actionLinks)
+        ? businessSettings.actionLinks.find((link) => /^https?:\/\//i.test(link?.url || ""))
+        : null;
+      if (selectedLink) {
+        ctaData = {
+          enabled: true,
+          text: String(selectedLink.name || "Open Link").trim() || "Open Link",
+          url: String(selectedLink.url).trim(),
         };
       }
     }

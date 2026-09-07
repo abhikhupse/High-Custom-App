@@ -685,6 +685,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
 
   Widget _buildEntriesControl() {
     return Container(
+      width: 150,
       height: 48,
       padding:
           const EdgeInsets.symmetric(
@@ -1604,7 +1605,7 @@ class _MasterListScreenState extends State<MasterListScreen> {
               .isEmpty)
             _buildEmptyState()
           else
-            _buildDesktopTable(),
+            _buildDesktopCards(),
 
           if (totalSequences >
               0) ...[
@@ -1621,6 +1622,20 @@ class _MasterListScreenState extends State<MasterListScreen> {
   // ============================================================
   // DESKTOP TABLE
   // ============================================================
+
+  // DataTable was causing the web renderer to stall for some sequence
+  // responses. The card renderer is already used successfully on mobile and
+  // remains stable across desktop browsers too.
+  Widget _buildDesktopCards() {
+    return Column(
+      children: [
+        for (var index = 0; index < sequences.length; index++) ...[
+          _buildSequenceCard(sequences[index]),
+          if (index < sequences.length - 1) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
 
   Widget _buildDesktopTable() {
     return Container(

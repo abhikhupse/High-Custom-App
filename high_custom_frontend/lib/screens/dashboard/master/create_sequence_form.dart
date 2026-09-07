@@ -1,6 +1,7 @@
 ﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../../services/business_type_api.dart';
+import '../../../services/business_link_settings_api.dart';
 import 'package:flutter/services.dart';
 
 import '../../../services/sequence_api.dart';
@@ -279,6 +280,43 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         ..addAll(values);
       if (current.isNotEmpty && !businessTypes.contains(current)) {
         businessTypes.add(current);
+      }
+    });
+  }
+
+  Future<void> _applySavedBusinessDetails(String businessType) async {
+    final response = await BusinessLinkSettingsApi.get(businessType);
+    if (!mounted || response['success'] != true) return;
+
+    final rawData = response['data'];
+    if (rawData is! Map) return;
+    final data = Map<String, dynamic>.from(rawData);
+    final logoUrl = data['logoUrl']?.toString().trim() ?? '';
+    final whatsappUrl = data['whatsappUrl']?.toString().trim() ?? '';
+    String ctaText = '';
+    String ctaUrl = '';
+    final savedLinks = data['actionLinks'];
+    if (savedLinks is List) {
+      for (final item in savedLinks) {
+        if (item is! Map) continue;
+        final url = item['url']?.toString().trim() ?? '';
+        if (!url.startsWith('https://') && !url.startsWith('http://')) continue;
+        ctaText = item['name']?.toString().trim() ?? 'Open Link';
+        ctaUrl = url;
+        break;
+      }
+    }
+
+    setState(() {
+      if (logoUrl.isNotEmpty) {
+        _logoBytes = null;
+        _logoFilename = null;
+        logoController.text = logoUrl;
+      }
+      if (whatsappUrl.isNotEmpty) whatsappController.text = whatsappUrl;
+      if (ctaUrl.isNotEmpty) {
+        ctaTextController.text = ctaText;
+        ctaUrlController.text = ctaUrl;
       }
     });
   }
@@ -1624,6 +1662,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         selectedBusinessType =
             selected;
       });
+      await _applySavedBusinessDetails(selected);
     }
   }
 
