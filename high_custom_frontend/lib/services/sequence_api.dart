@@ -174,7 +174,7 @@ class SequenceApi {
 
     bool trackingEnabled = true,
 
-    String status = 'draft',
+    String status = 'active',
 
     String? scheduledAt,
   }) async {
@@ -259,7 +259,7 @@ class SequenceApi {
         // ------------------------------------------------------
 
         'tracking': {
-          'enabled': trackingEnabled,
+          'enabled': true,
         },
 
         'status': status,
@@ -499,7 +499,7 @@ class SequenceApi {
     String? ctaText,
     String? ctaUrl,
     bool trackingEnabled = true,
-    String status = 'draft',
+    String status = 'active',
     String? scheduledAt,
   }) async {
     try {
@@ -562,7 +562,7 @@ class SequenceApi {
           },
         },
         'tracking': {
-          'enabled': trackingEnabled,
+          'enabled': true,
         },
         'status': status,
         'scheduledAt': scheduledAt,

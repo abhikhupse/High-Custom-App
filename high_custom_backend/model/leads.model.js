@@ -55,6 +55,12 @@ const leadsSchema = new mongoose.Schema(
       default: true,
     },
 
+    scheduledAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
     responseStatus: {
       type: String,
       enum: ["interested", "notInterested"],

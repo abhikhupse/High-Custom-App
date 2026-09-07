@@ -10,17 +10,17 @@ function getPublicBaseUrl(req) {
 exports.get = async (req, res) => {
   try {
     const businessType = String(req.query.businessType || "").trim();
-    if (!businessType) return res.status(400).json({ success: false, message: "Business type is required." });
-    const data = await BusinessLinkSettings.findOne({ userId: req.user.id, businessType }).lean();
+    const data = await BusinessLinkSettings.findOne({ userId: req.user.id, businessType: businessType || "__all__" }).lean()
+      || (businessType ? await BusinessLinkSettings.findOne({ userId: req.user.id, businessType: "__all__" }).lean() : null);
     return res.json({ success: true, data: data || null });
   } catch (_) { return res.status(500).json({ success: false, message: "Unable to load business details." }); }
 };
 
 exports.save = async (req, res) => {
   try {
-    const businessType = String(req.body.businessType || "").trim();
+    const selectedBusinessType = String(req.body.businessType || "").trim();
+    const businessType = selectedBusinessType || "__all__";
     const ids = Array.isArray(req.body.actionLinkIds) ? req.body.actionLinkIds : [];
-    if (!businessType) return res.status(400).json({ success: false, message: "Select a business type." });
     const user = await User.findById(req.user.id).select("phone").lean();
     const digits = String(user?.phone || "").replace(/\D/g, "");
     if (!digits) return res.status(400).json({ success: false, message: "Registered mobile number not found." });
@@ -31,7 +31,7 @@ exports.save = async (req, res) => {
     const whatsappUrl = `https://wa.me/${digits}`;
     const primaryLink = links.find((link) => /^https?:\/\//i.test(link.url || ""));
     const data = await BusinessLinkSettings.findOneAndUpdate(
-      { userId: req.user.id, businessType },
+      selectedBusinessType ? { userId: req.user.id, businessType } : { userId: req.user.id },
       { $set: {
         logoKey: "high_custom_logo",
         logoUrl,
@@ -54,6 +54,6 @@ exports.save = async (req, res) => {
         },
       } },
     );
-    return res.json({ success: true, data, message: "Business details saved for this business type." });
+    return res.json({ success: true, data, message: selectedBusinessType ? "Business details saved for this business type." : "Business details saved for all sequences." });
   } catch (_) { return res.status(500).json({ success: false, message: "Unable to save business details." }); }
 };

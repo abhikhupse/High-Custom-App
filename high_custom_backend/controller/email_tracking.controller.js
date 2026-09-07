@@ -420,7 +420,6 @@ exports.confirmResponse = async (req, res) => {
 
       delivery.response = response;
       delivery.respondedAt = new Date();
-      delivery.clickedAt = delivery.clickedAt || delivery.respondedAt;
 
       await delivery.save();
       await SEQUENCE.updateOne({ _id: delivery.sequenceId }, { $inc: increments });
@@ -710,7 +709,15 @@ exports.getTrackingReport = async (req, res) => {
     // QUERY PARAMETERS
     // ==========================================================
 
-    const { sequenceId, page = 1, limit = 20 } = req.query;
+    const {
+      sequenceId,
+      search,
+      status,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = req.query;
 
     // ==========================================================
     // PAGINATION
@@ -730,6 +737,44 @@ exports.getTrackingReport = async (req, res) => {
 
     if (sequenceId && String(sequenceId).trim()) {
       deliveryQuery.sequenceId = sequenceId;
+    }
+
+    if (startDate || endDate) {
+      deliveryQuery.createdAt = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        if (!Number.isNaN(start.getTime())) deliveryQuery.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        if (!Number.isNaN(end.getTime())) deliveryQuery.createdAt.$lte = end;
+      }
+      if (Object.keys(deliveryQuery.createdAt).length === 0) {
+        delete deliveryQuery.createdAt;
+      }
+    }
+
+    if (search && String(search).trim()) {
+      const escaped = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(escaped, "i");
+      const matchingLeads = await LEAD.find({
+        userId,
+        $or: [
+          { firstName: regex },
+          { lastName: regex },
+          { email: regex },
+        ],
+      }).select("_id").lean();
+      deliveryQuery.leadId = { $in: matchingLeads.map((lead) => lead._id) };
+    }
+
+    if (status && status !== "All Status") {
+      const normalizedStatus = String(status).toLowerCase();
+      if (normalizedStatus === "seen") deliveryQuery.openedAt = { $ne: null };
+      else if (normalizedStatus === "replied") deliveryQuery.repliedAt = { $ne: null };
+      else if (normalizedStatus === "interested") deliveryQuery.response = "interested";
+      else if (normalizedStatus === "not interested") deliveryQuery.response = "notInterested";
+      else deliveryQuery.status = normalizedStatus;
     }
 
     // ==========================================================

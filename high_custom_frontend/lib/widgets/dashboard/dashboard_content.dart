@@ -64,6 +64,7 @@ class _DashboardContentState extends State<DashboardContent> {
     'totalLeads': 0,
     'todayLeads': 0,
     'qrScans': 0,
+    'socialLinkClicks': 0,
   };
 
   bool _isLoadingSummary = true;
@@ -187,6 +188,9 @@ class _DashboardContentState extends State<DashboardContent> {
             ),
             'qrScans': _toInt(
               data['qrScans'],
+            ),
+            'socialLinkClicks': _toInt(
+              data['socialLinkClicks'],
             ),
           };
 
@@ -2226,7 +2230,10 @@ class _DashboardContentState extends State<DashboardContent> {
           totalClicks:
               _numericValue(
             'clicked',
-          ),
+          ) +
+              _numericValue(
+                'socialLinkClicks',
+              ),
         ),
 
         const SizedBox(
@@ -3301,11 +3308,8 @@ class CampaignDonutPainter extends CustomPainter {
             2 -
         13;
 
-    final int total =
-        pending +
-            sent +
-            opened +
-            failed;
+    final int sentWithoutOpen = math.max(0, sent - opened);
+    final int total = pending + sentWithoutOpen + opened + failed;
 
     // ==========================================================
     // BACKGROUND RING
@@ -3336,7 +3340,7 @@ class CampaignDonutPainter extends CustomPainter {
 
     final List<int> values = [
       pending,
-      sent,
+      sentWithoutOpen,
       opened,
       failed,
     ];

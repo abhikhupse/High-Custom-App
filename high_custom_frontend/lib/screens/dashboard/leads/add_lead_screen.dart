@@ -55,6 +55,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
 
   static const String selectedType = 'Email';
   String? selectedBusinessType;
+  DateTime? scheduledAt;
 
   final List<String> businessTypes = [];
 
@@ -393,6 +394,10 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
 
           _buildBusinessTypeDropdown(),
 
+          const SizedBox(height: 12),
+
+          _buildSchedulePicker(),
+
           const SizedBox(height: 18),
 
           _buildActions(isMobile),
@@ -546,6 +551,101 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   // ============================================================
   // BUSINESS TYPE SELECTOR
   // ============================================================
+
+  Future<void> _pickSchedule() async {
+    if (isSaving) return;
+    final now = DateTime.now();
+    final initial = scheduledAt ?? now.add(const Duration(minutes: 15));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(now) ? now : initial,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 365)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: gold,
+            surface: surface,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: gold,
+            surface: surface,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (time == null || !mounted) return;
+    final value = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    if (!value.isAfter(now)) {
+      _showMessage('Schedule time must be in the future.');
+      return;
+    }
+    setState(() => scheduledAt = value);
+  }
+
+  Widget _buildSchedulePicker() {
+    final value = scheduledAt;
+    final label = value == null
+        ? 'Send through sequence immediately'
+        : '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}  ${TimeOfDay.fromDateTime(value).format(context)}';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _pickSchedule,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 72),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: surface2,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: value == null ? borderColor : gold.withOpacity(0.55),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule_rounded, color: gold, size: 23),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Schedule (Optional)',
+                      style: TextStyle(color: lightText, fontSize: 12.5, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(label, style: const TextStyle(color: mutedText, fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (value != null)
+                IconButton(
+                  tooltip: 'Remove schedule',
+                  onPressed: isSaving ? null : () => setState(() => scheduledAt = null),
+                  icon: const Icon(Icons.close_rounded, color: mutedText),
+                )
+              else
+                const Icon(Icons.chevron_right_rounded, color: mutedText),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _selectBusinessType() async {
     if (isSaving || isLoadingBusinessTypes || businessTypes.isEmpty) {
@@ -1052,6 +1152,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
         type: selectedType,
         businessType: businessType,
         tracking: true,
+        scheduledAt: scheduledAt?.toUtc().toIso8601String(),
       );
 
       if (!mounted) {

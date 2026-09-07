@@ -126,6 +126,7 @@ class LeadsApi {
     required String type,
     required String businessType,
     required bool tracking,
+    String? scheduledAt,
   }) async {
     try {
       final headers = await _headers();
@@ -152,6 +153,7 @@ class LeadsApi {
               'type': type,
               'businessType': businessType.trim(),
               'tracking': tracking,
+              if (scheduledAt != null) 'scheduledAt': scheduledAt,
             }),
           )
           .timeout(

@@ -81,6 +81,7 @@ async function processOneSequence(sequence) {
     type: deliveryChannel,
     ...(businessType ? { businessType } : {}),
     tracking: true,
+    $or: [{ scheduledAt: null }, { scheduledAt: { $lte: new Date() } }],
   };
 
   const configuredBatchSize = Number(process.env.SEQUENCE_LEAD_BATCH_SIZE || 250);

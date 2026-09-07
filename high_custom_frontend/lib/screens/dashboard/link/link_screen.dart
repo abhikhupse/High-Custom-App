@@ -601,7 +601,7 @@ class _LinkScreenState extends State<LinkScreen> {
                 ? 'Loading Business Types...'
                 : businessTypes.isEmpty
                     ? 'No Business Type Added'
-                    : 'Select Business Type',
+                    : 'Select Business Type (optional)',
             items: businessTypes,
             manageBusinessTypes: true,
             onChanged: (value) async {
@@ -1158,18 +1158,16 @@ class _LinkScreenState extends State<LinkScreen> {
 
   Future<void> _saveBusinessDetails() async {
     final type = selectedBusinessType;
-    if (type == null || type.isEmpty) {
-      _showMessage('Please select a business type.');
-      return;
-    }
     final ids = selectedActionLinks
         .map((name) => actionLinkIds[name])
         .whereType<String>()
         .toList();
-    final response = await BusinessLinkSettingsApi.save(type, ids);
+    final response = await BusinessLinkSettingsApi.save(type ?? '', ids);
     if (!mounted) return;
     _showMessage(response['success'] == true
-        ? 'Business details saved for $type.'
+        ? (type == null || type.isEmpty
+            ? 'Business details saved for all sequences.'
+            : 'Business details saved for $type.')
         : response['message']?.toString() ?? 'Unable to save business details.');
   }
 

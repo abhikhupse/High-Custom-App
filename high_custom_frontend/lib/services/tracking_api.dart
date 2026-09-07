@@ -101,6 +101,10 @@ class TrackingApi {
   static Future<
       Map<String, dynamic>> getTrackingReport({
     String? sequenceId,
+    String? search,
+    String? status,
+    DateTime? startDate,
+    DateTime? endDate,
     int page = 1,
     int limit = 20,
   }) async {
@@ -135,6 +139,18 @@ class TrackingApi {
         queryParameters[
                 'sequenceId'] =
             sequenceId.trim();
+      }
+      if (search != null && search.trim().isNotEmpty) {
+        queryParameters['search'] = search.trim();
+      }
+      if (status != null && status != 'All Status') {
+        queryParameters['status'] = status;
+      }
+      if (startDate != null) {
+        queryParameters['startDate'] = startDate.toUtc().toIso8601String();
+      }
+      if (endDate != null) {
+        queryParameters['endDate'] = endDate.toUtc().toIso8601String();
       }
 
       // --------------------------------------------------------
@@ -196,7 +212,6 @@ class TrackingApi {
               'Authentication token not found. Please login again.',
         };
       }
-
       final uri = Uri.parse(
         '$baseUrl/email-tracking/interest-details',
       ).replace(

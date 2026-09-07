@@ -243,6 +243,7 @@ exports.createLead = async (req, res) => {
       type,
       businessType,
       tracking,
+      scheduledAt,
     } = req.body;
 
     // ========================================================
@@ -327,6 +328,17 @@ exports.createLead = async (req, res) => {
 
     const leadType = type === "WhatsApp" ? "WhatsApp" : "Email";
 
+    let normalizedScheduledAt = null;
+    if (scheduledAt) {
+      normalizedScheduledAt = new Date(scheduledAt);
+      if (Number.isNaN(normalizedScheduledAt.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select a valid schedule date and time.",
+        });
+      }
+    }
+
     // ========================================================
     // CREATE LEAD
     // ========================================================
@@ -346,11 +358,17 @@ exports.createLead = async (req, res) => {
       businessType: normalizedBusinessType,
 
       tracking: tracking !== false,
+
+      scheduledAt: normalizedScheduledAt,
     });
 
     // Process active sequences immediately for a newly added email lead.
     // This runs after the response cycle begins so lead creation is not blocked.
-    if (newLead.type === "Email" && newLead.tracking) {
+    if (
+      newLead.type === "Email" &&
+      newLead.tracking &&
+      (!newLead.scheduledAt || newLead.scheduledAt <= new Date())
+    ) {
       setImmediate(async () => {
         try {
           const result = await processSequencesForUser(userId);

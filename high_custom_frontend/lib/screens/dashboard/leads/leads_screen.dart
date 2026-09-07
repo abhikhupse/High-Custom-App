@@ -721,12 +721,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   height: 24,
                 ),
 
-                _buildSummaryCards(),
-
-                const SizedBox(
-                  height: 20,
-                ),
-
                 _buildMobileSearch(),
 
                 const SizedBox(
@@ -3001,12 +2995,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
             CrossAxisAlignment.stretch,
         children: [
           _buildDesktopHeader(),
-
-          const SizedBox(
-            height: 24,
-          ),
-
-          _buildSummaryCards(),
 
           const SizedBox(
             height: 24,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../services/tracking_api.dart';
+import '../../services/social_links_api.dart';
 
 class TrackingReportScreen extends StatefulWidget {
   final ValueChanged<String>? onNavigate;
@@ -31,6 +32,7 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
   int _totalRecords = 0;
   static const int _pageSize = 10;
   Timer? _refreshTimer;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -54,9 +56,14 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
     }
 
     try {
+      final range = _selectedDateRange();
       final response = await TrackingApi.getTrackingReport(
         page: page,
         limit: _pageSize,
+        search: _searchController.text,
+        status: _status,
+        startDate: range.$1,
+        endDate: range.$2,
       );
       if (!mounted) return;
 
@@ -88,6 +95,17 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
     }
   }
 
+  (DateTime?, DateTime?) _selectedDateRange() {
+    if (_date == 'All Dates') return (null, null);
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    if (_date == 'Today') {
+      return (DateTime(now.year, now.month, now.day), end);
+    }
+    final days = _date == 'Last 7 Days' ? 6 : 29;
+    return (DateTime(now.year, now.month, now.day).subtract(Duration(days: days)), end);
+  }
+
   _Activity _activityFromDelivery(Map<String, dynamic> delivery) {
     final lead = delivery['leadId'] is Map
         ? Map<String, dynamic>.from(delivery['leadId'] as Map)
@@ -102,9 +120,10 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
 
     String status;
     dynamic eventDate;
-    if (delivery['responseStatus'] != null) {
-      status = delivery['responseStatus'].toString();
-      eventDate = delivery['repliedAt'] ?? delivery['updatedAt'];
+    if (delivery['response'] != null) {
+      final response = delivery['response'].toString();
+      status = response == 'notInterested' ? 'Not Interested' : 'Interested';
+      eventDate = delivery['respondedAt'] ?? delivery['updatedAt'];
     } else if (delivery['repliedAt'] != null) {
       status = 'Replied';
       eventDate = delivery['repliedAt'];
@@ -131,6 +150,7 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
       subject: sequence['subject']?.toString() ?? 'No subject',
       step: sequence['step']?.toString() ?? 'Steps',
       variant: sequence['variant']?.toString() ?? 'Variant',
+      eventDate: date,
       timeLabel: date == null ? status : '$status at ${_formatTime(date)}',
       dateLabel: date == null ? '' : 'on ${_formatDate(date)}',
     );
@@ -169,13 +189,19 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
           activity.email.toLowerCase().contains(query);
       final matchesStatus =
           _status == 'All Status' || activity.status == _status;
-      return matchesSearch && matchesStatus;
+      final now = DateTime.now();
+      final days = _date == 'Today' ? 0 : _date == 'Last 7 Days' ? 7 : _date == 'Last 30 Days' ? 30 : -1;
+      final matchesDate = days < 0 || activity.eventDate == null || (days == 0
+          ? activity.eventDate!.year == now.year && activity.eventDate!.month == now.month && activity.eventDate!.day == now.day
+          : activity.eventDate!.isAfter(now.subtract(Duration(days: days))));
+      return matchesSearch && matchesStatus && matchesDate;
     }).toList();
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -330,7 +356,10 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
         icon: Icons.calendar_month_outlined,
         value: _date,
         items: const ['All Dates', 'Today', 'Last 7 Days', 'Last 30 Days'],
-        onChanged: (value) => setState(() => _date = value),
+        onChanged: (value) {
+          setState(() => _date = value);
+          _loadReport(page: 1);
+        },
       ),
     );
     if (mobile) {
@@ -353,7 +382,14 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
   Widget _buildSearch(bool mobile) {
     return TextField(
       controller: _searchController,
-      onChanged: (_) => setState(() {}),
+      onChanged: (_) {
+        setState(() {});
+        _searchDebounce?.cancel();
+        _searchDebounce = Timer(
+          const Duration(milliseconds: 350),
+          () => _loadReport(page: 1),
+        );
+      },
       style: TextStyle(color: Colors.white, fontSize: mobile ? 14 : 20),
       decoration: InputDecoration(
         hintText: 'Search by name or email',
@@ -390,7 +426,10 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
           child: _StatusFilter(
             compact: mobile,
             value: _status,
-            onChanged: (value) => setState(() => _status = value),
+            onChanged: (value) {
+              setState(() => _status = value);
+              _loadReport(page: 1);
+            },
           ),
         ),
         OutlinedButton.icon(
@@ -933,7 +972,7 @@ class _ActivityCard extends StatelessWidget {
                 onPressed: () => _showDetails(context, initialTab: 1),
               ),
               _Tag(
-                'Social',
+                'QR & Link',
                 compact: compact,
                 onPressed: () => _showDetails(context, initialTab: 2),
               ),
@@ -1019,6 +1058,34 @@ class _LeadDetailsSheet extends StatefulWidget {
 
 class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
   late int _tab = widget.initialTab;
+  List<Map<String, dynamic>> _linkTracking = const [];
+  bool _loadingLinkTracking = true;
+  String? _linkTrackingError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLinkTracking();
+  }
+
+  Future<void> _loadLinkTracking() async {
+    final response = await SocialLinksApi.list();
+    if (!mounted) return;
+    final raw = response['data'];
+    setState(() {
+      _loadingLinkTracking = false;
+      if (response['success'] == true && raw is List) {
+        _linkTracking = raw
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        _linkTrackingError = null;
+      } else {
+        _linkTrackingError =
+            response['message']?.toString() ?? 'Unable to load link activity.';
+      }
+    });
+  }
 
   List<_Activity> get _sortedActivities {
     final items = [...widget.activities];
@@ -1144,7 +1211,7 @@ class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
                         'Steps',
                       ),
                       _tabButton(1, Icons.view_in_ar_outlined, 'Variants'),
-                      _tabButton(2, Icons.share_outlined, 'Social'),
+                      _tabButton(2, Icons.qr_code_2_rounded, 'QR & Link'),
                     ],
                   ),
                 ),
@@ -1420,82 +1487,126 @@ class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
   }
 
   Widget _socialDetails() {
-    return ListView(
-      key: const ValueKey('social'),
-      padding: const EdgeInsets.fromLTRB(22, 22, 22, 14),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: const Color(0xFF101315),
-            border: Border.all(color: const Color(0xFF3F4347)),
-            borderRadius: BorderRadius.circular(12),
-          ),
+    if (_loadingLinkTracking) {
+      return const Center(
+        key: ValueKey('link-loading'),
+        child: CircularProgressIndicator(
+          color: _TrackingReportScreenState._gold,
+        ),
+      );
+    }
+    if (_linkTrackingError != null) {
+      return Center(
+        key: const ValueKey('link-error'),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.share_outlined,
-                    color: _TrackingReportScreenState._gold,
-                    size: 22,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Social Profiles',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _TrackingReportScreenState._gold.withValues(
-                      alpha: 0.08,
-                    ),
-                    border: Border.all(
-                      color: _TrackingReportScreenState._gold.withValues(
-                        alpha: 0.7,
-                      ),
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Coming Soon',
-                    style: TextStyle(
-                      color: _TrackingReportScreenState._gold,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              Text(
+                _linkTrackingError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _TrackingReportScreenState._muted,
                 ),
               ),
-              const SizedBox(height: 14),
-              const Center(
-                child: Text(
-                  'Social profile tracking will be available soon.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _TrackingReportScreenState._muted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() => _loadingLinkTracking = true);
+                  _loadLinkTracking();
+                },
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
               ),
             ],
           ),
         ),
+      );
+    }
+
+    return ListView(
+      key: const ValueKey('qr-link'),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 14),
+      children: [
+        const Text(
+          'QR & Link Activity',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Tracking for links owned by this account.',
+          style: TextStyle(color: _TrackingReportScreenState._muted),
+        ),
+        const SizedBox(height: 16),
+        if (_linkTracking.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 34),
+            child: Center(
+              child: Text('No tracked links found.', style: TextStyle(color: _TrackingReportScreenState._muted)),
+            ),
+          )
+        else
+          ..._linkTracking.map((link) {
+            final name = (link['name'] ?? link['platform'] ?? 'Link').toString();
+            final url = (link['url'] ?? '').toString();
+            final clicks = (link['linkClicks'] as num?)?.toInt() ?? 0;
+            final scans = (link['qrScans'] as num?)?.toInt() ?? 0;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: const Color(0xFF101315),
+                border: Border.all(color: const Color(0xFF3F4347)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.link_rounded, color: _TrackingReportScreenState._gold),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                  if (url.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(url, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _TrackingReportScreenState._muted, fontSize: 12)),
+                  ],
+                  const SizedBox(height: 13),
+                  Row(
+                    children: [
+                      Expanded(child: _trackingMetric(Icons.ads_click, '$clicks', 'Clicks')),
+                      const SizedBox(width: 10),
+                      Expanded(child: _trackingMetric(Icons.qr_code_scanner, '$scans', 'Scans')),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
       ],
+    );
+  }
+
+  Widget _trackingMetric(IconData icon, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B1E21),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 17, color: _TrackingReportScreenState._gold),
+          const SizedBox(width: 7),
+          Text('$value $label', style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ],
+      ),
     );
   }
 
@@ -1657,6 +1768,7 @@ class _Activity {
   final String subject;
   final String step;
   final String variant;
+  final DateTime? eventDate;
   final String timeLabel;
   final String dateLabel;
   const _Activity({
@@ -1667,6 +1779,7 @@ class _Activity {
     required this.subject,
     required this.step,
     required this.variant,
+    required this.eventDate,
     required this.timeLabel,
     required this.dateLabel,
   });

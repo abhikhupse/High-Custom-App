@@ -1,5 +1,6 @@
 ﻿import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class CreateSequencePreview extends StatelessWidget {
@@ -208,7 +209,7 @@ class CreateSequencePreview extends StatelessWidget {
 
         Container(
           width: double.infinity,
-          height: 500,
+          height: 530,
           decoration: BoxDecoration(
             color: previewBackground,
             borderRadius: BorderRadius.circular(12),
@@ -218,6 +219,8 @@ class CreateSequencePreview extends StatelessWidget {
           ),
           child: Column(
             children: [
+              _buildDesktopBrowserChrome(),
+
               // ==================================================
               // EMAIL CLIENT HEADER
               // ==================================================
@@ -265,6 +268,34 @@ class CreateSequencePreview extends StatelessWidget {
   // DESKTOP EMAIL CLIENT HEADER
   // ============================================================
 
+  Widget _buildDesktopBrowserChrome() {
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFF20252B),
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+      ),
+      child: Row(
+        children: [
+          for (final color in const [Color(0xFFFF605C), Color(0xFFFFBD44), Color(0xFF00CA4E)])
+            Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 5), decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              height: 21,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(7)),
+              child: const Text('Email preview', style: TextStyle(color: Colors.white70, fontSize: 9)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Icon(Icons.open_in_new_rounded, color: Colors.white70, size: 14),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDesktopHeader() {
     final subject = subjectController.text.trim();
 
@@ -277,8 +308,8 @@ class CreateSequencePreview extends StatelessWidget {
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+          topLeft: Radius.circular(0),
+          topRight: Radius.circular(0),
         ),
         border: Border(
           bottom: BorderSide(
@@ -399,42 +430,30 @@ class CreateSequencePreview extends StatelessWidget {
 
         Center(
           child: Container(
-            width: 255,
-            height: 500,
-            padding: const EdgeInsets.all(6),
+            width: 292,
+            height: 590,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF20252B),
-              borderRadius: BorderRadius.circular(28),
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(38),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 15,
-                  offset: const Offset(0, 7),
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 24, offset: const Offset(0, 12)),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(23),
-              child: Column(
-                children: [
-                  // ==================================================
-                  // STATUS BAR
-                  // ==================================================
-
-                  _buildMobileStatusBar(),
-
-                  // ==================================================
-                  // EMAIL CLIENT
-                  // ==================================================
-
-                  Expanded(
-                    child: Container(
-                      color: Colors.white,
-                      child: _buildMobileEmailArea(),
-                    ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(29),
+                  child: Column(
+                    children: [
+                      _buildMobileStatusBar(),
+                      Expanded(child: Container(color: Colors.white, child: _buildMobileEmailArea())),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Positioned(top: 4, left: 81, right: 81, child: Container(height: 19, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(18)))),
+                Positioned(bottom: 8, left: 78, right: 78, child: Container(height: 4, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(10)))),
+              ],
             ),
           ),
         ),
@@ -448,8 +467,8 @@ class CreateSequencePreview extends StatelessWidget {
 
   Widget _buildMobileStatusBar() {
     return Container(
-      height: 28,
-      color: const Color(0xFF20252B),
+      height: 36,
+      color: Colors.white,
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
       ),
@@ -458,7 +477,7 @@ class CreateSequencePreview extends StatelessWidget {
           Text(
             '12:00',
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 9,
               fontWeight: FontWeight.w500,
             ),
@@ -468,7 +487,7 @@ class CreateSequencePreview extends StatelessWidget {
 
           Icon(
             Icons.signal_cellular_alt,
-            color: Colors.white,
+            color: Colors.black,
             size: 10,
           ),
 
@@ -476,7 +495,7 @@ class CreateSequencePreview extends StatelessWidget {
 
           Icon(
             Icons.wifi,
-            color: Colors.white,
+            color: Colors.black,
             size: 10,
           ),
 
@@ -484,7 +503,7 @@ class CreateSequencePreview extends StatelessWidget {
 
           Icon(
             Icons.battery_full,
-            color: Colors.green,
+            color: Colors.black,
             size: 11,
           ),
         ],
@@ -506,97 +525,65 @@ class CreateSequencePreview extends StatelessWidget {
         // ========================================================
 
         Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 7,
-          ),
-          decoration: const BoxDecoration(
-            color: emailHeaderBackground,
-            border: Border(
-              bottom: BorderSide(
-                color: lightBorderColor,
-              ),
-            ),
-          ),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: lightBorderColor))),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ==================================================
-              // TOOLBAR
-              // ==================================================
-
               Row(
-                children: [
-                  const Icon(
-                    Icons.email_outlined,
-                    size: 11,
-                    color: primaryColor,
-                  ),
-
-                  const SizedBox(width: 4),
-
-                  const Text(
-                    'Email Preview',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  const Icon(
-                    Icons.star_border,
-                    size: 12,
-                    color: secondaryTextColor,
-                  ),
-
-                  const SizedBox(width: 5),
-
-                  const Icon(
-                    Icons.more_horiz,
-                    size: 14,
-                    color: secondaryTextColor,
-                  ),
+                children: const [
+                  Icon(Icons.arrow_back_ios_new_rounded, size: 15, color: textColor),
+                  Spacer(),
+                  Icon(Icons.archive_outlined, size: 17, color: textColor),
+                  SizedBox(width: 15),
+                  Icon(Icons.delete_outline_rounded, size: 18, color: textColor),
+                  SizedBox(width: 15),
+                  Icon(Icons.mail_outline_rounded, size: 18, color: textColor),
+                  SizedBox(width: 12),
+                  Icon(Icons.more_vert_rounded, size: 18, color: textColor),
                 ],
               ),
-
-              const SizedBox(height: 4),
-
-              // ==================================================
-              // SUBJECT
-              // ==================================================
-
+              const SizedBox(height: 13),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Subject',
-                    style: TextStyle(
-                      color: secondaryTextColor,
-                      fontSize: 6.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-
-                  const SizedBox(width: 4),
-
                   Expanded(
                     child: Text(
-                      subject.isEmpty
-                          ? 'Your email subject'
-                          : subject,
-                      maxLines: 1,
+                      subject.isEmpty ? 'Exclusive Jewellery Collection for You ✨' : subject,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: textColor,
-                        fontSize: 7,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: const TextStyle(color: Colors.black, fontSize: 15, height: 1.15, fontWeight: FontWeight.w500),
                     ),
                   ),
+                  Container(
+                    margin: const EdgeInsets.only(left: 6, top: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(color: const Color(0xFFF1F3F4), borderRadius: BorderRadius.circular(5)),
+                    child: const Text('Inbox', style: TextStyle(color: Color(0xFF4B5563), fontSize: 7)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                    child: const Text('HC', style: TextStyle(color: Color(0xFFF2C45F), fontSize: 10, fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('High Custom Jewellers', style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w700)),
+                      SizedBox(height: 2),
+                      Text('to me  ⌄', style: TextStyle(color: secondaryTextColor, fontSize: 7)),
+                    ]),
+                  ),
+                  const Text('9:41 AM', style: TextStyle(color: secondaryTextColor, fontSize: 7)),
+                  const SizedBox(width: 5),
+                  const Icon(Icons.more_horiz_rounded, color: secondaryTextColor, size: 16),
                 ],
               ),
             ],
@@ -615,9 +602,9 @@ class CreateSequencePreview extends StatelessWidget {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(
-                8,
-                8,
-                8,
+                10,
+                12,
+                10,
                 16,
               ),
               child: _buildEmailTemplate(
@@ -689,14 +676,6 @@ class CreateSequencePreview extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ====================================================
-            // BRAND / SENDER HEADER
-            // ====================================================
-
-            _buildEmailBrandHeader(
-              isMobile: isMobile,
-            ),
-
-            // ====================================================
             // LOGO
             // ====================================================
 
@@ -753,15 +732,6 @@ class CreateSequencePreview extends StatelessWidget {
                 isMobile: isMobile,
               ),
 
-            const SizedBox(height: 10),
-
-            // ====================================================
-            // FOOTER
-            // ====================================================
-
-            _buildFooter(
-              isMobile: isMobile,
-            ),
           ],
         ),
       ),
@@ -952,27 +922,6 @@ class CreateSequencePreview extends StatelessWidget {
     // LOCAL FILE
     // ==========================================================
 
-    final file = File(path);
-
-    if (file.existsSync()) {
-      return Image.file(
-        file,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (
-          context,
-          error,
-          stackTrace,
-        ) {
-          return _imageErrorBox(
-            width,
-            height,
-          );
-        },
-      );
-    }
-
     // ==========================================================
     // NETWORK URL
     // ==========================================================
@@ -995,6 +944,13 @@ class CreateSequencePreview extends StatelessWidget {
           );
         },
       );
+    }
+
+    if (!kIsWeb) {
+      final file = File(path);
+      if (file.existsSync()) {
+        return Image.file(file, width: width, height: height, fit: fit);
+      }
     }
 
     return _imageErrorBox(

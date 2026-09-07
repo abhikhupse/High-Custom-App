@@ -159,7 +159,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   String selectedTextColor = 'Black';
 
-  String selectedStatus = 'draft';
+  String selectedStatus = 'active';
 
   // ============================================================
   // EDITOR
@@ -377,6 +377,18 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         child: Column(
           children: [
             _buildStepper(),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: _showEmailPreview,
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('Preview'),
+                ),
+              ),
+            ),
 
             Expanded(
               child: AnimatedSwitcher(
@@ -2291,12 +2303,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 height: 14,
               ),
 
-              _buildTrackingSwitch(),
-
-              const SizedBox(
-                height: 14,
-              ),
-
               _buildSchedulePicker(),
 
               if (scheduledDateTime !=
@@ -2647,80 +2653,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         : whatsappController.text.trim(),
               ),
 
-              const Divider(
-                color:
-                    softBorder,
-                height:
-                    28,
-              ),
-
-              Row(
-                children: [
-                  const Icon(
-                    Icons.analytics_outlined,
-                    color:
-                        gold,
-                    size:
-                        20,
-                  ),
-
-                  const SizedBox(
-                    width: 10,
-                  ),
-
-                  const Expanded(
-                    child:
-                        Text(
-                      'Tracking',
-                      style:
-                          TextStyle(
-                        color:
-                            textColor,
-                        fontSize:
-                            12,
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
-                    ),
-                  ),
-
-                  Icon(
-                    trackingEnabled
-                        ? Icons.check_circle_rounded
-                        : Icons.cancel_outlined,
-                    color:
-                        trackingEnabled
-                            ? green
-                            : secondaryTextColor,
-                    size:
-                        18,
-                  ),
-
-                  const SizedBox(
-                    width: 5,
-                  ),
-
-                  Flexible(
-                    child:
-                        Text(
-                      trackingEnabled
-                          ? 'Enabled'
-                          : 'Disabled',
-                      overflow:
-                          TextOverflow.ellipsis,
-                      style:
-                          TextStyle(
-                        color:
-                            trackingEnabled
-                                ? green
-                                : secondaryTextColor,
-                        fontSize:
-                            10,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),

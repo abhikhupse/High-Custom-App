@@ -2,6 +2,7 @@ const SEQUENCE_COLLECTION = require("../model/sequence.model");
 const LEADS_COLLECTION = require("../model/leads.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const BusinessLinkSettings = require("../model/businessLinkSettings.model");
+const SocialLink = require("../model/socialLink.model");
 const crypto = require("crypto");
 
 const { processSequencesForUser } = require("../jobs/sequence.job");
@@ -232,7 +233,7 @@ exports.createSequence = async (req, res) => {
     const businessSettings = await BusinessLinkSettings.findOne({
       userId,
       businessType: formattedBusinessType,
-    }).lean();
+    }).lean() || await BusinessLinkSettings.findOne({ userId, businessType: "__all__" }).lean();
 
     let logoUrl = null;
 
@@ -404,7 +405,7 @@ exports.createSequence = async (req, res) => {
     // TRACKING
     // ==========================================================
 
-    const trackingEnabled = toBoolean(parsedTracking?.enabled, true);
+    const trackingEnabled = true;
 
     // ==========================================================
     // STATUS
@@ -867,7 +868,8 @@ exports.getTrackingSummary = async (req, res) => {
         opened++;
       }
 
-      if (delivery.clickedAt) {
+      // Interested / Not Interested are responses, not platform-link clicks.
+      if (delivery.clickedAt && !delivery.respondedAt) {
         clicked++;
       }
 
@@ -934,6 +936,22 @@ exports.getTrackingSummary = async (req, res) => {
       status: "active",
     });
 
+    const socialLinks = await SocialLink.find({ userId })
+      .select("linkClicks qrScans")
+      .lean();
+    const socialLinkClicks = socialLinks.reduce(
+      (sum, link) => sum + Number(link.linkClicks || 0),
+      0,
+    );
+    const qrScans = socialLinks.reduce(
+      (sum, link) => sum + Number(link.qrScans || 0),
+      0,
+    );
+
+    // Opens and responses are engagement metrics within sent mail, so they do
+    // not add another campaign delivery to the overview total.
+    totalMails = sent + pending + failed;
+
     // ========================================================
     // CLICKED
     // ========================================================
@@ -971,6 +989,10 @@ exports.getTrackingSummary = async (req, res) => {
         notInterested,
 
         activeSequences,
+
+        socialLinkClicks,
+
+        qrScans,
       },
     });
   } catch (error) {
@@ -1446,7 +1468,7 @@ exports.updateSequence = async (req, res) => {
       },
     };
 
-    sequence.tracking.enabled = toBoolean(parsedTracking.enabled, true);
+    sequence.tracking.enabled = true;
 
     await sequence.save();
 
