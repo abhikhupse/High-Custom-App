@@ -13,6 +13,7 @@ const cleanLink = (item) => ({
   selected: item.selected,
   qrCode: item.qrCode,
   qrTarget: item.qrTarget,
+  qrTitle: item.qrTitle,
   qrGeneratedAt: item.qrGeneratedAt,
   linkClicks: item.linkClicks,
   qrScans: item.qrScans,
@@ -58,7 +59,7 @@ exports.update = async (req, res) => {
   try {
     const link = await SocialLink.findOne({ _id: req.params.id, userId: req.user.id });
     if (!link) return res.status(404).json({ success: false, message: "Link not found." });
-    const { name, url, selected } = req.body;
+    const { name, url, selected, qrTitle } = req.body;
     if (name !== undefined) link.name = String(name).trim();
     if (url !== undefined) {
       const value = String(url).trim();
@@ -71,6 +72,7 @@ exports.update = async (req, res) => {
       link.qrGeneratedAt = undefined;
     }
     if (selected !== undefined) link.selected = selected === true;
+    if (qrTitle !== undefined) link.qrTitle = String(qrTitle).trim().slice(0, 80);
     await link.save();
     return res.json({ success: true, data: cleanLink(link) });
   } catch (error) {
@@ -96,6 +98,7 @@ exports.generateQr = async (req, res) => {
     await Promise.all(links.map(async (link) => {
       const target = `${publicBaseUrl}/api/social-links/r/${link._id}?source=qr`;
       link.qrTarget = target;
+      if (!link.qrTitle) link.qrTitle = link.name;
       link.qrCode = await QRCode.toDataURL(target, { width: 600, margin: 2 });
       link.qrGeneratedAt = new Date();
       await link.save();
@@ -115,6 +118,21 @@ exports.listQr = async (req, res) => {
     return res.json({ success: true, data: links.map(cleanLink) });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Unable to load QR codes." });
+  }
+};
+
+exports.deleteQr = async (req, res) => {
+  try {
+    const link = await SocialLink.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!link) return res.status(404).json({ success: false, message: "QR code not found." });
+    link.qrCode = "";
+    link.qrTarget = "";
+    link.qrTitle = "";
+    link.qrGeneratedAt = undefined;
+    await link.save();
+    return res.json({ success: true, message: "QR code deleted." });
+  } catch (_) {
+    return res.status(500).json({ success: false, message: "Unable to delete QR code." });
   }
 };
 

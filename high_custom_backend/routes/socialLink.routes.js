@@ -11,5 +11,6 @@ router.patch("/:id", auth, controller.update);
 router.delete("/:id", auth, controller.remove);
 router.post("/generate-qr", auth, controller.generateQr);
 router.get("/qr", auth, controller.listQr);
+router.delete("/:id/qr", auth, controller.deleteQr);
 
 module.exports = router;

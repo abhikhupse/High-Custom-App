@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:high_custom_frontend/widgets/app_feedback.dart';
 import 'package:high_custom_frontend/services/business_type_api.dart';
 import 'package:high_custom_frontend/services/social_links_api.dart';
+import 'package:high_custom_frontend/services/profile_api.dart';
+import 'package:high_custom_frontend/services/business_link_settings_api.dart';
 
 // ============================================================
 // LINK SCREEN
@@ -39,13 +41,15 @@ class _LinkScreenState extends State<LinkScreen> {
   bool isLoadingBusinessTypes = true;
   bool isLoadingActionLinks = true;
 
-  String selectedLinksText = 'No links selected';
+  String whatsappLink = '';
+  final List<String> selectedActionLinks = [];
 
   // ============================================================
   // DATA
   // ============================================================
 
   final List<String> actionLinks = [];
+  final Map<String, String> actionLinkIds = {};
 
   final List<String> businessTypes = [];
   final Map<String, String> businessTypeIds = {};
@@ -55,17 +59,20 @@ class _LinkScreenState extends State<LinkScreen> {
     super.initState();
     _loadBusinessTypes();
     _loadSelectedActionLinks();
+    _loadRegisteredWhatsapp();
   }
 
   Future<void> _loadSelectedActionLinks() async {
     final response = await SocialLinksApi.list();
     if (!mounted) return;
     final names = <String>[];
+    final ids = <String, String>{};
     if (response['success'] == true && response['data'] is List) {
       for (final item in response['data'] as List) {
         if (item is Map && item['selected'] == true) {
           final name = item['name']?.toString().trim() ?? '';
-          if (name.isNotEmpty) names.add(name);
+          final id = item['_id']?.toString() ?? '';
+          if (name.isNotEmpty && id.isNotEmpty) { names.add(name); ids[name] = id; }
         }
       }
     }
@@ -73,12 +80,22 @@ class _LinkScreenState extends State<LinkScreen> {
       actionLinks
         ..clear()
         ..addAll(names);
+      actionLinkIds
+        ..clear()
+        ..addAll(ids);
       isLoadingActionLinks = false;
       if (selectedActionLink != null && !actionLinks.contains(selectedActionLink)) {
         selectedActionLink = null;
-        selectedLinksText = 'No links selected';
       }
     });
+  }
+
+  Future<void> _loadRegisteredWhatsapp() async {
+    final response = await ProfileApi.getProfile();
+    if (!mounted || response['success'] != true) return;
+    final phone = response['user'] is Map ? response['user']['phone']?.toString() ?? '' : '';
+    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isNotEmpty) setState(() => whatsappLink = 'https://wa.me/$digits');
   }
 
   Future<void> _loadBusinessTypes() async {
@@ -285,13 +302,7 @@ class _LinkScreenState extends State<LinkScreen> {
 
           const SizedBox(height: 12),
 
-          Text(
-            selectedLinksText,
-            style: const TextStyle(
-              color: mutedText,
-              fontSize: 14,
-            ),
-          ),
+          _buildSelectedActionLinks(),
 
           const SizedBox(height: 26),
 
@@ -411,7 +422,14 @@ class _LinkScreenState extends State<LinkScreen> {
 
           const SizedBox(height: 20),
 
-          _buildChooseFile(),
+          Container(
+            height: 112,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: inputColor, borderRadius: BorderRadius.circular(13), border: Border.all(color: borderColor)),
+            child: Image.asset('assets/images/high_custom_logo.png', height: 88, fit: BoxFit.contain),
+          ),
+          const SizedBox(height: 10),
+          const Text('Company logo is set manually for now.', style: TextStyle(color: mutedText, fontSize: 12)),
         ],
       ),
     );
@@ -442,70 +460,6 @@ class _LinkScreenState extends State<LinkScreen> {
     );
   }
 
-  // ============================================================
-  // CHOOSE FILE
-  // ============================================================
-
-  Widget _buildChooseFile() {
-    return InkWell(
-      onTap: () {
-        _showMessage(
-          'File picker will be connected here.',
-        );
-      },
-      borderRadius: BorderRadius.circular(13),
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          color: inputColor,
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(
-            color: borderColor,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-              ),
-              child: const Text(
-                'Choose File',
-                style: TextStyle(
-                  color: gold,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-
-            Container(
-              width: 1,
-              height: double.infinity,
-              color: borderColor,
-            ),
-
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 18,
-                ),
-                child: Text(
-                  'No file chosen',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: mutedText,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ============================================================
   // SECTION LABEL
@@ -536,7 +490,7 @@ class _LinkScreenState extends State<LinkScreen> {
           color: borderColor,
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
           SizedBox(width: 16),
 
@@ -550,7 +504,7 @@ class _LinkScreenState extends State<LinkScreen> {
 
           Expanded(
             child: Text(
-              'https://wa.me/918530480563?text=Hi+Abhishek...',
+              whatsappLink.isEmpty ? 'Loading registered mobile number...' : whatsappLink,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -584,10 +538,48 @@ class _LinkScreenState extends State<LinkScreen> {
           selectedActionLink = value;
 
           if (value != null) {
-            selectedLinksText = value;
+            if (!selectedActionLinks.contains(value)) selectedActionLinks.add(value);
           }
         });
       },
+    );
+  }
+
+  Future<void> _loadSettingsForBusinessType(String businessType) async {
+    final response = await BusinessLinkSettingsApi.get(businessType);
+    if (!mounted || response['success'] != true) return;
+    final data = response['data'];
+    if (data is! Map) {
+      setState(() => selectedActionLinks.clear());
+      return;
+    }
+    final names = (data['actionLinkNames'] as List? ?? const [])
+        .map((item) => item.toString())
+        .where(actionLinks.contains)
+        .toList();
+    setState(() {
+      selectedActionLinks
+        ..clear()
+        ..addAll(names);
+    });
+  }
+
+  Widget _buildSelectedActionLinks() {
+    if (selectedActionLinks.isEmpty) {
+      return const Text('No links selected', style: TextStyle(color: mutedText, fontSize: 14));
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: selectedActionLinks.map((name) => Chip(
+        label: Text(name),
+        deleteIcon: const Icon(Icons.close_rounded, size: 17),
+        onDeleted: () => setState(() => selectedActionLinks.remove(name)),
+        backgroundColor: gold.withOpacity(.12),
+        side: BorderSide(color: gold.withOpacity(.45)),
+        labelStyle: const TextStyle(color: white, fontWeight: FontWeight.w600),
+        deleteIconColor: gold,
+      )).toList(),
     );
   }
 
@@ -608,10 +600,11 @@ class _LinkScreenState extends State<LinkScreen> {
                     : 'Select Business Type',
             items: businessTypes,
             manageBusinessTypes: true,
-            onChanged: (value) {
+            onChanged: (value) async {
               setState(() {
                 selectedBusinessType = value;
               });
+              if (value != null) await _loadSettingsForBusinessType(value);
             },
           ),
         ),
@@ -1159,10 +1152,21 @@ class _LinkScreenState extends State<LinkScreen> {
   // SAVE
   // ============================================================
 
-  void _saveBusinessDetails() {
-    _showMessage(
-      'Business details saved successfully.',
-    );
+  Future<void> _saveBusinessDetails() async {
+    final type = selectedBusinessType;
+    if (type == null || type.isEmpty) {
+      _showMessage('Please select a business type.');
+      return;
+    }
+    final ids = selectedActionLinks
+        .map((name) => actionLinkIds[name])
+        .whereType<String>()
+        .toList();
+    final response = await BusinessLinkSettingsApi.save(type, ids);
+    if (!mounted) return;
+    _showMessage(response['success'] == true
+        ? 'Business details saved for $type.'
+        : response['message']?.toString() ?? 'Unable to save business details.');
   }
 
   // ============================================================

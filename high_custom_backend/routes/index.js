@@ -9,6 +9,7 @@ const emailTrackingRoutes = require("./email_tracking.routes");
 const businessCard = require("./businessCard.routes");
 const businessTypes = require("./businessType.routes");
 const socialLinks = require("./socialLink.routes");
+const businessLinkSettings = require("./businessLinkSettings.routes");
 
 // ============================================================
 // USER
@@ -43,5 +44,6 @@ router.use("/email-tracking", emailTrackingRoutes);
 router.use("/business-card", businessCard);
 router.use("/business-types", businessTypes);
 router.use("/social-links", socialLinks);
+router.use("/business-link-settings", businessLinkSettings);
 
 module.exports = router;

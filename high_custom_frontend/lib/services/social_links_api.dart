@@ -31,13 +31,16 @@ class SocialLinksApi {
     String? name,
     String? url,
     bool? selected,
+    String? qrTitle,
   }) => _request('PATCH', '/$id', body: {
     if (name != null) 'name': name,
     if (url != null) 'url': url,
     if (selected != null) 'selected': selected,
+    if (qrTitle != null) 'qrTitle': qrTitle,
   });
 
   static Future<Map<String, dynamic>> delete(String id) => _request('DELETE', '/$id');
+  static Future<Map<String, dynamic>> deleteQr(String id) => _request('DELETE', '/$id/qr');
 
   static Future<Map<String, dynamic>> generateQr(List<String> linkIds) =>
       _request('POST', '/generate-qr', body: {'linkIds': linkIds});
