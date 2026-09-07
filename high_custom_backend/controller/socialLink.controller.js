@@ -4,6 +4,33 @@ const SocialLink = require("../model/socialLink.model");
 const publicBaseUrl =
   process.env.PUBLIC_API_URL || "https://high-custom-app.onrender.com";
 
+const instagramProfileDeepLink = (url) => {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (host !== "instagram.com") return null;
+
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const username = segments[0];
+    const reservedPaths = new Set(["p", "reel", "reels", "stories", "explore"]);
+    if (!username || reservedPaths.has(username.toLowerCase())) return null;
+
+    return `instagram://user?username=${encodeURIComponent(username)}`;
+  } catch (_) {
+    return null;
+  }
+};
+
+const sendInstagramRedirect = (res, deepLink, fallbackUrl) => {
+  const safeJson = (value) =>
+    JSON.stringify(value).replace(/</g, "\\u003c");
+
+  return res
+    .status(200)
+    .type("html")
+    .send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><p>Opening Instagram…</p><script>window.location.href=${safeJson(deepLink)};window.setTimeout(function(){window.location.replace(${safeJson(fallbackUrl)});},1200);</script><a href=${safeJson(fallbackUrl)}>Open Instagram in browser</a></body></html>`);
+};
+
 const cleanLink = (item) => ({
   _id: item._id,
   name: item.name,
@@ -153,6 +180,12 @@ exports.redirect = async (req, res) => {
       link.linkClicks += 1;
     }
     await link.save();
+
+    const instagramDeepLink = instagramProfileDeepLink(link.url);
+    if (instagramDeepLink) {
+      return sendInstagramRedirect(res, instagramDeepLink, link.url);
+    }
+
     return res.redirect(302, link.url);
   } catch (_) {
     return res.status(404).send("Link not found.");
