@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:high_custom_frontend/services/social_links_api.dart';
 
 import 'create_business_card_screen.dart';
+import 'social_qr_list_screen.dart';
 
 // ============================================================
 // SOCIAL LINKS SCREEN
@@ -15,6 +17,10 @@ class SocialLinksScreen extends StatefulWidget {
 }
 
 class _SocialLinksScreenState extends State<SocialLinksScreen> {
+  final GlobalKey<FormState> _addLinkFormKey = GlobalKey<FormState>();
+  final TextEditingController _platformNameController = TextEditingController();
+  final TextEditingController _platformUrlController = TextEditingController();
+
   // ============================================================
   // COLORS
   // ============================================================
@@ -39,117 +45,40 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
   bool socialExpanded = true;
   bool ecommerceExpanded = false;
   bool paymentExpanded = false;
+  bool customExpanded = true;
 
   // ============================================================
-  // SOCIAL MEDIA LINKS - 5 DUMMY DATA
+  // Links are loaded from the signed-in admin's Render account.
   // ============================================================
 
-  final List<Map<String, dynamic>> socialLinks = [
-    {
-      'name': 'Instagram',
-      'url': 'https://instagram.com/highcustom',
-      'selected': false,
-      'platform': 'instagram',
-    },
-    {
-      'name': 'Facebook',
-      'url': 'https://facebook.com/highcustom',
-      'selected': false,
-      'platform': 'facebook',
-    },
-    {
-      'name': 'WhatsApp',
-      'url': 'https://wa.me/919876543210',
-      'selected': false,
-      'platform': 'whatsapp',
-    },
-    {
-      'name': 'YouTube',
-      'url': 'https://youtube.com/@highcustom',
-      'selected': false,
-      'platform': 'youtube',
-    },
-    {
-      'name': 'LinkedIn',
-      'url': 'https://linkedin.com/company/highcustom',
-      'selected': false,
-      'platform': 'linkedin',
-    },
-  ];
+  final List<Map<String, dynamic>> socialLinks = [];
 
   // ============================================================
-  // E-COMMERCE LINKS - 5 DUMMY DATA
+  // Empty until an admin creates a link in the matching category.
   // ============================================================
 
-  final List<Map<String, dynamic>> ecommerceLinks = [
-    {
-      'name': 'Amazon',
-      'url': 'https://amazon.in/highcustom',
-      'selected': false,
-      'platform': 'amazon',
-    },
-    {
-      'name': 'Flipkart',
-      'url': 'https://flipkart.com/highcustom',
-      'selected': false,
-      'platform': 'flipkart',
-    },
-    {
-      'name': 'Meesho',
-      'url': 'https://meesho.com/highcustom',
-      'selected': false,
-      'platform': 'meesho',
-    },
-    {
-      'name': 'Myntra',
-      'url': 'https://myntra.com/highcustom',
-      'selected': false,
-      'platform': 'myntra',
-    },
-    {
-      'name': 'Website Store',
-      'url': 'https://highcustomai.com/shop',
-      'selected': false,
-      'platform': 'website',
-    },
-  ];
+  final List<Map<String, dynamic>> ecommerceLinks = [];
 
   // ============================================================
-  // PAYMENT GATEWAYS - 5 DUMMY DATA
+  // Payment links are also admin-managed.
   // ============================================================
 
-  final List<Map<String, dynamic>> paymentLinks = [
-    {
-      'name': 'Google Pay',
-      'url': 'https://pay.google.com/highcustom',
-      'selected': false,
-      'platform': 'googlepay',
-    },
-    {
-      'name': 'PhonePe',
-      'url': 'https://phonepe.com/highcustom',
-      'selected': false,
-      'platform': 'phonepe',
-    },
-    {
-      'name': 'Paytm',
-      'url': 'https://paytm.com/highcustom',
-      'selected': false,
-      'platform': 'paytm',
-    },
-    {
-      'name': 'PayPal',
-      'url': 'https://paypal.me/highcustom',
-      'selected': false,
-      'platform': 'paypal',
-    },
-    {
-      'name': 'Razorpay',
-      'url': 'https://razorpay.me/@highcustom',
-      'selected': false,
-      'platform': 'razorpay',
-    },
-  ];
+  final List<Map<String, dynamic>> paymentLinks = [];
+
+  final List<Map<String, dynamic>> customLinks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLinks();
+  }
+
+  @override
+  void dispose() {
+    _platformNameController.dispose();
+    _platformUrlController.dispose();
+    super.dispose();
+  }
 
   // ============================================================
   // BUILD
@@ -217,9 +146,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                 _blueActionButton(
                   icon: Icons.qr_code_2_rounded,
                   label: 'VIEW ALL QR',
-                  onTap: () {
-                    _showMessage('View All QR');
-                  },
+                  onTap: _openQrList,
                 ),
 
                 const SizedBox(height: 10),
@@ -238,9 +165,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                 _blueActionButton(
                   icon: Icons.qr_code_2_rounded,
                   label: 'VIEW ALL QR',
-                  onTap: () {
-                    _showMessage('View All QR');
-                  },
+                  onTap: _openQrList,
                 ),
 
                 const SizedBox(width: 10),
@@ -331,23 +256,21 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _outlineActionButton(
+            icon: Icons.save_outlined,
+            label: 'SAVE LINKS',
+            onTap: _saveLinks,
+          ),
+
+          const SizedBox(height: 10),
+
           // ======================================================
           // GENERATE QR
           // ======================================================
           _purpleActionButton(
             icon: Icons.qr_code_2_rounded,
             label: 'Generate QR Code',
-            onTap: () {
-              final selected = _getSelectedLinks();
-
-              if (selected.isEmpty) {
-                _showMessage('Please select at least one link.');
-
-                return;
-              }
-
-              _showMessage('${selected.length} links selected.');
-            },
+            onTap: _generateQrCodes,
           ),
 
           const SizedBox(height: 18),
@@ -361,6 +284,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             icon: Icons.share_rounded,
             expanded: socialExpanded,
             children: socialLinks,
+            emptyMessage: 'No social media links added yet.',
             onTap: () {
               setState(() {
                 socialExpanded = !socialExpanded;
@@ -379,6 +303,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             icon: Icons.shopping_cart_outlined,
             expanded: ecommerceExpanded,
             children: ecommerceLinks,
+            emptyMessage: 'No e-commerce links added yet.',
             onTap: () {
               setState(() {
                 ecommerceExpanded = !ecommerceExpanded;
@@ -397,15 +322,298 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             icon: Icons.credit_card_rounded,
             expanded: paymentExpanded,
             children: paymentLinks,
+            emptyMessage: 'No payment links added yet.',
             onTap: () {
               setState(() {
                 paymentExpanded = !paymentExpanded;
               });
             },
           ),
+
+          const SizedBox(height: 12),
+
+          _buildExpandableSection(
+            title: 'Custom Links',
+            subtitle: '${customLinks.length} links',
+            icon: Icons.add_link_rounded,
+            expanded: customExpanded,
+            children: customLinks,
+            emptyMessage: 'Your custom links will appear here.',
+            onTap: () {
+              setState(() {
+                customExpanded = !customExpanded;
+              });
+            },
+          ),
+
+          const SizedBox(height: 18),
+
+          _buildAddLinkForm(isMobile),
         ],
       ),
     );
+  }
+
+  Widget _buildAddLinkForm(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 14 : 18),
+      decoration: BoxDecoration(
+        color: surface2,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
+      ),
+      child: Form(
+        key: _addLinkFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.add_link_rounded, color: gold, size: 21),
+                SizedBox(width: 10),
+                Text(
+                  'Add a New Link',
+                  style: TextStyle(
+                    color: lightText,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (isMobile) ...[
+              _addLinkInput(
+                controller: _platformNameController,
+                label: 'Platform Name',
+                hint: 'Example: Pinterest',
+                icon: Icons.apps_rounded,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter a platform name.'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              _addLinkInput(
+                controller: _platformUrlController,
+                label: 'Platform URL',
+                hint: 'https://example.com/your-page',
+                icon: Icons.link_rounded,
+                keyboardType: TextInputType.url,
+                validator: _validatePlatformUrl,
+                onFieldSubmitted: (_) => _addNewLink(),
+              ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _addLinkInput(
+                      controller: _platformNameController,
+                      label: 'Platform Name',
+                      hint: 'Example: Pinterest',
+                      icon: Icons.apps_rounded,
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Enter a platform name.'
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _addLinkInput(
+                      controller: _platformUrlController,
+                      label: 'Platform URL',
+                      hint: 'https://example.com/your-page',
+                      icon: Icons.link_rounded,
+                      keyboardType: TextInputType.url,
+                      validator: _validatePlatformUrl,
+                      onFieldSubmitted: (_) => _addNewLink(),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: _addNewLink,
+                icon: const Icon(Icons.add_rounded, size: 19),
+                label: const Text('Add Link'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: gold,
+                  foregroundColor: pageBackground,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _addLinkInput({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    required String? Function(String?) validator,
+    TextInputType? keyboardType,
+    ValueChanged<String>? onFieldSubmitted,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      onFieldSubmitted: onFieldSubmitted,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      cursorColor: gold,
+      style: const TextStyle(color: white, fontSize: 13),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(color: mutedText),
+        hintStyle: const TextStyle(color: Color(0xFF676970)),
+        prefixIcon: Icon(icon, color: mutedText, size: 19),
+        filled: true,
+        fillColor: pageBackground,
+        errorStyle: const TextStyle(color: red),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(11),
+          borderSide: const BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(11),
+          borderSide: const BorderSide(color: gold),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(11),
+          borderSide: const BorderSide(color: red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(11),
+          borderSide: const BorderSide(color: red),
+        ),
+      ),
+    );
+  }
+
+  String? _validatePlatformUrl(String? value) {
+    final String url = value?.trim() ?? '';
+    if (url.isEmpty) {
+      return 'Enter a platform URL.';
+    }
+
+    final Uri? parsedUrl = Uri.tryParse(url);
+    if (parsedUrl == null ||
+        !parsedUrl.hasScheme ||
+        (parsedUrl.scheme != 'http' && parsedUrl.scheme != 'https') ||
+        parsedUrl.host.isEmpty) {
+      return 'Enter a valid URL starting with http:// or https://.';
+    }
+
+    return null;
+  }
+
+  Future<void> _addNewLink() async {
+    if (_addLinkFormKey.currentState?.validate() != true) {
+      return;
+    }
+
+    final String name = _platformNameController.text.trim();
+    final String url = _platformUrlController.text.trim();
+
+    final response = await SocialLinksApi.create(
+      name: name,
+      url: url,
+      platform: name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), ''),
+    );
+    if (!mounted) return;
+    if (response['success'] != true || response['data'] is! Map) {
+      _showMessage(response['message']?.toString() ?? 'Could not add link.');
+      return;
+    }
+
+    setState(() {
+      customLinks.insert(0, Map<String, dynamic>.from(response['data'] as Map));
+      customExpanded = true;
+    });
+
+    _platformNameController.clear();
+    _platformUrlController.clear();
+    _addLinkFormKey.currentState?.reset();
+    FocusScope.of(context).unfocus();
+    _showMessage('$name link added successfully.');
+  }
+
+  Future<void> _saveLinks() async {
+    final allLinks = [
+      ...socialLinks,
+      ...ecommerceLinks,
+      ...paymentLinks,
+      ...customLinks,
+    ];
+    final responses = await Future.wait(allLinks.map((link) => SocialLinksApi.update(
+          link['_id'].toString(),
+          selected: link['selected'] == true,
+        )));
+    if (!mounted) return;
+    if (responses.every((response) => response['success'] == true)) {
+      _showMessage('${_getSelectedLinks().length} selected links saved.');
+    } else {
+      _showMessage('Some selected links could not be saved.');
+    }
+  }
+
+  Future<void> _loadLinks() async {
+    final response = await SocialLinksApi.list();
+    if (!mounted || response['success'] != true || response['data'] is! List) return;
+    final links = (response['data'] as List)
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    setState(() {
+      socialLinks
+        ..clear()
+        ..addAll(links.where((link) => link['category'] == 'social'));
+      ecommerceLinks
+        ..clear()
+        ..addAll(links.where((link) => link['category'] == 'ecommerce'));
+      paymentLinks
+        ..clear()
+        ..addAll(links.where((link) => link['category'] == 'payment'));
+      customLinks
+        ..clear()
+        ..addAll(links.where((link) => link['category'] == 'custom'));
+    });
+  }
+
+  Future<void> _generateQrCodes() async {
+    final selected = _getSelectedLinks();
+    if (selected.isEmpty) {
+      _showMessage('Please select at least one link.');
+      return;
+    }
+    final response = await SocialLinksApi.generateQr(
+      selected.map((link) => link['_id'].toString()).toList(),
+    );
+    if (!mounted) return;
+    if (response['success'] == true) {
+      await _loadLinks();
+      if (mounted) _showMessage('${selected.length} QR code(s) generated.');
+    } else {
+      _showMessage(response['message']?.toString() ?? 'Could not generate QR codes.');
+    }
+  }
+
+  void _openQrList() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SocialQrListScreen()));
   }
 
   // ============================================================
@@ -419,6 +627,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
     required bool expanded,
     required VoidCallback onTap,
     required List<Map<String, dynamic>> children,
+    String? emptyMessage,
   }) {
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -494,6 +703,18 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
 
           if (expanded) ...[
             Container(height: 1, color: borderColor),
+
+            if (children.isEmpty && emptyMessage != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
+                child: Text(
+                  emptyMessage,
+                  style: const TextStyle(color: mutedText, fontSize: 12),
+                ),
+              ),
 
             ...List.generate(children.length, (index) {
               return _buildSavedLink(
@@ -618,7 +839,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             // ====================================================
             IconButton(
               tooltip: 'Copy Link',
-              onPressed: () {
+              onPressed: () async {
                 _copyLink(url);
               },
               icon: const Icon(
@@ -834,6 +1055,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       ...socialLinks.where((link) => link['selected'] == true),
       ...ecommerceLinks.where((link) => link['selected'] == true),
       ...paymentLinks.where((link) => link['selected'] == true),
+      ...customLinks.where((link) => link['selected'] == true),
     ];
   }
 
@@ -922,7 +1144,7 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
             ),
 
             ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
                 final String name = nameController.text.trim();
 
                 final String url = urlController.text.trim();
@@ -933,14 +1155,22 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
                   return;
                 }
 
+                final response = await SocialLinksApi.update(
+                  source[index]['_id'].toString(),
+                  name: name,
+                  url: url,
+                );
+                if (response['success'] != true) {
+                  _showMessage(response['message']?.toString() ?? 'Could not update link.');
+                  return;
+                }
+                if (!dialogContext.mounted) return;
                 setState(() {
-                  source[index]['name'] = name;
-
-                  source[index]['url'] = url;
+                  source[index]
+                    ..['name'] = name
+                    ..['url'] = url;
                 });
-
                 Navigator.pop(dialogContext);
-
                 _showMessage('Link updated successfully.');
               },
               icon: const Icon(Icons.save_outlined, size: 17),
@@ -1061,11 +1291,14 @@ class _SocialLinksScreenState extends State<SocialLinksScreen> {
       return;
     }
 
-    setState(() {
-      source.removeAt(index);
-    });
-
-    _showMessage('Link deleted successfully.');
+    final response = await SocialLinksApi.delete(source[index]['_id'].toString());
+    if (!mounted) return;
+    if (response['success'] == true) {
+      setState(() => source.removeAt(index));
+      _showMessage('Link deleted successfully.');
+    } else {
+      _showMessage(response['message']?.toString() ?? 'Could not delete link.');
+    }
   }
 
   // ============================================================

@@ -71,9 +71,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      return const ColoredBox(
-        color: Color(0xFF090A0C),
-      );
+      return const ColoredBox(color: Colors.black);
     }
 
     return _isLoggedIn

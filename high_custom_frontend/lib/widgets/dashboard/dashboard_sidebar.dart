@@ -796,11 +796,11 @@ class DashboardSidebar extends StatelessWidget {
             child: Column(
               children: [
                 _subMenuItem(
-                  title: 'Link',
+                  title: 'Social Links',
                 ),
 
                 _subMenuItem(
-                  title: 'Social Links',
+                  title: 'Link',
                 ),
 
                 _subMenuItem(

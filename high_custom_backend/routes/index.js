@@ -8,6 +8,7 @@ const Integration = require("./gmail_integration.routes");
 const emailTrackingRoutes = require("./email_tracking.routes");
 const businessCard = require("./businessCard.routes");
 const businessTypes = require("./businessType.routes");
+const socialLinks = require("./socialLink.routes");
 
 // ============================================================
 // USER
@@ -41,5 +42,6 @@ router.use("/email-tracking", emailTrackingRoutes);
 
 router.use("/business-card", businessCard);
 router.use("/business-types", businessTypes);
+router.use("/social-links", socialLinks);
 
 module.exports = router;

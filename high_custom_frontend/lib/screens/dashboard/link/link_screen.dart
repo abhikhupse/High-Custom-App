@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:high_custom_frontend/widgets/app_feedback.dart';
 import 'package:high_custom_frontend/services/business_type_api.dart';
+import 'package:high_custom_frontend/services/social_links_api.dart';
 
 // ============================================================
 // LINK SCREEN
@@ -36,6 +37,7 @@ class _LinkScreenState extends State<LinkScreen> {
   String? selectedActionLink;
   String? selectedBusinessType;
   bool isLoadingBusinessTypes = true;
+  bool isLoadingActionLinks = true;
 
   String selectedLinksText = 'No links selected';
 
@@ -43,13 +45,7 @@ class _LinkScreenState extends State<LinkScreen> {
   // DATA
   // ============================================================
 
-  final List<String> actionLinks = [
-    'Instagram',
-    'Facebook',
-    'LinkedIn',
-    'Website',
-    'WhatsApp',
-  ];
+  final List<String> actionLinks = [];
 
   final List<String> businessTypes = [];
   final Map<String, String> businessTypeIds = {};
@@ -58,6 +54,31 @@ class _LinkScreenState extends State<LinkScreen> {
   void initState() {
     super.initState();
     _loadBusinessTypes();
+    _loadSelectedActionLinks();
+  }
+
+  Future<void> _loadSelectedActionLinks() async {
+    final response = await SocialLinksApi.list();
+    if (!mounted) return;
+    final names = <String>[];
+    if (response['success'] == true && response['data'] is List) {
+      for (final item in response['data'] as List) {
+        if (item is Map && item['selected'] == true) {
+          final name = item['name']?.toString().trim() ?? '';
+          if (name.isNotEmpty) names.add(name);
+        }
+      }
+    }
+    setState(() {
+      actionLinks
+        ..clear()
+        ..addAll(names);
+      isLoadingActionLinks = false;
+      if (selectedActionLink != null && !actionLinks.contains(selectedActionLink)) {
+        selectedActionLink = null;
+        selectedLinksText = 'No links selected';
+      }
+    });
   }
 
   Future<void> _loadBusinessTypes() async {
@@ -552,7 +573,11 @@ class _LinkScreenState extends State<LinkScreen> {
   Widget _buildActionLinkDropdown() {
     return _buildDropdown(
       value: selectedActionLink,
-      hint: 'Select Links',
+      hint: isLoadingActionLinks
+          ? 'Loading selected links...'
+          : actionLinks.isEmpty
+              ? 'No saved links selected'
+              : 'Select Links',
       items: actionLinks,
       onChanged: (value) {
         setState(() {
