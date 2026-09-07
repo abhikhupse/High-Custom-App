@@ -4836,8 +4836,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
       _uploadExcel() async {
     try {
       final result =
-          await FilePicker.platform
-              .pickFiles(
+          await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: [
           'xlsx',
@@ -4846,18 +4845,17 @@ class _LeadsScreenState extends State<LeadsScreen> {
         withData: true,
       );
 
-      if (result == null) {
+      if (result.isEmpty) {
         return;
       }
 
       final file =
-          result.files.single;
+          result.single;
 
-      final Uint8List? bytes =
-          file.bytes;
+      final Uint8List bytes =
+          await file.readAsBytes();
 
-      if (bytes == null ||
-          bytes.isEmpty) {
+      if (bytes.isEmpty) {
         _showMessage(
           'Unable to read selected Excel file.',
         );
@@ -5046,8 +5044,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
       final fileName =
           'HighCustomAI_Leads_${DateTime.now().millisecondsSinceEpoch}.xls';
 
-      await FilePicker.platform
-          .saveFile(
+      await FilePicker.saveFile(
         fileName: fileName,
         bytes: bytes,
       );

@@ -169,8 +169,8 @@ class _ProfileScreenState
 
   Future<void> _pickProfileImage() async {
     try {
-      final FilePickerResult? result =
-          await FilePicker.platform.pickFiles(
+      final List<PlatformFile> result =
+          await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: [
           'jpg',
@@ -182,18 +182,19 @@ class _ProfileScreenState
         withData: true,
       );
 
-      if (result == null) {
+      if (result.isEmpty) {
         return;
       }
 
       final PlatformFile file =
-          result.files.first;
+          result.first;
+      final bytes = await file.readAsBytes();
 
       // ========================================================
       // CHECK BYTES
       // ========================================================
 
-      if (file.bytes == null) {
+      if (bytes.isEmpty) {
         _showMessage(
           'Unable to read the selected image.',
         );
@@ -233,7 +234,7 @@ class _ProfileScreenState
 
       setState(() {
         _profileImageBytes =
-            file.bytes;
+            bytes;
 
         _profileImageName =
             file.name;

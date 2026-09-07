@@ -32,6 +32,17 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# Visual Studio 2026 treats the legacy experimental coroutine headers used by
+# permission_handler_windows as an error. The plugin still needs the header for
+# Windows builds, so acknowledge the compatibility warning until it migrates to
+# std::coroutine.
+add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
+# flutter_secure_storage_windows includes atlstr.h even though it does not use
+# any ATL symbols. Prefer this project-local compatibility header so Windows
+# builds do not require the optional Visual Studio ATL workload.
+include_directories(BEFORE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by

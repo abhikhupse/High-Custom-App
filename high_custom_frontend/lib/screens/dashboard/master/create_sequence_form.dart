@@ -5102,7 +5102,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   Future<void> _pickLogoFile() async {
     final result =
-        await FilePicker.platform.pickFiles(
+        await FilePicker.pickFiles(
       type:
           FileType.image,
       withData:
@@ -5111,20 +5111,20 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           false,
     );
 
-    if (result == null ||
-        result.files.isEmpty) {
+    if (result.isEmpty) {
       return;
     }
 
     final file =
-        result.files.first;
+        result.first;
+    final bytes = await file.readAsBytes();
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _logoBytes = file.bytes;
+      _logoBytes = bytes;
       _logoFilename = file.name;
       logoController.text =
           file.path ??
@@ -5138,7 +5138,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   Future<void> _pickHeroImage() async {
     final result =
-        await FilePicker.platform.pickFiles(
+        await FilePicker.pickFiles(
       type:
           FileType.image,
       withData:
@@ -5147,15 +5147,15 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           false,
     );
 
-    if (result == null ||
-        result.files.isEmpty) {
+    if (result.isEmpty) {
       return;
     }
 
     final file =
-        result.files.first;
+        result.first;
+    final bytes = await file.readAsBytes();
 
-    if (file.size >
+    if (bytes.length >
         2 * 1024 * 1024) {
       _showMessage(
         'Hero image must be less than 2 MB.',
@@ -5171,7 +5171,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     }
 
     setState(() {
-      _heroImageBytes = file.bytes;
+      _heroImageBytes = bytes;
       _heroImageFilename = file.name;
       heroImageController.text =
           file.path ??
@@ -5185,7 +5185,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   Future<void> _pickAttachmentFile() async {
     final result =
-        await FilePicker.platform.pickFiles(
+        await FilePicker.pickFiles(
       type:
           FileType.any,
       withData:
@@ -5194,20 +5194,20 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           false,
     );
 
-    if (result == null ||
-        result.files.isEmpty) {
+    if (result.isEmpty) {
       return;
     }
 
     final file =
-        result.files.first;
+        result.first;
+    final bytes = await file.readAsBytes();
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _attachmentBytes = file.bytes;
+      _attachmentBytes = bytes;
       attachmentNameController.text =
           file.name;
 
@@ -5221,7 +5221,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       );
 
       attachmentSizeController.text =
-          file.size.toString();
+          bytes.length.toString();
     });
   }
 
