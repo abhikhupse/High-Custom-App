@@ -5,6 +5,7 @@ const controller = require("../controller/socialLink.controller");
 const router = express.Router();
 
 router.get("/r/:id", controller.redirect);
+router.get("/all-links/:userId", controller.allLinksPage);
 router.get("/", auth, controller.list);
 router.post("/", auth, controller.create);
 router.patch("/:id", auth, controller.update);

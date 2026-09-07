@@ -31,6 +31,14 @@ const sendInstagramRedirect = (res, deepLink, fallbackUrl) => {
     .send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><p>Opening Instagram…</p><script>window.location.href=${safeJson(deepLink)};window.setTimeout(function(){window.location.replace(${safeJson(fallbackUrl)});},1200);</script><a href=${safeJson(fallbackUrl)}>Open Instagram in browser</a></body></html>`);
 };
 
+const escapeHtml = (value) =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 const cleanLink = (item) => ({
   _id: item._id,
   name: item.name,
@@ -148,9 +156,42 @@ exports.listQr = async (req, res) => {
     const links = await SocialLink.find({ userId: req.user.id, qrCode: { $ne: "" } })
       .sort({ qrGeneratedAt: -1 })
       .lean();
-    return res.json({ success: true, data: links.map(cleanLink) });
+    const allLinksTarget = `${publicBaseUrl}/api/social-links/all-links/${req.user.id}`;
+    const allLinksQr = {
+      _id: "all-links",
+      fixedCard: true,
+      name: "All Links",
+      qrTitle: "All Links",
+      qrCode: await QRCode.toDataURL(allLinksTarget, { width: 600, margin: 2 }),
+      qrTarget: allLinksTarget,
+      trackingTarget: allLinksTarget,
+    };
+    return res.json({
+      success: true,
+      data: [allLinksQr, ...links.map(cleanLink)],
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Unable to load QR codes." });
+  }
+};
+
+exports.allLinksPage = async (req, res) => {
+  try {
+    const links = await SocialLink.find({ userId: req.params.userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const cards = links.length
+      ? links
+          .map(
+            (link) => `<a class="link-card" href="${escapeHtml(`${publicBaseUrl}/api/social-links/r/${link._id}?source=link`)}"><span>${escapeHtml(link.name)}</span><small>${escapeHtml(link.url)}</small><b>Open</b></a>`,
+          )
+          .join("")
+      : '<p class="empty">No links have been added yet.</p>';
+
+    return res.status(200).type("html").send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>High Custom</title><style>body{margin:0;background:#090a0c;color:#fff;font-family:Arial,sans-serif}.page{max-width:560px;margin:auto;padding:36px 20px 48px}.brand{color:#f2c45f;letter-spacing:3px;font-size:13px;font-weight:700}.title{font-size:30px;margin:10px 0 8px}.sub{color:#a6a8ae;margin:0 0 26px}.link-card{display:block;background:#151619;border:1px solid #282a30;border-radius:16px;padding:17px;margin:12px 0;color:#fff;text-decoration:none}.link-card span{display:block;font-size:17px;font-weight:700}.link-card small{display:block;color:#a6a8ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:7px 0 14px}.link-card b{color:#f2c45f;font-size:13px}.empty{color:#a6a8ae}</style></head><body><main class="page"><div class="brand">HIGH CUSTOM</div><h1 class="title">All Links</h1><p class="sub">Choose a link to continue.</p>${cards}</main></body></html>`);
+  } catch (_) {
+    return res.status(404).send("Links not found.");
   }
 };
 
