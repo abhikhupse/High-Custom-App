@@ -39,6 +39,27 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+const platformDetails = (link) => {
+  try {
+    const host = new URL(link.url).hostname.toLowerCase().replace(/^www\./, "");
+    const platform =
+      host.includes("instagram.com") ? "Instagram" :
+      host.includes("whatsapp.com") || host === "wa.me" ? "WhatsApp" :
+      host.includes("youtube.com") || host === "youtu.be" ? "YouTube" :
+      host.includes("facebook.com") ? "Facebook" :
+      host.includes("linkedin.com") ? "LinkedIn" :
+      host === "x.com" || host.includes("twitter.com") ? "X" :
+      host;
+    return {
+      host,
+      platform,
+      favicon: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`,
+    };
+  } catch (_) {
+    return { host: "", platform: "Link", favicon: "" };
+  }
+};
+
 const cleanLink = (item) => ({
   _id: item._id,
   name: item.name,
@@ -184,12 +205,16 @@ exports.allLinksPage = async (req, res) => {
     const cards = links.length
       ? links
           .map(
-            (link) => `<a class="link-card" href="${escapeHtml(`${publicBaseUrl}/api/social-links/r/${link._id}?source=link`)}"><span>${escapeHtml(link.name)}</span><small>${escapeHtml(link.url)}</small><b>Open</b></a>`,
+            (link) => {
+              const details = platformDetails(link);
+              const label = link.name || details.platform;
+              return `<a class="link-card" href="${escapeHtml(`${publicBaseUrl}/api/social-links/r/${link._id}?source=link`)}"><div class="platform-icon"><span>${escapeHtml(details.platform.charAt(0))}</span>${details.favicon ? `<img src="${escapeHtml(details.favicon)}" alt="${escapeHtml(details.platform)} logo" onerror="this.remove()">` : ""}</div><div class="link-info"><span>${escapeHtml(label)}</span><small>${escapeHtml(details.host || link.url)}</small></div><div class="open-arrow">↗</div></a>`;
+            },
           )
           .join("")
       : '<p class="empty">No links have been added yet.</p>';
 
-    return res.status(200).type("html").send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>High Custom</title><style>body{margin:0;background:#090a0c;color:#fff;font-family:Arial,sans-serif}.page{max-width:560px;margin:auto;padding:36px 20px 48px}.brand{color:#f2c45f;letter-spacing:3px;font-size:13px;font-weight:700}.title{font-size:30px;margin:10px 0 8px}.sub{color:#a6a8ae;margin:0 0 26px}.link-card{display:block;background:#151619;border:1px solid #282a30;border-radius:16px;padding:17px;margin:12px 0;color:#fff;text-decoration:none}.link-card span{display:block;font-size:17px;font-weight:700}.link-card small{display:block;color:#a6a8ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:7px 0 14px}.link-card b{color:#f2c45f;font-size:13px}.empty{color:#a6a8ae}</style></head><body><main class="page"><div class="brand">HIGH CUSTOM</div><h1 class="title">All Links</h1><p class="sub">Choose a link to continue.</p>${cards}</main></body></html>`);
+    return res.status(200).type("html").send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>High Custom</title><style>*{box-sizing:border-box}body{margin:0;background:#090a0c;color:#fff;font-family:Arial,sans-serif}.page{max-width:560px;margin:auto;padding:42px 20px 48px}.brand{color:#f2c45f;letter-spacing:3px;font-size:13px;font-weight:700}.title{font-size:32px;margin:11px 0 8px}.sub{color:#a6a8ae;margin:0 0 28px;font-size:16px}.link-card{display:flex;align-items:center;gap:14px;background:#151619;border:1px solid #282a30;border-radius:18px;padding:15px;margin:12px 0;color:#fff;text-decoration:none;transition:transform .15s,border-color .15s}.link-card:active{transform:scale(.98);border-color:#d9ae59}.platform-icon{width:54px;height:54px;flex:0 0 54px;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:15px;background:#24262b;color:#f2c45f;font-size:22px;font-weight:700}.platform-icon img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;padding:12px;background:#fff}.link-info{min-width:0;flex:1}.link-info span{display:block;font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.link-info small{display:block;color:#a6a8ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:6px;font-size:13px}.open-arrow{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#2a251a;color:#f2c45f;font-size:20px}.empty{color:#a6a8ae}</style></head><body><main class="page"><div class="brand">HIGH CUSTOM</div><h1 class="title">All Links</h1><p class="sub">Choose a link to continue.</p>${cards}</main></body></html>`);
   } catch (_) {
     return res.status(404).send("Links not found.");
   }
