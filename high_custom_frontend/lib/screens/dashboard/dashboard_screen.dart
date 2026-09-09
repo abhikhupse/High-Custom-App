@@ -15,6 +15,7 @@ import '../privacy/privacy_policy_screen.dart';
 import '../auth/login_screen.dart';
 
 import '../../controllers/dashboard_controller.dart';
+import '../../services/push_notification_service.dart';
 
 import '../../widgets/dashboard/dashboard_header.dart';
 import '../../widgets/dashboard/dashboard_sidebar.dart';
@@ -70,6 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     selectedMenu = widget.initialMenu;
+    PushNotificationService.startForSignedInUser();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {

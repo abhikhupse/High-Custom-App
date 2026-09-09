@@ -3,3 +3,8 @@
 high_custom_backend/.env
 high_custom_frontend/.env
 node_modules/
+
+# Firebase Admin private keys must only live in Render environment variables.
+service-account*.json
+firebase-service-account*.json
+*firebase-adminsdk*.json

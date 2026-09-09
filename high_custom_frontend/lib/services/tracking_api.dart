@@ -206,6 +206,23 @@ class TrackingApi {
     }
   }
 
+  static Future<bool> registerDeviceToken(String token) async {
+    try {
+      final headers = await _headers();
+      if (headers == null || token.trim().isEmpty) return false;
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/device-tokens'),
+            headers: headers,
+            body: jsonEncode({'token': token.trim(), 'platform': 'android'}),
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response)['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ============================================================
   // GET INTERESTED LEAD CONTACT DETAILS
   // ============================================================

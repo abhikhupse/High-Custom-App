@@ -426,6 +426,14 @@ exports.confirmResponse = async (req, res) => {
         { userId: delivery.userId, email: delivery.email.toLowerCase().trim() },
         { $setOnInsert: { reason: "unsubscribe" } }, { upsert: true },
       );
+    } else if (response === "interested" && delivery.email) {
+      // A lead can change their mind from an earlier unsubscribe link. Remove
+      // the suppression so future active sequences can email them again.
+      await EMAIL_SUPPRESSION.deleteOne({
+        userId: delivery.userId,
+        email: delivery.email.toLowerCase().trim(),
+        reason: "unsubscribe",
+      });
     }
     await LEAD.updateOne(
       { _id: delivery.leadId, userId: delivery.userId },
@@ -433,7 +441,9 @@ exports.confirmResponse = async (req, res) => {
         $set: {
           responseStatus: response,
           respondedAt: delivery.respondedAt || new Date(),
-          ...(response === "notInterested" ? { tracking: false } : {}),
+          ...(response === "notInterested"
+            ? { tracking: false }
+            : { tracking: true }),
         },
       },
     );

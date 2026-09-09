@@ -88,6 +88,16 @@ ios/Flutter/Flutter.podspec
 .env.*
 !.env.example
 
+# ============================================================
+# Firebase configuration (kept local; never commit credentials)
+# ============================================================
+
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+firebase_options.dart
+service-account*.json
+firebase-service-account*.json
+
 
 # ============================================================
 # OS Files

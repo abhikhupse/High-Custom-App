@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'constants/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'widgets/app_permission_gate.dart';
+import 'services/push_notification_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(const HighCustomApp());
 }
 
@@ -17,6 +22,7 @@ class HighCustomApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: PushNotificationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'High Custom Jewellers',
       theme: AppTheme.dark,
@@ -66,6 +72,10 @@ class _AuthGateState extends State<AuthGate> {
       _isLoggedIn = normalizedToken.isNotEmpty;
       _isChecking = false;
     });
+
+    if (normalizedToken.isNotEmpty) {
+      await PushNotificationService.startForSignedInUser();
+    }
   }
 
   @override

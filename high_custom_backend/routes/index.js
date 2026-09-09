@@ -7,6 +7,7 @@ const Leads = require("./leads.router");
 const Integration = require("./gmail_integration.routes");
 const emailTrackingRoutes = require("./email_tracking.routes");
 const emailNotificationRoutes = require("./email_notification.routes");
+const deviceTokenRoutes = require("./device_token.routes");
 const businessCard = require("./businessCard.routes");
 const businessTypes = require("./businessType.routes");
 const socialLinks = require("./socialLink.routes");
@@ -42,6 +43,7 @@ router.use("/integrations", Integration);
 
 router.use("/email-tracking", emailTrackingRoutes);
 router.use("/notifications", emailNotificationRoutes);
+router.use("/device-tokens", deviceTokenRoutes);
 
 router.use("/business-card", businessCard);
 router.use("/business-types", businessTypes);
