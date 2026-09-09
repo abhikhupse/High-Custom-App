@@ -21,7 +21,7 @@ async function recordEmailNotification({
           occurredAt: occurredAt || new Date(),
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
     );
   } catch (error) {
     // Notification failure must never interrupt delivery, tracking, or reply
