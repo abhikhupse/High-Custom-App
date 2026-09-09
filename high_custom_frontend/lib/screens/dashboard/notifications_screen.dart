@@ -180,67 +180,113 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _notificationCard(Map<String, dynamic> item) {
     final data = _presentation(item);
     final unread = item['readAt'] == null;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: unread ? const Color(0xFF101722) : _card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: unread
-              ? data.color.withOpacity(0.45)
-              : Colors.white.withOpacity(0.08),
-        ),
+    final id = item['_id']?.toString() ?? '';
+    return Dismissible(
+      key: ValueKey(id),
+      direction: DismissDirection.horizontal,
+      background: _dismissBackground(
+        alignment: Alignment.centerLeft,
+        icon: Icons.delete_outline_rounded,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: data.color.withOpacity(0.16),
-              borderRadius: BorderRadius.circular(13),
+      secondaryBackground: _dismissBackground(
+        alignment: Alignment.centerRight,
+        icon: Icons.delete_outline_rounded,
+      ),
+      confirmDismiss: (_) async {
+        final deleted = await TrackingApi.deleteNotification(id);
+        if (!deleted && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to delete notification. Try again.'),
+              behavior: SnackBarBehavior.floating,
             ),
-            child: Icon(data.icon, color: data.color, size: 24),
+          );
+        }
+        return deleted;
+      },
+      onDismissed: (_) {
+        setState(
+          () => _items.removeWhere(
+            (notification) => notification['_id'] == item['_id'],
           ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.message,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    height: 1.35,
-                    fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  _timeLabel(item),
-                  style: const TextStyle(
-                    color: Color(0xFFAEB4BF),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: unread ? const Color(0xFF101722) : _card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: unread
+                ? data.color.withOpacity(0.45)
+                : Colors.white.withOpacity(0.08),
           ),
-          if (unread)
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.only(top: 5),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: data.color,
-                shape: BoxShape.circle,
+                color: data.color.withOpacity(0.16),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(data.icon, color: data.color, size: 24),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data.message,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.35,
+                      fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _timeLabel(item),
+                    style: const TextStyle(
+                      color: Color(0xFFAEB4BF),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
-        ],
+            if (unread)
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(top: 5),
+                decoration: BoxDecoration(
+                  color: data.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _dismissBackground({
+    required Alignment alignment,
+    required IconData icon,
+  }) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.symmetric(horizontal: 22),
+    alignment: alignment,
+    decoration: BoxDecoration(
+      color: const Color(0xFFB42330),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Icon(icon, color: Colors.white, size: 28),
+  );
 }

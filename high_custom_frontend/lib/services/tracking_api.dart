@@ -190,6 +190,22 @@ class TrackingApi {
     }
   }
 
+  static Future<bool> deleteNotification(String id) async {
+    try {
+      final headers = await _headers();
+      if (headers == null || id.trim().isEmpty) return false;
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/notifications/${id.trim()}'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response)['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ============================================================
   // GET INTERESTED LEAD CONTACT DETAILS
   // ============================================================

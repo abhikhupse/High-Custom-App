@@ -39,3 +39,26 @@ exports.markAllRead = async (req, res) => {
     });
   }
 };
+
+exports.deleteNotification = async (req, res) => {
+  try {
+    const result = await EMAIL_NOTIFICATION.deleteOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!result.deletedCount) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found.",
+      });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (_) {
+    return res.status(400).json({
+      success: false,
+      message: "Unable to delete notification.",
+    });
+  }
+};
