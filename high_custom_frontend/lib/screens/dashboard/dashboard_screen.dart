@@ -4,6 +4,7 @@ import 'package:high_custom_frontend/services/auth_api.dart';
 import 'tracking_report_screen.dart';
 import 'interested_leads_screen.dart';
 import 'integration_screen.dart';
+import 'notifications_screen.dart';
 import '../profile/profile_screen.dart';
 import 'master/master_list_screen.dart';
 import 'leads/leads_screen.dart';
@@ -24,16 +25,12 @@ import '../../widgets/dashboard/dashboard_content.dart';
 // ============================================================
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({
-    super.key,
-    this.initialMenu = 'Dashboard',
-  });
+  const DashboardScreen({super.key, this.initialMenu = 'Dashboard'});
 
   final String initialMenu;
 
   @override
-  State<DashboardScreen> createState() =>
-      _DashboardScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
@@ -41,21 +38,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // COLORS
   // ============================================================
 
-  static const Color background =
-      Color(0xFF020507);
+  static const Color background = Color(0xFF020507);
 
-  static const Color sidebarBackground =
-      Color(0xFF07090C);
+  static const Color sidebarBackground = Color(0xFF07090C);
 
-  static const Color gold =
-      Color(0xFFF2C45F);
+  static const Color gold = Color(0xFFF2C45F);
 
   // ============================================================
   // CONTROLLER
   // ============================================================
 
-  final DashboardController dashboardController =
-      DashboardController();
+  final DashboardController dashboardController = DashboardController();
 
   // ============================================================
   // SIDEBAR
@@ -78,13 +71,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     selectedMenu = widget.initialMenu;
 
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) {
-        if (mounted) {
-          dashboardController.fetchUserDetails();
-        }
-      },
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        dashboardController.fetchUserDetails();
+      }
+    });
   }
 
   // ============================================================
@@ -102,9 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // PROFILE MENU
   // ============================================================
 
-  void _handleProfileMenu(
-    String menu,
-  ) {
+  void _handleProfileMenu(String menu) {
     switch (menu) {
       case 'Profile':
         setState(() {
@@ -133,9 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // SIDEBAR MENU
   // ============================================================
 
-  void _handleSidebarMenu(
-    String menu,
-  ) {
+  void _handleSidebarMenu(String menu) {
     setState(() {
       selectedMenu = menu;
       isSidebarOpen = false;
@@ -149,123 +136,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showLogoutDialog() {
     showDialog(
       context: context,
-      builder: (
-        dialogContext,
-      ) {
+      builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor:
-              const Color(
-            0xFF0B0E12,
+          backgroundColor: const Color(0xFF0B0E12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: gold.withOpacity(0.35)),
           ),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              18,
-            ),
-            side:
-                BorderSide(
-              color:
-                  gold.withOpacity(
-                0.35,
-              ),
-            ),
-          ),
-          title:
-              const Row(
+          title: const Row(
             children: [
-              Icon(
-                Icons.logout_rounded,
-                color: gold,
-              ),
+              Icon(Icons.logout_rounded, color: gold),
 
-              SizedBox(
-                width: 12,
-              ),
+              SizedBox(width: 12),
 
               Text(
                 'Logout',
-                style:
-                    TextStyle(
-                  color:
-                      Colors.white,
-                  fontSize:
-                      20,
-                  fontWeight:
-                      FontWeight.w700,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          content:
-              const Text(
+          content: const Text(
             'Are you sure you want to logout?',
-            style:
-                TextStyle(
-              color:
-                  Color(
-                0xFFAEB4BF,
-              ),
-              fontSize:
-                  15,
-            ),
+            style: TextStyle(color: Color(0xFFAEB4BF), fontSize: 15),
           ),
           actions: [
             TextButton(
-              onPressed:
-                  () {
-                Navigator.pop(
-                  dialogContext,
-                );
+              onPressed: () {
+                Navigator.pop(dialogContext);
               },
-              child:
-                  const Text(
+              child: const Text(
                 'Cancel',
-                style:
-                    TextStyle(
-                  color:
-                      Color(
-                    0xFFAEB4BF,
-                  ),
-                  fontWeight:
-                      FontWeight.w600,
+                style: TextStyle(
+                  color: Color(0xFFAEB4BF),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
 
             ElevatedButton(
-              onPressed:
-                  () {
-                Navigator.pop(
-                  dialogContext,
-                );
+              onPressed: () {
+                Navigator.pop(dialogContext);
 
                 _logout();
               },
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    gold,
-                foregroundColor:
-                    Colors.black,
-                elevation:
-                    0,
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    9,
-                  ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: gold,
+                foregroundColor: Colors.black,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
                 ),
               ),
-              child:
-                  const Text(
+              child: const Text(
                 'Logout',
-                style:
-                    TextStyle(
-                  fontWeight:
-                      FontWeight.w700,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -279,8 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
 
   Future<void> _logout() async {
-    final result =
-        await AuthApi.logout();
+    final result = await AuthApi.logout();
 
     if (!mounted) {
       return;
@@ -289,32 +216,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (result['success'] == true) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder:
-              (_) =>
-                  const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
 
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        behavior:
-            SnackBarBehavior.floating,
-        backgroundColor:
-            const Color(
-          0xFF35191C,
-        ),
-        content:
-            Text(
-          result['message']
-                  ?.toString() ??
-              'Logout failed. Please try again.',
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF35191C),
+        content: Text(
+          result['message']?.toString() ?? 'Logout failed. Please try again.',
         ),
       ),
     );
@@ -325,101 +239,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final screenWidth =
-        MediaQuery.sizeOf(
-      context,
-    ).width;
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
-    final bool isMobile =
-        screenWidth < 800;
+    final bool isMobile = screenWidth < 800;
 
     return AnimatedBuilder(
-      animation:
-          dashboardController,
-      builder: (
-        context,
-        _,
-      ) {
+      animation: dashboardController,
+      builder: (context, _) {
         return Scaffold(
-          backgroundColor:
-              background,
-          resizeToAvoidBottomInset:
-              true,
-          bottomNavigationBar:
-              isMobile
-                  ? _buildMobileFooter()
-                  : null,
-          body:
-              SafeArea(
-            child:
-                Column(
+          backgroundColor: background,
+          resizeToAvoidBottomInset: true,
+          bottomNavigationBar: isMobile ? _buildMobileFooter() : null,
+          body: SafeArea(
+            child: Column(
               children: [
                 // ==================================================
                 // HEADER
                 // ==================================================
-
                 DashboardHeader(
-                  isSidebarOpen:
-                      isSidebarOpen,
-                  user:
-                      dashboardController.user,
-                  onMenuPressed:
-                      () {
-                    setState(
-                      () {
-                        isSidebarOpen =
-                            !isSidebarOpen;
-                      },
-                    );
+                  isSidebarOpen: isSidebarOpen,
+                  user: dashboardController.user,
+                  onMenuPressed: () {
+                    setState(() {
+                      isSidebarOpen = !isSidebarOpen;
+                    });
                   },
-                  onProfileMenuSelected:
-                      _handleProfileMenu,
+                  onNotificationPressed: () {
+                    setState(() {
+                      selectedMenu = 'Notifications';
+                      isSidebarOpen = false;
+                    });
+                  },
+                  onProfileMenuSelected: _handleProfileMenu,
                 ),
 
                 // ==================================================
                 // BODY
                 // ==================================================
-
                 Expanded(
-                  child:
-                      Stack(
+                  child: Stack(
                     children: [
                       // ============================================
                       // CONTENT
                       // ============================================
-
-                      Positioned.fill(
-                        child:
-                            _buildSelectedContent(),
-                      ),
+                      Positioned.fill(child: _buildSelectedContent()),
 
                       // ============================================
                       // MOBILE SIDEBAR
                       // ============================================
-
-                      if (isMobile &&
-                          isSidebarOpen) ...[
+                      if (isMobile && isSidebarOpen) ...[
                         Positioned.fill(
-                          child:
-                              GestureDetector(
-                            onTap:
-                                () {
-                              setState(
-                                () {
-                                  isSidebarOpen =
-                                      false;
-                                },
-                              );
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isSidebarOpen = false;
+                              });
                             },
-                            child:
-                                Container(
-                              color:
-                                  Colors.black.withOpacity(
-                                0.75,
-                              ),
+                            child: Container(
+                              color: Colors.black.withOpacity(0.75),
                             ),
                           ),
                         ),
@@ -429,20 +307,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           top: 0,
                           bottom: 0,
                           width: 285,
-                          child:
-                              Material(
-                            elevation:
-                                20,
-                            color:
-                                sidebarBackground,
-                            child:
-                                DashboardSidebar(
-                              isOpen:
-                                  true,
-                              selectedMenu:
-                                  selectedMenu,
-                              onMenuSelected:
-                                  _handleSidebarMenu,
+                          child: Material(
+                            elevation: 20,
+                            color: sidebarBackground,
+                            child: DashboardSidebar(
+                              isOpen: true,
+                              selectedMenu: selectedMenu,
+                              onMenuSelected: _handleSidebarMenu,
                             ),
                           ),
                         ),
@@ -451,49 +322,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // ============================================
                       // DESKTOP SIDEBAR
                       // ============================================
-
                       if (!isMobile)
                         Positioned(
                           left: 0,
                           top: 0,
                           bottom: 0,
-                          child:
-                              AnimatedContainer(
-                            duration:
-                                const Duration(
-                              milliseconds:
-                                  250,
-                            ),
-                            curve:
-                                Curves.easeInOut,
-                            width:
-                                isSidebarOpen
-                                    ? 270
-                                    : 0,
-                            child:
-                                ClipRect(
-                              child:
-                                  SizedBox(
-                                width:
-                                    270,
-                                child:
-                                    isSidebarOpen
-                                        ? Material(
-                                            elevation:
-                                                20,
-                                            color:
-                                                sidebarBackground,
-                                            child:
-                                                DashboardSidebar(
-                                              isOpen:
-                                                  true,
-                                              selectedMenu:
-                                                  selectedMenu,
-                                              onMenuSelected:
-                                                  _handleSidebarMenu,
-                                            ),
-                                          )
-                                        : null,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeInOut,
+                            width: isSidebarOpen ? 270 : 0,
+                            child: ClipRect(
+                              child: SizedBox(
+                                width: 270,
+                                child: isSidebarOpen
+                                    ? Material(
+                                        elevation: 20,
+                                        color: sidebarBackground,
+                                        child: DashboardSidebar(
+                                          isOpen: true,
+                                          selectedMenu: selectedMenu,
+                                          onMenuSelected: _handleSidebarMenu,
+                                        ),
+                                      )
+                                    : null,
                               ),
                             ),
                           ),
@@ -517,11 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF070A0E),
-        border: Border(
-          top: BorderSide(
-            color: Colors.white.withOpacity(0.10),
-          ),
-        ),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.10))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.45),
@@ -551,9 +398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildAddLeadFooterItem(
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AddLeadScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const AddLeadScreen()),
                   );
                 },
               ),
@@ -576,9 +421,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildAddLeadFooterItem({
-    required VoidCallback onTap,
-  }) {
+  Widget _buildAddLeadFooterItem({required VoidCallback onTap}) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -595,14 +438,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFFFD978),
-                      Color(0xFFD9A93F),
-                    ],
+                    colors: [Color(0xFFFFD978), Color(0xFFD9A93F)],
                   ),
-                  border: Border.all(
-                    color: const Color(0xFFFFE6A6),
-                  ),
+                  border: Border.all(color: const Color(0xFFFFE6A6)),
                   boxShadow: [
                     BoxShadow(
                       color: gold.withOpacity(0.30),
@@ -651,11 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 top: 0,
                 child: SizedBox(
                   width: 48,
-                  child: Divider(
-                    height: 2,
-                    thickness: 2,
-                    color: gold,
-                  ),
+                  child: Divider(height: 2, thickness: 2, color: gold),
                 ),
               ),
             Column(
@@ -664,22 +498,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Icon(
                   icon,
                   size: 28,
-                  color: selected
-                      ? gold
-                      : const Color(0xFFAEB4BF),
+                  color: selected ? gold : const Color(0xFFAEB4BF),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   label,
                   maxLines: 1,
                   style: TextStyle(
-                    color: selected
-                        ? gold
-                        : const Color(0xFFAEB4BF),
+                    color: selected ? gold : const Color(0xFFAEB4BF),
                     fontSize: 12,
-                    fontWeight: selected
-                        ? FontWeight.w600
-                        : FontWeight.w400,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ],
@@ -701,10 +529,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // ========================================================
 
       case 'Dashboard':
-        return DashboardContent(
-          user:
-              dashboardController.user,
-        );
+        return DashboardContent(user: dashboardController.user);
 
       // ========================================================
       // MASTER
@@ -760,6 +585,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Integration':
         return const IntegrationScreen();
 
+      case 'Notifications':
+        return const NotificationsScreen();
+
       // ========================================================
       // PRIVACY POLICY
       // ========================================================
@@ -773,10 +601,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Campaigns':
         return _buildOtherContent(
-          title:
-              'Campaigns',
-          icon:
-              Icons.campaign_outlined,
+          title: 'Campaigns',
+          icon: Icons.campaign_outlined,
         );
 
       // ========================================================
@@ -785,10 +611,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Templates':
         return _buildOtherContent(
-          title:
-              'Templates',
-          icon:
-              Icons.description_outlined,
+          title: 'Templates',
+          icon: Icons.description_outlined,
         );
 
       // ========================================================
@@ -797,10 +621,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Terms & Conditions':
         return _buildOtherContent(
-          title:
-              'Terms & Conditions',
-          icon:
-              Icons.description_outlined,
+          title: 'Terms & Conditions',
+          icon: Icons.description_outlined,
         );
 
       // ========================================================
@@ -809,10 +631,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Landing Page':
         return _buildOtherContent(
-          title:
-              'Landing Page',
-          icon:
-              Icons.web_outlined,
+          title: 'Landing Page',
+          icon: Icons.web_outlined,
         );
 
       // ========================================================
@@ -821,10 +641,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Contact Us':
         return _buildOtherContent(
-          title:
-              'Contact Us',
-          icon:
-              Icons.contact_mail_outlined,
+          title: 'Contact Us',
+          icon: Icons.contact_mail_outlined,
         );
 
       // ========================================================
@@ -832,10 +650,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // ========================================================
 
       default:
-        return DashboardContent(
-          user:
-              dashboardController.user,
-        );
+        return DashboardContent(user: dashboardController.user);
     }
   }
 
@@ -843,126 +658,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // OTHER CONTENT
   // ============================================================
 
-  Widget _buildOtherContent({
-    required String title,
-    required IconData icon,
-  }) {
+  Widget _buildOtherContent({required String title, required IconData icon}) {
     return Container(
-      width:
-          double.infinity,
-      height:
-          double.infinity,
-      color:
-          background,
-      child:
-          SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(
-          24,
-        ),
-        child:
-            Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+      width: double.infinity,
+      height: double.infinity,
+      color: background,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  width:
-                      50,
-                  height:
-                      50,
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        gold.withOpacity(
-                      0.10,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      13,
-                    ),
-                    border:
-                        Border.all(
-                      color:
-                          gold.withOpacity(
-                        0.35,
-                      ),
-                    ),
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: gold.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: gold.withOpacity(0.35)),
                   ),
-                  child:
-                      Icon(
-                    icon,
-                    color:
-                        gold,
-                  ),
+                  child: Icon(icon, color: gold),
                 ),
 
-                const SizedBox(
-                  width:
-                      14,
-                ),
+                const SizedBox(width: 14),
 
                 Expanded(
-                  child:
-                      Text(
+                  child: Text(
                     title,
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.white,
-                      fontSize:
-                          28,
-                      fontWeight:
-                          FontWeight.w800,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(
-              height:
-                  24,
-            ),
+            const SizedBox(height: 24),
 
             Container(
-              width:
-                  double.infinity,
-              padding:
-                  const EdgeInsets.all(
-                24,
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xD90A0D11),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: gold.withOpacity(0.35)),
               ),
-              decoration:
-                  BoxDecoration(
-                color:
-                    const Color(
-                  0xD90A0D11,
-                ),
-                borderRadius:
-                    BorderRadius.circular(
-                  16,
-                ),
-                border:
-                    Border.all(
-                  color:
-                      gold.withOpacity(
-                    0.35,
-                  ),
-                ),
-              ),
-              child:
-                  Text(
+              child: Text(
                 'This section is ready for the $title module.',
-                style:
-                    const TextStyle(
-                  color:
-                      Color(
-                    0xFFB8BDC6,
-                  ),
-                  fontSize:
-                      15,
-                ),
+                style: const TextStyle(color: Color(0xFFB8BDC6), fontSize: 15),
               ),
             ),
           ],

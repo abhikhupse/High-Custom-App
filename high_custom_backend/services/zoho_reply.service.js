@@ -2,6 +2,7 @@ const axios = require("axios");
 
 const ZOHO_INTEGRATION = require("../model/zoho_integration.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
+const { recordEmailNotification } = require("./email_notification.service");
 
 const LOCK_MS = 2 * 60 * 1000;
 
@@ -152,7 +153,16 @@ async function syncZohoReplies(integration) {
           },
         },
       );
-      if (result.modifiedCount === 1) replied += 1;
+      if (result.modifiedCount === 1) {
+        replied += 1;
+        await recordEmailNotification({
+          userId: delivery.userId,
+          deliveryId: delivery._id,
+          type: "replied",
+          email: from,
+          occurredAt: receivedAt,
+        });
+      }
     }
 
     await ZOHO_INTEGRATION.updateOne(

@@ -3,6 +3,7 @@ const { google } = require("googleapis");
 const createGoogleOAuthClient = require("../config/google_oauth");
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
+const { recordEmailNotification } = require("./email_notification.service");
 
 const activeSyncs = new Set();
 const LOCK_DURATION_MS = 2 * 60 * 1000;
@@ -83,6 +84,16 @@ async function authenticatedGmail(integration) {
     expiry_date: integration.expiryDate,
     token_type: integration.tokenType || "Bearer",
   });
+
+  if (update.modifiedCount === 1) {
+    await recordEmailNotification({
+      userId: delivery.userId,
+      deliveryId: delivery._id,
+      type: "replied",
+      email: from,
+      occurredAt: repliedAt,
+    });
+  }
 
   return {
     gmail: google.gmail({ version: "v1", auth: oauth2Client }),

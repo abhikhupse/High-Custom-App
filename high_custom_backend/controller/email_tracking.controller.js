@@ -5,6 +5,7 @@ const LEAD = require("../model/leads.model");
 const EMAIL_SUPPRESSION = require("../model/email_suppression.model");
 const LEAD_INTEREST_DETAILS = require("../model/lead_interest_details.model");
 const { detectEmailOpenScanner } = require("../utils/emailOpenScanner");
+const { recordEmailNotification } = require("../services/email_notification.service");
 
 // ============================================================
 // TRACK EMAIL OPEN
@@ -220,6 +221,16 @@ exports.trackOpen = async (req, res) => {
 
     await delivery.save();
 
+    if (firstOpen) {
+      await recordEmailNotification({
+        userId: delivery.userId,
+        deliveryId: delivery._id,
+        type: "opened",
+        email: delivery.email,
+        occurredAt: delivery.openedAt,
+      });
+    }
+
     // ==========================================================
     // CONFIRM SAVE
     // ==========================================================
@@ -379,7 +390,8 @@ exports.confirmResponse = async (req, res) => {
       });
     }
 
-    if (delivery.response !== response) {
+    const responseChanged = delivery.response !== response;
+    if (responseChanged) {
       const increments = {};
 
       if (delivery.response === "interested") {
@@ -399,6 +411,14 @@ exports.confirmResponse = async (req, res) => {
 
       await delivery.save();
       await SEQUENCE.updateOne({ _id: delivery.sequenceId }, { $inc: increments });
+
+      await recordEmailNotification({
+        userId: delivery.userId,
+        deliveryId: delivery._id,
+        type: response === "interested" ? "interested" : "unsubscribed",
+        email: delivery.email,
+        occurredAt: delivery.respondedAt,
+      });
     }
 
     if (response === "notInterested" && delivery.email) {

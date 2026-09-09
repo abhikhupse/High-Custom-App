@@ -3,6 +3,7 @@ const { ImapFlow } = require("imapflow");
 const GODADDY_INTEGRATION = require("../model/godaddy_integration.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const { decryptCredential } = require("../utils/credentialCipher");
+const { recordEmailNotification } = require("./email_notification.service");
 
 const LOCK_MS = 2 * 60 * 1000;
 
@@ -114,7 +115,16 @@ async function syncGoDaddyReplies(integration) {
             },
           },
         );
-        if (result.modifiedCount === 1) replied += 1;
+        if (result.modifiedCount === 1) {
+          replied += 1;
+          await recordEmailNotification({
+            userId: delivery.userId,
+            deliveryId: delivery._id,
+            type: "replied",
+            email: from,
+            occurredAt: receivedAt,
+          });
+        }
       }
     } finally {
       mailboxLock.release();

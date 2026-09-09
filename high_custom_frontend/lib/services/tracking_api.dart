@@ -17,8 +17,7 @@ class TrackingApi {
   // STORAGE
   // ============================================================
 
-  static const FlutterSecureStorage storage =
-      FlutterSecureStorage();
+  static const FlutterSecureStorage storage = FlutterSecureStorage();
 
   // ============================================================
   // GET TOKEN
@@ -30,12 +29,9 @@ class TrackingApi {
       // Current token key used by High Custom App
       // --------------------------------------------------------
 
-      final token = await storage.read(
-        key: 'auth_token',
-      );
+      final token = await storage.read(key: 'auth_token');
 
-      if (token != null &&
-          token.trim().isNotEmpty) {
+      if (token != null && token.trim().isNotEmpty) {
         return token.trim();
       }
 
@@ -43,27 +39,17 @@ class TrackingApi {
       // Legacy token fallback
       // --------------------------------------------------------
 
-      final legacyToken =
-          await storage.read(
-        key: 'token',
-      );
+      final legacyToken = await storage.read(key: 'token');
 
-      if (legacyToken != null &&
-          legacyToken.trim().isNotEmpty) {
-        final cleanToken =
-            legacyToken.trim();
+      if (legacyToken != null && legacyToken.trim().isNotEmpty) {
+        final cleanToken = legacyToken.trim();
 
         // Migrate legacy token
         // to current auth_token key.
 
-        await storage.write(
-          key: 'auth_token',
-          value: cleanToken,
-        );
+        await storage.write(key: 'auth_token', value: cleanToken);
 
-        await storage.delete(
-          key: 'token',
-        );
+        await storage.delete(key: 'token');
 
         return cleanToken;
       }
@@ -78,21 +64,17 @@ class TrackingApi {
   // COMMON HEADERS
   // ============================================================
 
-  static Future<
-      Map<String, String>?> _headers() async {
+  static Future<Map<String, String>?> _headers() async {
     final token = await _token();
 
-    if (token == null ||
-        token.isEmpty) {
+    if (token == null || token.isEmpty) {
       return null;
     }
 
     return {
       'Accept': 'application/json',
-      'Content-Type':
-          'application/json',
-      'Authorization':
-          'Bearer $token',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
     };
   }
 
@@ -100,8 +82,7 @@ class TrackingApi {
   // GET TRACKING REPORT
   // ============================================================
 
-  static Future<
-      Map<String, dynamic>> getTrackingReport({
+  static Future<Map<String, dynamic>> getTrackingReport({
     String? sequenceId,
     String? search,
     String? status,
@@ -111,8 +92,7 @@ class TrackingApi {
     int limit = 20,
   }) async {
     try {
-      final headers =
-          await _headers();
+      final headers = await _headers();
 
       // --------------------------------------------------------
       // Authentication check
@@ -121,8 +101,7 @@ class TrackingApi {
       if (headers == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
         };
       }
 
@@ -130,17 +109,13 @@ class TrackingApi {
       // Query parameters
       // --------------------------------------------------------
 
-      final queryParameters =
-          <String, String>{
+      final queryParameters = <String, String>{
         'page': page.toString(),
         'limit': limit.toString(),
       };
 
-      if (sequenceId != null &&
-          sequenceId.trim().isNotEmpty) {
-        queryParameters[
-                'sequenceId'] =
-            sequenceId.trim();
+      if (sequenceId != null && sequenceId.trim().isNotEmpty) {
+        queryParameters['sequenceId'] = sequenceId.trim();
       }
       if (search != null && search.trim().isNotEmpty) {
         queryParameters['search'] = search.trim();
@@ -161,38 +136,57 @@ class TrackingApi {
 
       final uri = Uri.parse(
         '$baseUrl/email-tracking/report',
-      ).replace(
-        queryParameters:
-            queryParameters,
-      );
+      ).replace(queryParameters: queryParameters);
 
       // --------------------------------------------------------
       // API request
       // --------------------------------------------------------
 
-      final response =
-          await http
-              .get(
-                uri,
-                headers: headers,
-              )
-              .timeout(
-                const Duration(
-                  seconds: 15,
-                ),
-              );
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-      return _decodeResponse(
-        response,
-      );
+      return _decodeResponse(response);
     } catch (error) {
       return {
         'success': false,
-        'message':
-            'Unable to connect to server.',
-        'error':
-            error.toString(),
+        'message': 'Unable to connect to server.',
+        'error': error.toString(),
       };
+    }
+  }
+
+  static Future<Map<String, dynamic>> getNotifications({int limit = 50}) async {
+    try {
+      final headers = await _headers();
+      if (headers == null) {
+        return {'success': false, 'message': 'Please login again.'};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(
+              '$baseUrl/notifications',
+            ).replace(queryParameters: {'limit': '$limit'}),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response);
+    } catch (_) {
+      return {'success': false, 'message': 'Unable to load notifications.'};
+    }
+  }
+
+  static Future<bool> markNotificationsRead() async {
+    try {
+      final headers = await _headers();
+      if (headers == null) return false;
+      final response = await http
+          .patch(Uri.parse('$baseUrl/notifications/read'), headers: headers)
+          .timeout(const Duration(seconds: 15));
+      return _decodeResponse(response)['success'] == true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -210,27 +204,16 @@ class TrackingApi {
       if (headers == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
         };
       }
-      final uri = Uri.parse(
-        '$baseUrl/email-tracking/interest-details',
-      ).replace(
-        queryParameters: {
-          'page': page.toString(),
-          'limit': limit.toString(),
-        },
+      final uri = Uri.parse('$baseUrl/email-tracking/interest-details').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
       );
 
       final response = await http
-          .get(
-            uri,
-            headers: headers,
-          )
-          .timeout(
-            const Duration(seconds: 15),
-          );
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
       return _decodeResponse(response);
     } catch (error) {
@@ -246,40 +229,29 @@ class TrackingApi {
   // RESPONSE DECODER
   // ============================================================
 
-  static Map<String, dynamic>
-      _decodeResponse(
-    http.Response response,
-  ) {
+  static Map<String, dynamic> _decodeResponse(http.Response response) {
     try {
-      final decoded =
-          jsonDecode(response.body);
+      final decoded = jsonDecode(response.body);
 
       if (decoded is Map) {
         return {
-          'statusCode':
-              response.statusCode,
-          ...Map<String, dynamic>.from(
-            decoded,
-          ),
+          'statusCode': response.statusCode,
+          ...Map<String, dynamic>.from(decoded),
         };
       }
 
       return {
         'success': false,
-        'statusCode':
-            response.statusCode,
-        'message':
-            'Invalid server response.',
+        'statusCode': response.statusCode,
+        'message': 'Invalid server response.',
       };
     } catch (_) {
       return {
         'success': false,
-        'statusCode':
-            response.statusCode,
-        'message':
-            response.body.isNotEmpty
-                ? response.body
-                : 'Invalid server response.',
+        'statusCode': response.statusCode,
+        'message': response.body.isNotEmpty
+            ? response.body
+            : 'Invalid server response.',
       };
     }
   }
