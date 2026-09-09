@@ -6,6 +6,7 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 const gmailCtrl = require("../controller/gmail_integration.controller");
 const zohoCtrl = require("../controller/zoho_integration.controller");
+const goDaddyCtrl = require("../controller/godaddy_integration.controller");
 
 // ============================================================
 // GMAIL CONNECT
@@ -47,5 +48,13 @@ router.get("/zoho/callback", zohoCtrl.zohoCallback);
 router.get("/zoho/status", authMiddleware, zohoCtrl.getZohoStatus);
 router.post("/zoho/sync", authMiddleware, zohoCtrl.syncZoho);
 router.delete("/zoho/disconnect", authMiddleware, zohoCtrl.disconnectZoho);
+
+router.post("/godaddy/connect", authMiddleware, goDaddyCtrl.connectGoDaddy);
+router.get("/godaddy/status", authMiddleware, goDaddyCtrl.getGoDaddyStatus);
+router.delete(
+  "/godaddy/disconnect",
+  authMiddleware,
+  goDaddyCtrl.disconnectGoDaddy,
+);
 
 module.exports = router;

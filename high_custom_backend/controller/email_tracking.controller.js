@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 const SEQUENCE = require("../model/sequence.model");
-const USER = require("../model/user.model");
 const LEAD = require("../model/leads.model");
 const EMAIL_SUPPRESSION = require("../model/email_suppression.model");
 const LEAD_INTEREST_DETAILS = require("../model/lead_interest_details.model");
-const { getClientIp } = require("../utils/clientIp");
 const { detectEmailOpenScanner } = require("../utils/emailOpenScanner");
 
 // ============================================================
@@ -97,28 +95,6 @@ exports.trackOpen = async (req, res) => {
     console.log("Previous Opened At:", delivery.openedAt || "NULL");
 
     console.log("Previous Open Count:", delivery.openedCount || 0);
-
-    // ==========================================================
-    // IGNORE REQUESTS FROM A RECENT SENDER LOGIN IP
-    // ==========================================================
-
-    const requestIp = getClientIp(req);
-
-    if (requestIp && delivery.userId) {
-      const isSenderLoginIp = await USER.exists({
-        _id: delivery.userId,
-        "loginDeviceIps.ipAddress": requestIp,
-      });
-
-      if (isSenderLoginIp) {
-        console.log(
-          `IGNORED OPEN: ${requestIp} matches a sender login-device IP`,
-        );
-        console.log("============================================================");
-
-        return sendTrackingPixel(res);
-      }
-    }
 
     // ==========================================================
     // COUNT IMMEDIATE OPENS

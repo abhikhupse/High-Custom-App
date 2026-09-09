@@ -15,8 +15,11 @@ class AuthApi {
   // BASE URL
   // ============================================================
 
-  static const String baseUrl =
-      'https://high-custom-app.onrender.com/api/user';
+  static const String _apiRoot = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://high-custom-app.onrender.com/api',
+  );
+  static const String baseUrl = '$_apiRoot/user';
 
   // ============================================================
   // STORAGE

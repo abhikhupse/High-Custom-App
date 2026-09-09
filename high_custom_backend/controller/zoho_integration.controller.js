@@ -196,6 +196,23 @@ exports.getZohoStatus = async (req, res) => {
           message: "Zoho Mail is not connected.",
         });
     }
+
+    const scope = String(integration.scope || "");
+    const canSend =
+      scope.includes("ZohoMail.messages.CREATE") ||
+      scope.includes("ZohoMail.messages.ALL");
+
+    if (!canSend) {
+      return res.status(200).json({
+        success: true,
+        connected: false,
+        reconnectRequired: true,
+        email: integration.email,
+        message:
+          "Zoho Mail send permission is missing. Disconnect and reconnect Zoho Mail.",
+      });
+    }
+
     return res.status(200).json({
       success: true,
       connected: true,

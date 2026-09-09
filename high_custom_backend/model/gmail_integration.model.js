@@ -106,6 +106,17 @@ const gmailIntegrationSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    sendingBlockedUntil: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    sendingBlockedReason: {
+      type: String,
+      default: null,
+    },
   },
 
   {

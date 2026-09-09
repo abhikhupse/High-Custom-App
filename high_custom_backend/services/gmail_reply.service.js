@@ -193,6 +193,60 @@ async function processInboundMessage({ gmail, integration, messageId }) {
   if (isAutomatedReply(headers, from, subject)) {
     if (/^(mailer-daemon|postmaster)@/i.test(from)) {
       const full = await gmail.users.messages.get({ userId: "me", id: messageId, format: "full" });
+      const bounceText = String(
+        `${full.data?.snippet || ""} ${subject || ""}`,
+      ).toLowerCase();
+
+      if (
+        bounceText.includes("reached a limit for sending mail") ||
+        bounceText.includes("sending limit")
+      ) {
+        const blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await GMAIL_INTEGRATION.updateOne(
+          { _id: integration._id },
+          {
+            $set: {
+              sendingBlockedUntil: blockedUntil,
+              sendingBlockedReason:
+                "Gmail sending limit reached. Wait for Gmail to reset the quota or connect another sender.",
+            },
+          },
+        );
+
+        const delivery = await SEQUENCE_DELIVERY.findOneAndUpdate(
+          {
+            userId: integration.userId,
+            threadId: message.threadId,
+            status: "sent",
+          },
+          {
+            $set: {
+              status: "failed",
+              failureType: "provider_sending_limit",
+              failureReason:
+                "Gmail sending limit reached. The provider did not deliver this message.",
+              errorMessage:
+                "Gmail sending limit reached. The provider did not deliver this message.",
+              retryable: true,
+            },
+          },
+          { returnDocument: "after" },
+        );
+
+        if (delivery?.sequenceId) {
+          const SEQUENCE = require("../model/sequence.model");
+          await SEQUENCE.updateOne(
+            { _id: delivery.sequenceId },
+            { $inc: { "statistics.sent": -1, "statistics.failed": 1 } },
+          );
+        }
+
+        return {
+          outcome: delivery ? "sending_limit" : "unmatched_sending_limit",
+          deliveryId: delivery?._id || null,
+        };
+      }
+
       const { permanentFailures } = require("../utils/deliveryStatus");
       const SUPPRESSION = require("../model/email_suppression.model");
       for (const email of permanentFailures(full.data?.payload)) {
@@ -523,6 +577,68 @@ async function retryPendingGmailNotifications() {
   return { found: integrations.length, processed };
 }
 
+// Local development commonly has no Google Pub/Sub endpoint. Polling recent
+// inbox messages provides a reliable fallback for replies and asynchronous
+// delivery-status notifications such as Gmail quota bounces.
+async function pollRecentGmailInboundMessages() {
+  const integrations = await GMAIL_INTEGRATION.find({
+    reconnectRequiredAt: null,
+  }).limit(100);
+
+  let messages = 0;
+  const outcomes = {};
+
+  for (const integration of integrations) {
+    try {
+      const { gmail, oauth2Client } = await authenticatedGmail(integration);
+      let pageToken;
+
+      do {
+        const response = await gmail.users.messages.list({
+          userId: "me",
+          q: "in:inbox newer_than:2d",
+          maxResults: 100,
+          pageToken,
+        });
+
+        for (const item of response.data.messages || []) {
+          if (!item.id) continue;
+          messages++;
+          const result = await processInboundMessage({
+            gmail,
+            integration,
+            messageId: item.id,
+          });
+          outcomes[result.outcome] = (outcomes[result.outcome] || 0) + 1;
+        }
+
+        pageToken = response.data.nextPageToken;
+      } while (pageToken);
+
+      await GMAIL_INTEGRATION.updateOne(
+        { _id: integration._id },
+        {
+          $set: {
+            replySyncLastCompletedAt: new Date(),
+            replySyncLastError: null,
+          },
+        },
+      );
+      await persistRefreshedCredentials(integration, oauth2Client);
+    } catch (error) {
+      if (!(await requireGmailReconnect(integration, error).catch(() => false))) {
+        await GMAIL_INTEGRATION.updateOne(
+          { _id: integration._id },
+          { $set: { replySyncLastError: String(error.message || error).slice(0, 1000) } },
+        ).catch(() => {});
+        console.error(`Gmail inbox polling failed for ${integration.email}:`, error.message);
+      }
+    }
+  }
+
+  return { integrations: integrations.length, messages, outcomes };
+}
+
 async function renewExpiringGmailWatches() {
   if (!process.env.GMAIL_PUBSUB_TOPIC) return { enabled: false, renewed: 0 };
 
@@ -558,6 +674,7 @@ module.exports = {
   recordPendingGmailNotification,
   processGmailNotification,
   retryPendingGmailNotifications,
+  pollRecentGmailInboundMessages,
   renewExpiringGmailWatches,
   isInvalidGrant,
 };

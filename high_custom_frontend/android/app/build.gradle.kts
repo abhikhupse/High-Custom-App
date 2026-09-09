@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.example.high_custom_frontend"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage and permission_handler_android require API 37.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

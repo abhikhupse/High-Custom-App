@@ -53,6 +53,16 @@ class _IntegrationScreenState extends State<IntegrationScreen>
   bool isZohoLoading = false;
 
   // ============================================================
+  // GODADDY
+  // ============================================================
+
+  bool isGoDaddyConnected = false;
+
+  String? goDaddyEmail;
+
+  bool isGoDaddyLoading = false;
+
+  // ============================================================
   // PAGE LOADING
   // ============================================================
 
@@ -321,7 +331,11 @@ class _IntegrationScreenState extends State<IntegrationScreen>
     }
 
     try {
-      await Future.wait([_getGmailStatus(), _getZohoStatus()]);
+      await Future.wait([
+        _getGmailStatus(),
+        _getZohoStatus(),
+        _getGoDaddyStatus(),
+      ]);
     } catch (error) {
       debugPrint('Integration Status Error: $error');
     } finally {
@@ -452,6 +466,25 @@ class _IntegrationScreenState extends State<IntegrationScreen>
         isGmailConnected = false;
         gmailEmail = null;
         gmailConnectedAt = null;
+      });
+    }
+  }
+
+  Future<void> _getGoDaddyStatus() async {
+    try {
+      final data = await IntegrationApi.goDaddyStatus();
+      if (!mounted) return;
+      final connected = data['success'] == true && data['connected'] == true;
+      setState(() {
+        isGoDaddyConnected = connected;
+        goDaddyEmail = connected ? data['email']?.toString() : null;
+      });
+    } catch (error) {
+      debugPrint('GoDaddy Status Error: $error');
+      if (!mounted) return;
+      setState(() {
+        isGoDaddyConnected = false;
+        goDaddyEmail = null;
       });
     }
   }
@@ -666,6 +699,176 @@ class _IntegrationScreenState extends State<IntegrationScreen>
   }
 
   // ============================================================
+  // GODADDY
+  // ============================================================
+
+  Future<void> _connectGoDaddy() async {
+    final senderNameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    bool obscurePassword = true;
+    bool submitting = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: const Text('Connect GoDaddy Email'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Enter your GoDaddy Professional Email / Titan mailbox details. Your password is sent securely to the backend and stored encrypted.',
+                  style: TextStyle(color: Color(0xFF667085), height: 1.45),
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: senderNameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Sender name',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    labelText: 'GoDaddy email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: passwordController,
+                  obscureText: obscurePassword,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: 'Mailbox password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      onPressed: () => setDialogState(
+                        () => obscurePassword = !obscurePassword,
+                      ),
+                      icon: Icon(
+                        obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final email = emailController.text.trim();
+                      final password = passwordController.text;
+                      if (email.isEmpty || password.isEmpty) {
+                        _showMessage(
+                          'GoDaddy email and password are required.',
+                        );
+                        return;
+                      }
+                      setDialogState(() => submitting = true);
+                      if (mounted) setState(() => isGoDaddyLoading = true);
+                      final data = await IntegrationApi.connectGoDaddy(
+                        email: email,
+                        password: password,
+                        senderName: senderNameController.text.trim(),
+                      );
+                      if (!dialogContext.mounted) return;
+                      if (data['success'] == true) {
+                        setState(() {
+                          isGoDaddyConnected = true;
+                          goDaddyEmail = data['email']?.toString() ?? email;
+                          isGoDaddyLoading = false;
+                        });
+                        Navigator.pop(dialogContext);
+                        _showMessage('GoDaddy Email connected successfully.');
+                      } else {
+                        setDialogState(() => submitting = false);
+                        if (mounted) setState(() => isGoDaddyLoading = false);
+                        _showMessage(
+                          data['message']?.toString() ??
+                              'Unable to connect GoDaddy Email.',
+                        );
+                      }
+                    },
+              icon: submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.link_rounded),
+              label: Text(submitting ? 'Connecting...' : 'Connect'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    senderNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+  }
+
+  Future<void> _disconnectGoDaddy() async {
+    _showDisconnectDialog(
+      serviceName: 'GoDaddy Email',
+      onConfirm: _performDisconnectGoDaddy,
+    );
+  }
+
+  Future<void> _performDisconnectGoDaddy() async {
+    if (isGoDaddyLoading) return;
+    if (mounted) setState(() => isGoDaddyLoading = true);
+    try {
+      final data = await IntegrationApi.disconnectGoDaddy();
+      if (data['success'] != true) {
+        _showMessage(
+          data['message']?.toString() ?? 'Failed to disconnect GoDaddy Email.',
+        );
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        isGoDaddyConnected = false;
+        goDaddyEmail = null;
+      });
+      _showMessage('GoDaddy Email disconnected successfully.');
+    } catch (error) {
+      _showMessage('Failed to disconnect GoDaddy Email.');
+    } finally {
+      if (mounted) setState(() => isGoDaddyLoading = false);
+    }
+  }
+
+  // ============================================================
   // MESSAGE
   // ============================================================
 
@@ -817,6 +1020,25 @@ class _IntegrationScreenState extends State<IntegrationScreen>
                       onDisconnect: _disconnectZoho,
                     ),
 
+                    const SizedBox(height: 16),
+
+                    // ==================================================
+                    // GODADDY
+                    // ==================================================
+                    _buildIntegrationCard(
+                      isMobile: isMobile,
+                      name: 'GoDaddy Email',
+                      description:
+                          'Connect your GoDaddy Professional Email account to send emails directly from your application.',
+                      logoIcon: SimpleIcons.godaddy,
+                      logoColor: const Color(0xFF00A4A6),
+                      isConnected: isGoDaddyConnected,
+                      connectedEmail: goDaddyEmail,
+                      isLoading: isGoDaddyLoading,
+                      onConnect: _connectGoDaddy,
+                      onDisconnect: _disconnectGoDaddy,
+                    ),
+
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -893,6 +1115,8 @@ class _IntegrationScreenState extends State<IntegrationScreen>
     required Future<void> Function() onConnect,
     required Future<void> Function() onDisconnect,
   }) {
+    final accountLabel = connectedEmail?.trim();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1000,8 +1224,8 @@ class _IntegrationScreenState extends State<IntegrationScreen>
 
                   Expanded(
                     child: Text(
-                      connectedEmail != null && connectedEmail!.isNotEmpty
-                          ? connectedEmail!
+                      accountLabel != null && accountLabel.isNotEmpty
+                          ? accountLabel
                           : 'Connected',
                       style: const TextStyle(
                         color: Color(0xFF101828),

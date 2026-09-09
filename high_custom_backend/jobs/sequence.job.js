@@ -3,7 +3,19 @@ const cron = require("node-cron");
 const SEQUENCE_COLLECTION = require("../model/sequence.model");
 const LEADS_COLLECTION = require("../model/leads.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
-const { queueSequenceEmail } = require("../queues/email.producer");
+
+function getQueueSequenceEmail() {
+  if (process.env.EMAIL_QUEUE_ENABLED === "false") {
+    const error = new Error(
+      "Email queue is disabled. Start Redis and set EMAIL_QUEUE_ENABLED=true.",
+    );
+    error.statusCode = 503;
+    throw error;
+  }
+
+  // Lazy loading keeps controller imports from opening a Redis connection.
+  return require("../queues/email.producer").queueSequenceEmail;
+}
 
 function normalizeBaseUrl(value) {
   const rawValue = String(value || "").trim();
@@ -32,7 +44,12 @@ let scheduledJobIsRunning = false;
 
 console.log("========================================");
 console.log("EMAIL TRACKING BASE URL:", BASE_URL || "NOT CONFIGURED");
-console.log("EMAIL DELIVERY MODE: BULLMQ QUEUE");
+console.log(
+  "EMAIL DELIVERY MODE:",
+  process.env.EMAIL_QUEUE_ENABLED === "false"
+    ? "DISABLED (LOCAL MODE)"
+    : "BULLMQ QUEUE",
+);
 console.log("========================================");
 
 async function activateDueScheduledSequences(userId = null) {
@@ -66,6 +83,7 @@ async function getPreviousSequence(sequence, deliveryChannel, businessType) {
 }
 
 async function processOneSequence(sequence) {
+  const queueSequenceEmail = getQueueSequenceEmail();
   let queued = 0;
   let skipped = 0;
   let failed = 0;

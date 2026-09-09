@@ -8,15 +8,16 @@ class IntegrationApi {
   // BASE URL
   // ============================================================
 
-  static const String baseUrl =
-      'https://high-custom-app.onrender.com/api';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://high-custom-app.onrender.com/api',
+  );
 
   // ============================================================
   // STORAGE
   // ============================================================
 
-  static const FlutterSecureStorage storage =
-      FlutterSecureStorage();
+  static const FlutterSecureStorage storage = FlutterSecureStorage();
 
   // ============================================================
   // TOKEN
@@ -28,9 +29,7 @@ class IntegrationApi {
       // NEW TOKEN
       // --------------------------------------------------------
 
-      final token = await storage.read(
-        key: 'auth_token',
-      );
+      final token = await storage.read(key: 'auth_token');
 
       if (token != null && token.trim().isNotEmpty) {
         return token.trim();
@@ -40,22 +39,14 @@ class IntegrationApi {
       // LEGACY TOKEN
       // --------------------------------------------------------
 
-      final legacyToken = await storage.read(
-        key: 'token',
-      );
+      final legacyToken = await storage.read(key: 'token');
 
-      if (legacyToken != null &&
-          legacyToken.trim().isNotEmpty) {
+      if (legacyToken != null && legacyToken.trim().isNotEmpty) {
         final cleanToken = legacyToken.trim();
 
-        await storage.write(
-          key: 'auth_token',
-          value: cleanToken,
-        );
+        await storage.write(key: 'auth_token', value: cleanToken);
 
-        await storage.delete(
-          key: 'token',
-        );
+        await storage.delete(key: 'token');
 
         return cleanToken;
       }
@@ -84,17 +75,13 @@ class IntegrationApi {
 
       final response = await http
           .get(
-            Uri.parse(
-              '$baseUrl/integrations/gmail/status',
-            ),
+            Uri.parse('$baseUrl/integrations/gmail/status'),
             headers: {
               'Accept': 'application/json',
               'Authorization': 'Bearer $token',
             },
           )
-          .timeout(
-            const Duration(seconds: 15),
-          );
+          .timeout(const Duration(seconds: 15));
 
       return _decodeResponse(response);
     } catch (error) {
@@ -125,17 +112,13 @@ class IntegrationApi {
 
       final response = await http
           .get(
-            Uri.parse(
-              '$baseUrl/integrations/gmail/connect',
-            ),
+            Uri.parse('$baseUrl/integrations/gmail/connect'),
             headers: {
               'Accept': 'application/json',
               'Authorization': 'Bearer $token',
             },
           )
-          .timeout(
-            const Duration(seconds: 15),
-          );
+          .timeout(const Duration(seconds: 15));
 
       return _decodeResponse(response);
     } catch (error) {
@@ -166,17 +149,13 @@ class IntegrationApi {
 
       final response = await http
           .delete(
-            Uri.parse(
-              '$baseUrl/integrations/gmail/disconnect',
-            ),
+            Uri.parse('$baseUrl/integrations/gmail/disconnect'),
             headers: {
               'Accept': 'application/json',
               'Authorization': 'Bearer $token',
             },
           )
-          .timeout(
-            const Duration(seconds: 15),
-          );
+          .timeout(const Duration(seconds: 15));
 
       return _decodeResponse(response);
     } catch (error) {
@@ -198,10 +177,27 @@ class IntegrationApi {
   static Future<Map<String, dynamic>> disconnectZoho() =>
       _authorizedRequest('DELETE', '/integrations/zoho/disconnect');
 
+  static Future<Map<String, dynamic>> goDaddyStatus() =>
+      _authorizedRequest('GET', '/integrations/godaddy/status');
+
+  static Future<Map<String, dynamic>> connectGoDaddy({
+    required String email,
+    required String password,
+    required String senderName,
+  }) => _authorizedRequest(
+    'POST',
+    '/integrations/godaddy/connect',
+    body: {'email': email, 'password': password, 'senderName': senderName},
+  );
+
+  static Future<Map<String, dynamic>> disconnectGoDaddy() =>
+      _authorizedRequest('DELETE', '/integrations/godaddy/disconnect');
+
   static Future<Map<String, dynamic>> _authorizedRequest(
     String method,
-    String path,
-  ) async {
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
     try {
       final token = await _token();
       if (token == null || token.isEmpty) {
@@ -215,14 +211,18 @@ class IntegrationApi {
       final headers = {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
+        if (body != null) 'Content-Type': 'application/json',
       };
-      final response = method == 'DELETE'
-          ? await http.delete(uri, headers: headers).timeout(
-                const Duration(seconds: 15),
-              )
-          : await http.get(uri, headers: headers).timeout(
-                const Duration(seconds: 15),
-              );
+      final request = switch (method) {
+        'DELETE' => http.delete(uri, headers: headers),
+        'POST' => http.post(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? const <String, dynamic>{}),
+        ),
+        _ => http.get(uri, headers: headers),
+      };
+      final response = await request.timeout(const Duration(seconds: 25));
       return _decodeResponse(response);
     } catch (error) {
       return {
@@ -238,9 +238,7 @@ class IntegrationApi {
   // RESPONSE DECODER
   // ============================================================
 
-  static Map<String, dynamic> _decodeResponse(
-    http.Response response,
-  ) {
+  static Map<String, dynamic> _decodeResponse(http.Response response) {
     try {
       final decoded = jsonDecode(response.body);
 

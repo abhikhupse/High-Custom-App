@@ -1,11 +1,16 @@
 const { createMimeMessage, buildSequenceBodies } = require("../utils/emailMessage");
 const { google } = require("googleapis");
+const { promises: dns } = require("node:dns");
 
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
 const {
   findZohoIntegration,
   sendZohoSequenceEmail,
 } = require("./zoho_email.service");
+const {
+  findGoDaddyIntegration,
+  sendGoDaddySequenceEmail,
+} = require("./godaddy_email.service");
 
 const createGoogleOAuthClient = require("../config/google_oauth");
 
@@ -14,10 +19,73 @@ const {
 } = require("../templates/sequenceEmail.template");
 
 const SENDER_COPY_LABEL_NAME = "High Custom Sequences";
+const PROVIDER_LOOKUP_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 // Cache label IDs per connected Gmail account for the lifetime of the server.
 const senderCopyLabelCache = new Map();
 const senderCopyLabelPromiseCache = new Map();
+const recipientProviderCache = new Map();
+
+function recipientDomain(email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  const separator = normalized.lastIndexOf("@");
+  return separator > 0 ? normalized.slice(separator + 1) : "";
+}
+
+function providerFromDomain(domain) {
+  if (["gmail.com", "googlemail.com"].includes(domain)) return "gmail";
+  if (
+    domain === "zoho.com" ||
+    domain === "zohomail.com" ||
+    domain.startsWith("zohomail.")
+  ) {
+    return "zoho";
+  }
+  return null;
+}
+
+function providerFromMxRecords(records) {
+  const hosts = records
+    .map((record) => String(record.exchange || "").toLowerCase())
+    .join(" ");
+
+  if (/googlemail|aspmx\.l\.google\.com|\.google\.com/.test(hosts)) {
+    return "gmail";
+  }
+  if (/zoho\.com|zoho\.(eu|in|com\.au)/.test(hosts)) return "zoho";
+  if (/titan\.email|secureserver\.net|godaddy/.test(hosts)) {
+    return "godaddy";
+  }
+  return null;
+}
+
+// Personal addresses can be recognized immediately. For custom-domain leads,
+// inspect MX records so Google Workspace, Zoho Mail, and GoDaddy/Titan inboxes
+// get the matching sender whenever that integration is available.
+async function preferredProviderForRecipient(email) {
+  const domain = recipientDomain(email);
+  if (!domain) return null;
+
+  const directProvider = providerFromDomain(domain);
+  if (directProvider) return directProvider;
+
+  const cached = recipientProviderCache.get(domain);
+  if (cached && cached.expiresAt > Date.now()) return cached.provider;
+
+  let provider = null;
+  try {
+    provider = providerFromMxRecords(await dns.resolveMx(domain));
+  } catch (_) {
+    // Normal fallback selection below still delivers through the most recently
+    // connected provider when MX records cannot be resolved.
+  }
+
+  recipientProviderCache.set(domain, {
+    provider,
+    expiresAt: Date.now() + PROVIDER_LOOKUP_CACHE_TTL_MS,
+  });
+  return provider;
+}
 
 async function getOrCreateSenderCopyLabel(gmail, accountEmail) {
   const cachedLabelId = senderCopyLabelCache.get(accountEmail);
@@ -108,23 +176,9 @@ async function processSenderCopy({ gmail, messageId, labelId, accountEmail }) {
     );
   }
 
-  try {
-    await gmail.users.messages.trash({
-      userId: "me",
-      id: messageId,
-    });
-
-    console.log("SENDER COPY MOVED TO GMAIL TRASH");
-    console.log("Message ID:", messageId);
-  } catch (trashError) {
-    console.error("SENDER COPY COULD NOT BE MOVED TO TRASH");
-    console.error(
-      "Reason:",
-      trashError?.response?.data?.error?.message ||
-        trashError?.message ||
-        "Unknown Gmail trash error",
-    );
-  }
+  // Keep the Gmail SENT copy intact. Moving it to Trash immediately after
+  // users.messages.send can race Gmail's asynchronous recipient delivery and
+  // has caused accepted messages to never appear in the recipient mailbox.
 }
 
 // ============================================================
@@ -571,9 +625,7 @@ async function sendGmailSequenceEmail({
 
   await integration.save();
 
-  // Labeling and trashing only affect the sender-side Gmail copy. Run those
-  // operations after the recipient delivery has already been confirmed so
-  // they do not delay the next campaign email.
+  // Label the sender-side Gmail copy without deleting/trashing it.
   if (senderCopyLabelId) {
     setImmediate(() => {
       processSenderCopy({
@@ -622,23 +674,69 @@ async function sendGmailSequenceEmail({
 // deterministic way to switch providers without adding a second setting: the
 // provider they most recently authorized becomes the sender.
 async function sendSequenceEmail(options) {
-  const [zohoIntegration, gmailIntegration] = await Promise.all([
+  const [zohoIntegration, gmailIntegration, goDaddyIntegration] = await Promise.all([
     findZohoIntegration(options.userId),
     GMAIL_INTEGRATION.findOne({
       userId: options.userId,
       reconnectRequiredAt: null,
     }),
+    findGoDaddyIntegration(options.userId, true),
   ]);
 
-  if (zohoIntegration) {
-    const zohoConnectedAt = new Date(
-      zohoIntegration.connectedAt || zohoIntegration.updatedAt || 0,
-    ).getTime();
-    const gmailConnectedAt = gmailIntegration
-      ? new Date(gmailIntegration.connectedAt || gmailIntegration.updatedAt || 0).getTime()
-      : 0;
+  const zohoScope = String(zohoIntegration?.scope || "");
+  const zohoCanSend =
+    zohoScope.includes("ZohoMail.messages.CREATE") ||
+    zohoScope.includes("ZohoMail.messages.ALL");
+  const gmailCanSend =
+    !gmailIntegration?.sendingBlockedUntil ||
+    new Date(gmailIntegration.sendingBlockedUntil).getTime() <= Date.now();
 
-    if (!gmailIntegration || zohoConnectedAt >= gmailConnectedAt) {
+  const providers = [
+    zohoIntegration && zohoCanSend && {
+      name: "zoho",
+      integration: zohoIntegration,
+      connectedAt: zohoIntegration.connectedAt || zohoIntegration.updatedAt,
+    },
+    gmailIntegration && gmailCanSend && {
+      name: "gmail",
+      integration: gmailIntegration,
+      connectedAt: gmailIntegration.connectedAt || gmailIntegration.updatedAt,
+    },
+    goDaddyIntegration && {
+      name: "godaddy",
+      integration: goDaddyIntegration,
+      connectedAt:
+        goDaddyIntegration.connectedAt || goDaddyIntegration.updatedAt,
+    },
+  ]
+    .filter(Boolean)
+    .sort(
+      (left, right) =>
+        new Date(right.connectedAt || 0).getTime() -
+        new Date(left.connectedAt || 0).getTime(),
+    );
+
+  const selected = providers[0];
+  const recipientProvider = await preferredProviderForRecipient(
+    options?.lead?.email,
+  );
+  const matchedProvider = recipientProvider
+    ? providers.find((provider) => provider.name === recipientProvider)
+    : null;
+  const senderProvider = matchedProvider || selected;
+
+  if (matchedProvider) {
+    console.log(
+      `EMAIL PROVIDER MATCHED TO RECIPIENT: ${recipientProvider.toUpperCase()}`,
+    );
+  } else if (recipientProvider && selected) {
+    console.log(
+      `RECIPIENT PROVIDER ${recipientProvider.toUpperCase()} IS UNAVAILABLE; ` +
+        `FALLING BACK TO ${selected.name.toUpperCase()}`,
+    );
+  }
+
+  if (senderProvider?.name === "zoho") {
       const zohoScope = String(zohoIntegration.scope || "");
       if (
         !zohoScope.includes("ZohoMail.messages.CREATE") &&
@@ -660,18 +758,39 @@ async function sendSequenceEmail(options) {
         ...options,
         integration: zohoIntegration,
       });
-    }
   }
 
-  if (gmailIntegration) {
+  if (senderProvider?.name === "gmail") {
     console.log("EMAIL PROVIDER SELECTED: GMAIL");
     return sendGmailSequenceEmail(options);
   }
 
+  if (senderProvider?.name === "godaddy") {
+    console.log("EMAIL PROVIDER SELECTED: GODADDY");
+    return sendGoDaddySequenceEmail({
+      ...options,
+      integration: goDaddyIntegration,
+    });
+  }
+
+  if (gmailIntegration && !gmailCanSend) {
+    const error = createEmailError({
+      message:
+        "Gmail has temporarily stopped sending because this account reached its sending limit. Wait for Gmail to reset the quota or connect another sender.",
+      failureType: "provider_sending_limit",
+      failureReason:
+        "Gmail sending limit reached. Wait for Gmail to reset the quota or connect another sender.",
+    });
+    error.retryable = true;
+    throw error;
+  }
+
   const error = createEmailError({
-    message: "No email provider is connected. Connect Gmail or Zoho Mail.",
+    message:
+      "No email provider is connected. Connect Gmail, Zoho Mail, or GoDaddy Email.",
     failureType: "email_provider_not_connected",
-    failureReason: "No email provider is connected. Connect Gmail or Zoho Mail.",
+    failureReason:
+      "No email provider is connected. Connect Gmail, Zoho Mail, or GoDaddy Email.",
   });
   error.retryable = false;
   throw error;
@@ -685,4 +804,10 @@ module.exports = {
   sendSequenceEmail,
   isValidEmail,
   getFailureType,
+  _private: {
+    recipientDomain,
+    providerFromDomain,
+    providerFromMxRecords,
+    preferredProviderForRecipient,
+  },
 };

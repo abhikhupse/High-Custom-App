@@ -9,8 +9,10 @@ class LeadsApi {
   // BASE URL
   // ============================================================
 
-  static const String baseUrl =
-      'https://high-custom-app.onrender.com/api';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://high-custom-app.onrender.com/api',
+  );
 
   // ============================================================
   // STORAGE

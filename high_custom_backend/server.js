@@ -5,9 +5,9 @@ dotenv.config();
 const connectDB = require("./config/db");
 const root = require("./routes/index");
 const path = require("path");
-const { startSequenceJob } = require("./jobs/sequence.job");
 const { startGmailReplyJob } = require("./jobs/gmail_reply.job");
 const { startZohoReplyJob } = require("./jobs/zoho_reply.job");
+const { startGoDaddyReplyJob } = require("./jobs/godaddy_reply.job");
 
 const app = express();
 
@@ -77,9 +77,18 @@ const startServer = async () => {
     // Do not schedule database work until MongoDB is ready. This avoids failed
     // queued jobs during startup or while a deployment is establishing its DB
     // connection.
-    startSequenceJob();
+    if (process.env.EMAIL_QUEUE_ENABLED !== "false") {
+      // Avoid creating Redis connections during local API/UI development.
+      const { startSequenceJob } = require("./jobs/sequence.job");
+      startSequenceJob();
+    } else {
+      console.log(
+        "Email queue scheduler disabled (EMAIL_QUEUE_ENABLED=false).",
+      );
+    }
     startGmailReplyJob();
     startZohoReplyJob();
+    startGoDaddyReplyJob();
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log("");
