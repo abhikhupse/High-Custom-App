@@ -85,16 +85,6 @@ async function authenticatedGmail(integration) {
     token_type: integration.tokenType || "Bearer",
   });
 
-  if (update.modifiedCount === 1) {
-    await recordEmailNotification({
-      userId: delivery.userId,
-      deliveryId: delivery._id,
-      type: "replied",
-      email: from,
-      occurredAt: repliedAt,
-    });
-  }
-
   return {
     gmail: google.gmail({ version: "v1", auth: oauth2Client }),
     oauth2Client,
@@ -312,6 +302,16 @@ async function processInboundMessage({ gmail, integration, messageId }) {
       },
     },
   );
+
+  if (update.modifiedCount === 1) {
+    await recordEmailNotification({
+      userId: delivery.userId,
+      deliveryId: delivery._id,
+      type: "replied",
+      email: from,
+      occurredAt: repliedAt,
+    });
+  }
 
   return {
     outcome: update.modifiedCount === 1 ? "replied" : "duplicate",
