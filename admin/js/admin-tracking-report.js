@@ -8,6 +8,27 @@
       : "https://high-custom-app.onrender.com/api");
   const token = localStorage.getItem("highCustomAdminToken");
 
+  function request(path, options = {}) {
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    };
+    return fetch(`${apiBase}${path}`, { ...options, headers }).then(
+      async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("highCustomAdminToken");
+          window.location.replace("../admin-login.html?reason=access");
+          throw new Error("Your admin session has expired.");
+        }
+        if (!response.ok || payload.success === false)
+          throw new Error(payload.message || "Request failed.");
+        return payload;
+      },
+    );
+  }
+
   $.ajaxPrefilter(function (options, originalOptions) {
     if (originalOptions.url !== "#") return;
     if (!originalOptions.data || originalOptions.data.draw === undefined)
