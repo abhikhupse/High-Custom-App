@@ -999,3 +999,94 @@ exports.getTrackingReport = async (req, res) => {
     });
   }
 };
+
+exports.getAdminTrackingReport = async (req, res) => {
+  try {
+    const User = require("../model/user.model");
+    const {
+      userId,
+      user_name: userName,
+      user_email: userEmail,
+      status,
+      startDate,
+      endDate,
+    } = req.query;
+    const query = {};
+    if (userId && mongoose.isValidObjectId(userId)) query.userId = userId;
+    if (userName || userEmail) {
+      const userQuery = {};
+      if (userName)
+        userQuery.$or = [
+          { firstName: new RegExp(String(userName), "i") },
+          { lastName: new RegExp(String(userName), "i") },
+        ];
+      if (userEmail) userQuery.email = new RegExp(String(userEmail), "i");
+      const users = await User.find(userQuery).select("_id").lean();
+      query.userId = { $in: users.map((user) => user._id) };
+    }
+    if (startDate || endDate)
+      query.createdAt = {
+        ...(startDate && { $gte: new Date(startDate) }),
+        ...(endDate && { $lte: new Date(`${endDate}T23:59:59.999Z`) }),
+      };
+    if (status && status !== "All Status")
+      query.status = String(status).toLowerCase();
+    const deliveries = await SEQUENCE_DELIVERY.find(query)
+      .populate("userId", "firstName lastName email")
+      .populate("sequenceId", "step subject")
+      .populate("leadId", "firstName lastName name email")
+      .sort({ createdAt: -1 })
+      .lean();
+    const data = deliveries.map((delivery) => {
+      const lead = delivery.leadId || {};
+      const owner = delivery.userId || {};
+      const sequence = delivery.sequenceId || {};
+      const leadName =
+        `${lead.firstName || ""} ${lead.lastName || ""}`.trim() ||
+        lead.name ||
+        "—";
+      const ownerName =
+        `${owner.firstName || ""} ${owner.lastName || ""}`.trim() ||
+        owner.email ||
+        "—";
+      const clicks = delivery.clickedAt ? 1 : 0;
+      return {
+        lead_name: leadName,
+        lead_email: lead.email || delivery.email || "—",
+        step: sequence.step || delivery.step || "—",
+        subject: sequence.subject || "—",
+        scheduled_at: delivery.scheduledAt,
+        status_badge: delivery.response || delivery.status || "—",
+        sent_at: delivery.sentAt,
+        seen_at: delivery.openedAt,
+        whatsapp_clicks: 0,
+        instagram_clicks: 0,
+        facebook_messenger_clicks: 0,
+        threads_clicks: 0,
+        telegram_clicks: 0,
+        snapchat_clicks: 0,
+        x_clicks: 0,
+        linkedin_clicks: 0,
+        other_clicks: clicks,
+        total_clicks: clicks,
+        full_name: ownerName,
+        email: owner.email || "—",
+      };
+    });
+    return res.json({
+      success: true,
+      draw: Number(req.query.draw) || 0,
+      recordsTotal: data.length,
+      recordsFiltered: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("GET ADMIN TRACKING REPORT ERROR:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to get all users tracking report.",
+      });
+  }
+};

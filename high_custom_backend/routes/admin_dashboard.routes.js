@@ -7,6 +7,7 @@ const requireAdmin = require("../middleware/admin.middleware");
 const { allowRoles } = require("../middleware/role.middleware");
 
 const dashboardController = require("../controller/admin_dashboard.controller");
+const emailTrackingController = require("../controller/email_tracking.controller");
 
 const users = require("../controller/admin_users.controller");
 
@@ -20,6 +21,12 @@ const router = express.Router();
 
 // Keep true Admin dashboard restricted to Admin.
 router.get("/dashboard", auth, requireAdmin, dashboardController.getDashboard);
+router.get(
+  "/tracking-report",
+  auth,
+  requireAdmin,
+  emailTrackingController.getAdminTrackingReport,
+);
 
 // ============================================================
 // USERS

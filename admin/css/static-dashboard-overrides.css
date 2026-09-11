@@ -1,6 +1,10 @@
 /* Static dashboard spacing fixes. */
 .filter-bar {
-    margin-bottom: 0 !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.main-content .container-fluid > .row {
+    margin-top: 0;
 }
 
 @media (min-width: 993px) {
