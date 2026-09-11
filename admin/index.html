@@ -2,12 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>High Custom Admin - User Rights</title>
 
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="../images/company-logo-1.png" />
 
     <!-- Bootstrap -->
@@ -16,13 +14,14 @@
       rel="stylesheet"
     />
 
-    <!-- Bootstrap Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Icons -->
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
 
-    <!-- Font Awesome -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
@@ -37,23 +36,20 @@
         --sidebar-hover: #17233a;
         --page-bg: #f5f7fb;
         --card-bg: #ffffff;
-        --border: #dfe5ed;
+        --border: #dde3ea;
         --text: #172033;
         --muted: #6b7280;
         --primary: #0d6efd;
-        --danger: #ef4444;
+        --danger: #dc3545;
       }
 
       * {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
       }
 
       body {
-        background: var(--page-bg);
-        color: var(--text);
-
         font-family:
           Inter,
           system-ui,
@@ -62,58 +58,57 @@
           "Segoe UI",
           sans-serif;
 
+        background: var(--page-bg);
+        color: var(--text);
         overflow-x: hidden;
       }
 
-      /* =====================================================
+      /* =========================================================
            SIDEBAR
-        ===================================================== */
+        ========================================================= */
 
       .sidebar {
-        width: 260px;
-        height: 100vh;
-
         position: fixed;
         top: 0;
         left: 0;
 
+        width: 260px;
+        height: 100vh;
+
         background: var(--sidebar-bg);
-        color: #fff;
+
+        color: #e2e8f0;
 
         z-index: 1050;
 
-        padding: 12px;
-
         overflow-y: auto;
+
+        padding: 12px;
 
         display: flex;
         flex-direction: column;
       }
 
-      .sidebar-logo-wrap {
+      .sidebar-brand {
+        min-height: 125px;
+
         display: flex;
         justify-content: center;
         align-items: center;
 
-        min-height: 125px;
-
-        padding-bottom: 12px;
-
-        margin-bottom: 10px;
-
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        margin-bottom: 12px;
       }
 
       .sidebar-logo {
-        width: 135px;
-        height: 115px;
+        width: 145px;
+        height: 110px;
 
         object-fit: contain;
-
-        display: block;
       }
 
-      .sidebar-menu {
+      .nav-menu {
         list-style: none;
 
         padding: 0;
@@ -127,27 +122,27 @@
       }
 
       .sidebar-link {
-        width: 100%;
-
-        color: #cbd5e1;
-
         text-decoration: none;
 
-        padding: 11px 13px;
+        width: 100%;
 
         display: flex;
         align-items: center;
 
         gap: 12px;
 
+        padding: 11px 13px;
+
         border-radius: 9px;
+
+        color: #cbd5e1;
 
         font-size: 14px;
         font-weight: 600;
 
-        cursor: pointer;
-
         transition: 0.2s;
+
+        cursor: pointer;
       }
 
       .sidebar-link i {
@@ -161,19 +156,21 @@
       .sidebar-link:hover {
         background: var(--sidebar-hover);
 
-        color: white;
+        color: #ffffff;
       }
 
       .sidebar-link.active {
-        background: rgba(13, 110, 253, 0.12);
+        background: #0d6efd;
 
-        color: white;
-
-        border-left: 4px solid #0d6efd;
+        color: #ffffff;
       }
 
-      .sidebar-link.active i {
-        color: #2684ff;
+      .sidebar-link.active-indicator {
+        background: rgba(13, 110, 253, 0.12);
+
+        border-left: 4px solid #0d6efd;
+
+        color: #ffffff;
       }
 
       .sidebar-link .arrow {
@@ -187,13 +184,12 @@
       }
 
       .sub-menu {
-        display: none;
-
         list-style: none;
 
-        padding: 3px 0 3px 28px;
-
+        padding: 3px 0 3px 25px;
         margin: 0;
+
+        display: none;
       }
 
       .sub-menu.open {
@@ -201,36 +197,22 @@
       }
 
       .sub-menu .sidebar-link {
-        padding: 9px 12px;
-
         font-size: 13px;
+
+        padding: 9px 12px;
       }
-
-      .sub-menu .sidebar-link.selected {
-        background: #0d6efd;
-
-        color: white;
-      }
-
-      /* =====================================================
-           SIDEBAR FOOTER
-        ===================================================== */
 
       .sidebar-footer {
-        padding-top: 15px;
-      }
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
 
-      .bot-image {
-        width: 90px;
-
-        margin-bottom: 12px;
+        padding-top: 12px;
       }
 
       .sidebar-user {
         display: flex;
         align-items: center;
 
-        gap: 8px;
+        gap: 10px;
 
         color: white;
 
@@ -238,24 +220,23 @@
       }
 
       .sidebar-user-icon {
-        width: 35px;
-        height: 35px;
+        width: 34px;
+        height: 34px;
 
         border-radius: 50%;
 
-        border: 1px solid #ddd;
-
         background: white;
-        color: black;
+
+        color: #111827;
 
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
-      /* =====================================================
-           HEADER
-        ===================================================== */
+      /* =========================================================
+           TOP HEADER
+        ========================================================= */
 
       .top-header {
         position: fixed;
@@ -271,18 +252,17 @@
         display: flex;
         align-items: center;
 
-        padding: 0 30px;
+        padding: 0 28px;
 
         z-index: 1040;
 
         box-shadow: 0 2px 8px rgba(15, 23, 42, 0.07);
       }
 
-      .top-header h4 {
+      .top-header-title {
         margin: 0;
 
         font-size: 22px;
-
         font-weight: 500;
       }
 
@@ -292,38 +272,40 @@
         display: flex;
         align-items: center;
 
-        gap: 20px;
+        gap: 18px;
       }
 
       .theme-btn {
-        border: 0;
+        border: none;
 
         background: transparent;
 
         color: #475569;
 
         font-size: 18px;
+
+        cursor: pointer;
       }
 
       .admin-pill {
-        border: 0;
+        border: none;
 
-        background: linear-gradient(135deg, #6793d6, #354c6e);
+        background: linear-gradient(135deg, #6793d6, #1747b7);
 
-        color: white;
+        color: #ffffff;
 
-        min-width: 68px;
-
-        padding: 9px 15px;
+        padding: 9px 18px;
 
         border-radius: 22px;
 
-        font-weight: 600;
+        font-weight: 700;
+
+        min-width: 80px;
       }
 
-      /* =====================================================
+      /* =========================================================
            MAIN
-        ===================================================== */
+        ========================================================= */
 
       .main-content {
         margin-left: 260px;
@@ -334,17 +316,17 @@
       }
 
       .page-content {
-        padding: 105px 42px 40px;
+        padding: 90px 36px 40px;
       }
 
-      /* =====================================================
+      /* =========================================================
            USERS CARD
-        ===================================================== */
+        ========================================================= */
 
       .users-card {
         background: white;
 
-        border-radius: 17px;
+        border-radius: 16px;
 
         box-shadow: 0 3px 16px rgba(15, 23, 42, 0.06);
 
@@ -360,7 +342,7 @@
 
         gap: 8px;
 
-        padding: 17px 22px;
+        padding: 15px 18px;
       }
 
       .search-box {
@@ -384,7 +366,7 @@
       .toolbar-btn {
         border-radius: 20px;
 
-        padding: 8px 13px;
+        padding: 7px 13px;
 
         font-size: 13px;
       }
@@ -396,53 +378,84 @@
 
         border-radius: 20px;
 
-        padding: 9px 16px;
+        padding: 8px 15px;
 
         font-size: 13px;
-
-        font-weight: 600;
+        font-weight: 700;
       }
 
+      #userApiMessage {
+        margin: 0 18px 14px;
+
+        padding: 10px 14px;
+
+        border-radius: 8px;
+
+        background: #fff3cd;
+
+        border: 1px solid #ffecb5;
+
+        color: #664d03;
+
+        font-size: 13px;
+      }
+
+      /* =========================================================
+           TABLE
+        ========================================================= */
+
       .table-wrap {
+        width: 100%;
+
         overflow-x: auto;
       }
 
       #usersTable {
-        margin: 0;
+        width: 100%;
 
-        min-width: 1150px;
+        min-width: 1200px;
+
+        margin-bottom: 0;
       }
 
       #usersTable th {
-        background: white;
+        background: #ffffff;
+
+        border: 1px solid #d8dde5;
+
+        padding: 10px 8px;
 
         font-size: 12px;
         font-weight: 700;
 
         white-space: nowrap;
 
-        border: 1px solid #d8dde5;
-
-        padding: 10px 8px;
+        color: #111827;
       }
 
       #usersTable td {
+        border: 1px solid #d8dde5;
+
+        padding: 9px 8px;
+
         font-size: 13px;
 
         vertical-align: middle;
 
-        border: 1px solid #d8dde5;
+        background: #ffffff;
+      }
 
-        padding: 9px 8px;
+      #usersTable tbody tr:hover td {
+        background: #f8fbff;
       }
 
       .administrator-row td {
-        background: #fffbed;
+        background: #fffbed !important;
       }
 
-      /* =====================================================
+      /* =========================================================
            ROLE
-        ===================================================== */
+        ========================================================= */
 
       .role-badge {
         display: inline-flex;
@@ -478,11 +491,12 @@
         color: #1d4ed8;
       }
 
-      /* =====================================================
+      /* =========================================================
            TABLE BUTTONS
-        ===================================================== */
+        ========================================================= */
 
-      .edit-user-btn {
+      .edit-user-btn,
+      .delete-user-btn {
         width: 31px;
         height: 31px;
 
@@ -490,17 +504,25 @@
         align-items: center;
         justify-content: center;
 
-        border: 1px solid #0d6efd;
-
         border-radius: 5px;
 
         background: white;
+      }
+
+      .edit-user-btn {
+        border: 1px solid #0d6efd;
 
         color: #0d6efd;
       }
 
+      .delete-user-btn {
+        border: 1px solid #dc3545;
+
+        color: #dc3545;
+      }
+
       .rights-edit-btn {
-        border: none;
+        border: 0;
 
         background: transparent;
 
@@ -515,55 +537,24 @@
         color: #0d6efd;
       }
 
-      .delete-user-btn {
-        width: 31px;
-        height: 31px;
-
-        border: 1px solid #ef4444;
-
-        border-radius: 5px;
-
-        background: white;
-
-        color: #ef4444;
-      }
-
       button:disabled {
         opacity: 0.35 !important;
 
         cursor: not-allowed !important;
       }
 
-      /* =====================================================
-           MESSAGE
-        ===================================================== */
-
-      #userApiMessage {
-        margin: 15px 22px;
-
-        padding: 10px 15px;
-
-        background: #fff3cd;
-
-        color: #664d03;
-
-        border: 1px solid #ffecb5;
-
-        border-radius: 8px;
-
-        font-size: 13px;
-      }
-
-      /* =====================================================
+      /* =========================================================
            MODALS
-        ===================================================== */
+        ========================================================= */
 
       .modal-content {
-        border: none;
+        border: 0;
 
         border-radius: 16px;
 
         overflow: hidden;
+
+        box-shadow: 0 18px 60px rgba(15, 23, 42, 0.18);
       }
 
       .modal-header {
@@ -586,23 +577,23 @@
         width: 90px;
         height: 90px;
 
-        object-fit: cover;
-
         border-radius: 50%;
+
+        object-fit: cover;
 
         border: 3px solid #e5e7eb;
       }
 
-      /* =====================================================
-           RIGHTS SUMMARY
-        ===================================================== */
+      /* =========================================================
+           RIGHTS MODAL
+        ========================================================= */
 
       .rights-user-summary {
         display: grid;
 
         grid-template-columns: repeat(3, minmax(0, 1fr));
 
-        gap: 15px;
+        gap: 12px;
 
         background: #f8fafc;
 
@@ -612,7 +603,7 @@
 
         padding: 15px 18px;
 
-        margin-bottom: 22px;
+        margin-bottom: 20px;
       }
 
       .summary-title {
@@ -629,10 +620,6 @@
         font-weight: 700;
       }
 
-      /* =====================================================
-           APP RIGHTS
-        ===================================================== */
-
       .rights-heading {
         display: flex;
         align-items: center;
@@ -640,7 +627,7 @@
 
         gap: 15px;
 
-        margin-bottom: 17px;
+        margin-bottom: 16px;
       }
 
       .rights-heading h5 {
@@ -664,32 +651,32 @@
 
         grid-template-columns: repeat(3, minmax(0, 1fr));
 
-        gap: 11px;
+        gap: 10px;
       }
 
       .permission-card {
+        display: flex;
+        align-items: center;
+
+        gap: 10px;
+
         border: 1px solid #e2e8f0;
 
         border-radius: 10px;
 
-        padding: 13px;
-
-        display: flex;
-        align-items: center;
-
-        gap: 11px;
-
-        cursor: pointer;
+        padding: 12px;
 
         background: white;
+
+        cursor: pointer;
 
         transition: 0.18s;
       }
 
       .permission-card:hover {
-        border-color: #0d6efd;
-
         background: #f8fbff;
+
+        border-color: #0d6efd;
       }
 
       .permission-card span {
@@ -710,9 +697,49 @@
         text-align: center;
       }
 
-      /* =====================================================
-           ACCESS RIGHTS
-        ===================================================== */
+      .access-section {
+        border: 1px solid #e2e8f0;
+
+        border-radius: 12px;
+
+        overflow: hidden;
+
+        margin-bottom: 15px;
+      }
+
+      .access-section-header {
+        background: #f8fafc;
+
+        border-bottom: 1px solid #e2e8f0;
+
+        padding: 12px 15px;
+
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .access-section-body {
+        padding: 13px 15px;
+      }
+
+      .access-grid {
+        display: grid;
+
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        gap: 10px;
+      }
+
+      .access-item {
+        display: flex;
+        align-items: center;
+
+        gap: 9px;
+
+        font-size: 13px;
+
+        padding: 6px 0;
+      }
 
       .data-scope-wrap {
         border: 1px solid #e2e8f0;
@@ -721,129 +748,72 @@
 
         padding: 15px 17px;
 
-        margin-bottom: 20px;
+        margin-bottom: 18px;
       }
 
-      .access-section {
-        border: 1px solid #e2e8f0;
+      /* =========================================================
+           MOBILE
+        ========================================================= */
 
-        border-radius: 12px;
-
-        margin-bottom: 15px;
-
-        overflow: hidden;
-      }
-
-      .access-section-header {
-        background: #f8fafc;
-
-        padding: 13px 17px;
-
-        border-bottom: 1px solid #e2e8f0;
-
-        display: flex;
-        align-items: center;
-
-        gap: 9px;
-
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .access-section-header i {
-        color: #0d6efd;
-      }
-
-      .access-options {
-        display: grid;
-
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-
-        gap: 7px;
-
-        padding: 15px 17px;
-      }
-
-      .access-option {
-        display: flex;
-        align-items: center;
-
-        gap: 8px;
-
-        padding: 6px 0;
-
-        font-size: 13px;
-
-        cursor: pointer;
-      }
-
-      /* =====================================================
-           RESPONSIVE
-        ===================================================== */
-
-      .mobile-sidebar-btn {
+      .mobile-toggle {
         display: none;
 
         border: none;
 
         background: transparent;
 
-        font-size: 20px;
+        font-size: 22px;
       }
 
       .sidebar-overlay {
         display: none;
+
+        position: fixed;
+
+        inset: 0;
+
+        background: rgba(0, 0, 0, 0.4);
+
+        z-index: 1045;
+      }
+
+      .sidebar-overlay.show {
+        display: block;
       }
 
       @media (max-width: 991px) {
         .sidebar {
           transform: translateX(-100%);
 
-          transition: transform 0.25s;
+          transition: transform 0.3s ease;
         }
 
         .sidebar.show {
           transform: translateX(0);
         }
 
-        .sidebar-overlay.show {
-          display: block;
-
-          position: fixed;
-
-          inset: 0;
-
-          background: rgba(0, 0, 0, 0.45);
-
-          z-index: 1045;
-        }
-
         .top-header {
           left: 0;
+
+          padding: 0 15px;
         }
 
         .main-content {
           margin-left: 0;
         }
 
-        .mobile-sidebar-btn {
-          display: block;
-
-          margin-right: 15px;
+        .page-content {
+          padding: 85px 14px 30px;
         }
 
-        .page-content {
-          padding: 90px 15px 30px;
+        .mobile-toggle {
+          display: inline-flex;
+
+          margin-right: 10px;
         }
       }
 
       @media (max-width: 768px) {
-        .rights-grid,
-        .access-options,
-        .rights-user-summary {
-          grid-template-columns: 1fr 1fr;
-        }
-
         .users-toolbar {
           justify-content: flex-start;
         }
@@ -851,39 +821,31 @@
         .search-box {
           width: 100%;
         }
-      }
 
-      @media (max-width: 550px) {
-        .rights-grid,
-        .access-options,
-        .rights-user-summary {
+        .rights-grid {
           grid-template-columns: 1fr;
         }
 
-        .rights-heading {
-          flex-direction: column;
+        .access-grid {
+          grid-template-columns: 1fr;
+        }
 
-          align-items: flex-start;
+        .rights-user-summary {
+          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
 
   <body>
-    <!-- =====================================================
-         MOBILE OVERLAY
-    ====================================================== -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
-
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
+    <!-- =========================================================
+     SIDEBAR
+========================================================= -->
 
     <aside class="sidebar" id="sidebar">
-      <!-- LOGO -->
-
-      <div class="sidebar-logo-wrap">
+      <div class="sidebar-brand">
         <img
           src="../images/company-logo-1.png"
           class="sidebar-logo"
@@ -895,89 +857,114 @@
         />
       </div>
 
-      <!-- MENU -->
-
-      <ul class="sidebar-menu">
-        <!-- DASHBOARD -->
-
+      <ul class="nav-menu">
+        <!-- Dashboard -->
         <li class="nav-item">
-          <a href="../index.html" class="sidebar-link">
+          <a class="sidebar-link" href="../index.html">
             <i class="fas fa-chart-pie"></i>
 
             <span> Dashboard </span>
           </a>
         </li>
 
-        <!-- ADMIN -->
-
+        <!-- Admin -->
         <li class="nav-item">
-          <div class="sidebar-link" id="adminMenuToggle">
+          <a class="sidebar-link" id="adminParentLink" href="#">
             <i class="fas fa-envelope"></i>
 
             <span> Admin </span>
 
-            <i class="fas fa-chevron-down arrow" id="adminArrow"></i>
-          </div>
+            <i class="fas fa-chevron-down arrow"></i>
+          </a>
 
-          <ul id="adminSubMenu" class="sub-menu">
+          <ul class="sub-menu" id="adminSubMenu">
             <li>
-              <a href="#" class="sidebar-link">
-                <i class="fas fa-circle"></i>
+              <a class="sidebar-link" href="#">
+                <i class="fas fa-link"></i>
 
-                <span> Admin </span>
+                Master
+              </a>
+            </li>
+
+            <li>
+              <a class="sidebar-link" href="#">
+                <i class="fas fa-database"></i>
+
+                Link
+              </a>
+            </li>
+
+            <li>
+              <a class="sidebar-link" href="../leads/index.html">
+                <i class="fas fa-chart-line"></i>
+
+                Leads
+              </a>
+            </li>
+
+            <li>
+              <a class="sidebar-link" href="#">
+                <i class="fas fa-share-nodes"></i>
+
+                Social Links
+              </a>
+            </li>
+
+            <li>
+              <a class="sidebar-link" href="../tracking/index.html">
+                <i class="fas fa-chart-line"></i>
+
+                Tracking Report
               </a>
             </li>
           </ul>
         </li>
 
-        <!-- LEADS -->
-
+        <!-- Leads -->
         <li class="nav-item">
-          <a href="../Leads/index.html" class="sidebar-link">
+          <a class="sidebar-link" href="../leads/index.html">
             <i class="fas fa-chart-line"></i>
 
             <span> Leads </span>
           </a>
         </li>
 
-        <!-- USERS -->
-
+        <!-- Users -->
         <li class="nav-item">
-          <div class="sidebar-link active" id="usersMenuToggle">
-            <i class="fas fa-users"></i>
+          <a
+            class="sidebar-link active-indicator"
+            id="usersParentLink"
+            href="#"
+          >
+            <i class="fas fa-user-group"></i>
 
             <span> Users </span>
 
-            <i class="fas fa-chevron-down arrow open" id="usersArrow"></i>
-          </div>
+            <i class="fas fa-chevron-down arrow open"></i>
+          </a>
 
-          <ul id="usersSubMenu" class="sub-menu open">
-            <!-- USERS MASTER -->
-
+          <ul class="sub-menu open" id="usersSubMenu">
             <li>
-              <a href="../master/userMasterList.html" class="sidebar-link">
+              <a class="sidebar-link" href="./master.html">
                 <i class="fas fa-user-pen"></i>
 
-                <span> Users Master </span>
+                Users Master
               </a>
             </li>
 
-            <!-- USERS RIGHTS -->
-
             <li>
-              <a href="./index.html" class="sidebar-link selected">
+              <a class="sidebar-link active" href="./index.html">
                 <i class="fas fa-user-lock"></i>
 
-                <span> Users Rights </span>
+                Users Rights
               </a>
             </li>
           </ul>
         </li>
 
-        <!-- TRACKING -->
-
+        <!-- Tracking -->
         <li class="nav-item">
-          <a href="../tracking/index.html" class="sidebar-link">
+          <a class="sidebar-link" href="../tracking/index.html">
             <i class="fas fa-location-dot"></i>
 
             <span> All Tracking </span>
@@ -985,51 +972,40 @@
         </li>
       </ul>
 
-      <!-- SIDEBAR FOOTER -->
-
       <div class="sidebar-footer">
-        <img
-          src="../images/bot.png"
-          class="bot-image"
-          alt=""
-          onerror="this.style.display = 'none'"
-        />
-
         <div class="sidebar-user">
           <div class="sidebar-user-icon">
             <i class="fas fa-user"></i>
           </div>
 
           <span id="sidebarUserName"> Admin </span>
-
-          <i class="fas fa-chevron-down"></i>
         </div>
       </div>
     </aside>
 
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
+    <!-- =========================================================
+     HEADER
+========================================================= -->
 
     <header class="top-header">
-      <button type="button" id="mobileSidebarBtn" class="mobile-sidebar-btn">
+      <button type="button" class="mobile-toggle" id="sidebarToggle">
         <i class="fas fa-bars"></i>
       </button>
 
-      <h4>ADMIN</h4>
+      <h4 class="top-header-title">ADMIN</h4>
 
       <div class="top-actions">
-        <button type="button" class="theme-btn">
-          <i class="fas fa-gear"></i>
+        <button type="button" class="theme-btn" title="Theme">
+          <i class="fas fa-sun"></i>
         </button>
 
-        <button type="button" id="headerUserCode" class="admin-pill">—</button>
+        <div class="admin-pill" id="headerUserCode">ADMIN</div>
       </div>
     </header>
 
-    <!-- =====================================================
-         CONTENT
-    ====================================================== -->
+    <!-- =========================================================
+     MAIN CONTENT
+========================================================= -->
 
     <main class="main-content">
       <div class="page-content">
@@ -1038,10 +1014,11 @@
 
           <div class="users-toolbar">
             <input
-              type="search"
+              type="text"
               id="globalSearch"
               class="search-box"
               placeholder="Search All..."
+              autocomplete="off"
             />
 
             <button
@@ -1065,7 +1042,7 @@
               id="exportExcelBtn"
               class="btn btn-info text-white toolbar-btn"
             >
-              <i class="fas fa-file-excel"></i>
+              <i class="fas fa-file-excel me-1"></i>
 
               Excel
             </button>
@@ -1075,22 +1052,22 @@
               id="printCardBtn"
               class="btn btn-secondary toolbar-btn"
             >
-              <i class="fas fa-print"></i>
+              <i class="fas fa-print me-1"></i>
 
               Print Card
             </button>
 
-            <div class="total-users" id="totalUsersCount">Total Users: 0</div>
+            <span class="total-users" id="totalUsersCount">
+              Total Users: —
+            </span>
           </div>
-
-          <!-- API MESSAGE -->
 
           <div id="userApiMessage" class="d-none"></div>
 
-          <!-- TABLE -->
+          <!-- USERS TABLE -->
 
           <div class="table-wrap">
-            <table id="usersTable" class="table">
+            <table class="table table-bordered align-middle" id="usersTable">
               <thead>
                 <tr>
                   <th>Edit</th>
@@ -1105,19 +1082,19 @@
 
                   <th>ROLE</th>
 
-                  <th>APP RIGHTS</th>
+                  <th class="text-center">APP RIGHTS</th>
 
-                  <th>ACCESS RIGHTS</th>
+                  <th class="text-center">ACCESS RIGHTS</th>
 
-                  <th>STATUS</th>
+                  <th class="text-center">STATUS</th>
 
-                  <th>DELETE</th>
+                  <th class="text-center">DELETE</th>
                 </tr>
               </thead>
 
               <tbody>
                 <tr>
-                  <td colspan="10" class="text-center py-4">
+                  <td colspan="10" class="text-center py-4 text-muted">
                     Loading users...
                   </td>
                 </tr>
@@ -1128,9 +1105,9 @@
       </div>
     </main>
 
-    <!-- =====================================================
-         EDIT USER MODAL
-    ====================================================== -->
+    <!-- =========================================================
+     EDIT USER MODAL
+========================================================= -->
 
     <div
       class="modal fade"
@@ -1138,100 +1115,96 @@
       tabindex="-1"
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Edit User</h5>
-
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-
           <form id="userForm">
+            <div class="modal-header">
+              <h5 class="modal-title">Edit User</h5>
+
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+
             <div class="modal-body">
               <input type="hidden" id="userId" />
 
               <div class="text-center mb-4">
                 <img
-                  src="../images/company-logo-1.png"
                   id="imagePreview"
                   class="profile-preview"
+                  src="../images/company-logo-1.png"
                   alt="Profile"
-                  onerror="
-                    this.onerror = null;
-                    this.src = '../images/company-logo (2).jpg';
-                  "
                 />
+
+                <div class="mt-3">
+                  <input
+                    type="file"
+                    id="profileImage"
+                    class="form-control"
+                    accept="image/*"
+                  />
+                </div>
               </div>
 
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label"> First Name </label>
 
-                  <input id="name" class="form-control" required />
+                  <input type="text" class="form-control" id="name" required />
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label"> Last Name </label>
 
-                  <input id="lastname" class="form-control" required />
+                  <input type="text" class="form-control" id="lastname" />
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label"> Employee Code </label>
+                  <label class="form-label"> Mobile </label>
 
-                  <input id="user_code" class="form-control" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label"> Phone </label>
-
-                  <input id="mobile" class="form-control" required />
+                  <input type="text" class="form-control" id="mobile" />
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label"> Email </label>
 
                   <input
-                    id="email"
                     type="email"
                     class="form-control"
+                    id="email"
                     required
                   />
                 </div>
 
                 <div class="col-md-6">
+                  <label class="form-label"> Employee Code </label>
+
+                  <input type="text" class="form-control" id="user_code" />
+                </div>
+
+                <div class="col-md-6">
                   <label class="form-label"> Role </label>
 
-                  <select id="role" class="form-select">
-                    <option value="Employee">Employee</option>
+                  <select class="form-select" id="role">
+                    <option value="Admin">Admin</option>
 
                     <option value="HR">HR</option>
+
+                    <option value="Employee">Employee</option>
                   </select>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-12">
                   <label class="form-label"> New Password </label>
 
                   <input
-                    id="password"
                     type="password"
+                    id="password"
                     class="form-control"
-                    placeholder="Leave blank to keep existing"
-                  />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label"> Profile Image </label>
-
-                  <input
-                    id="profileImage"
-                    type="file"
-                    accept="image/*"
-                    class="form-control"
+                    placeholder="Leave blank to keep existing password"
                   />
                 </div>
               </div>
@@ -1246,32 +1219,30 @@
                 Cancel
               </button>
 
-              <button type="submit" class="btn btn-primary">Save User</button>
+              <button type="submit" class="btn btn-primary">
+                Save Changes
+              </button>
             </div>
           </form>
         </div>
       </div>
     </div>
 
-    <!-- =====================================================
-         RIGHTS MODAL
-    ====================================================== -->
+    <!-- =========================================================
+     RIGHTS MODAL
+========================================================= -->
 
     <div class="modal fade" id="rightsModal" tabindex="-1" aria-hidden="true">
       <div
         class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
       >
         <div class="modal-content">
-          <!-- HEADER -->
-
           <div class="modal-header">
             <div>
               <h5 class="modal-title" id="rightsModalTitle">User Rights</h5>
 
               <small class="text-muted">
-                User:
-
-                <strong id="rightsUserName"> — </strong>
+                Manage application and access permissions.
               </small>
             </div>
 
@@ -1282,24 +1253,14 @@
             ></button>
           </div>
 
-          <!-- BODY -->
-
           <div class="modal-body">
-            <!-- SUMMARY -->
+            <!-- USER SUMMARY -->
 
             <div class="rights-user-summary">
               <div>
-                <span class="summary-title"> Role </span>
+                <span class="summary-title"> User </span>
 
-                <span id="rightsUserRole" class="role-badge role-employee">
-                  Employee
-                </span>
-              </div>
-
-              <div>
-                <span class="summary-title"> Data Scope </span>
-
-                <strong id="rightsDataScope"> Own Data </strong>
+                <strong id="rightsUserName"> — </strong>
               </div>
 
               <div>
@@ -1307,42 +1268,54 @@
 
                 <strong id="rightsEmployeeCode"> — </strong>
               </div>
+
+              <div>
+                <span class="summary-title"> Role / Scope </span>
+
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                  <span id="rightsUserRole" class="role-badge role-employee">
+                    Employee
+                  </span>
+
+                  <small class="text-muted" id="rightsDataScope">
+                    Own Data
+                  </small>
+                </div>
+              </div>
             </div>
 
             <!-- =================================================
-                         APP RIGHTS
-                    ================================================= -->
+                     APP RIGHTS
+                ================================================== -->
 
             <div id="appRightsEditor" class="d-none">
               <div class="rights-heading">
                 <div>
                   <h5>Application Rights</h5>
 
-                  <p>Select which High Custom modules this user can access.</p>
+                  <p>Select which sections the user can access.</p>
                 </div>
 
                 <div class="d-flex gap-2">
                   <button
                     type="button"
-                    id="selectAllAppsBtn"
                     class="btn btn-sm btn-outline-primary"
+                    id="selectAllAppsBtn"
                   >
                     Select All
                   </button>
 
                   <button
                     type="button"
-                    id="clearAllAppsBtn"
                     class="btn btn-sm btn-outline-secondary"
+                    id="clearAllAppsBtn"
                   >
                     Clear
                   </button>
                 </div>
               </div>
 
-              <div class="rights-grid" id="appRightsGrid">
-                <!-- Dashboard -->
-
+              <div class="rights-grid">
                 <label class="permission-card">
                   <input
                     type="checkbox"
@@ -1356,8 +1329,6 @@
                     Dashboard
                   </span>
                 </label>
-
-                <!-- Users -->
 
                 <label class="permission-card">
                   <input
@@ -1373,8 +1344,6 @@
                   </span>
                 </label>
 
-                <!-- Leads -->
-
                 <label class="permission-card">
                   <input
                     type="checkbox"
@@ -1383,13 +1352,11 @@
                   />
 
                   <span>
-                    <i class="fas fa-user-plus"></i>
+                    <i class="fas fa-address-book"></i>
 
                     Leads
                   </span>
                 </label>
-
-                <!-- Interested Leads -->
 
                 <label class="permission-card">
                   <input
@@ -1399,13 +1366,11 @@
                   />
 
                   <span>
-                    <i class="fas fa-user-check"></i>
+                    <i class="fas fa-thumbs-up"></i>
 
                     Interested Leads
                   </span>
                 </label>
-
-                <!-- Sequences -->
 
                 <label class="permission-card">
                   <input
@@ -1421,8 +1386,6 @@
                   </span>
                 </label>
 
-                <!-- Tracking -->
-
                 <label class="permission-card">
                   <input
                     type="checkbox"
@@ -1436,8 +1399,6 @@
                     Tracking Report
                   </span>
                 </label>
-
-                <!-- Social -->
 
                 <label class="permission-card">
                   <input
@@ -1453,8 +1414,6 @@
                   </span>
                 </label>
 
-                <!-- Business -->
-
                 <label class="permission-card">
                   <input
                     type="checkbox"
@@ -1468,8 +1427,6 @@
                     Business Link
                   </span>
                 </label>
-
-                <!-- Integrations -->
 
                 <label class="permission-card">
                   <input
@@ -1485,8 +1442,6 @@
                   </span>
                 </label>
 
-                <!-- Notifications -->
-
                 <label class="permission-card">
                   <input
                     type="checkbox"
@@ -1501,24 +1456,6 @@
                   </span>
                 </label>
 
-                <!-- Profile -->
-
-                <label class="permission-card">
-                  <input
-                    type="checkbox"
-                    class="form-check-input app-right-check"
-                    value="profile"
-                  />
-
-                  <span>
-                    <i class="fas fa-user"></i>
-
-                    Profile
-                  </span>
-                </label>
-
-                <!-- App Rights -->
-
                 <label class="permission-card">
                   <input
                     type="checkbox"
@@ -1527,13 +1464,11 @@
                   />
 
                   <span>
-                    <i class="fas fa-shield-halved"></i>
+                    <i class="fas fa-user-shield"></i>
 
                     App Rights
                   </span>
                 </label>
-
-                <!-- Access Rights -->
 
                 <label class="permission-card">
                   <input
@@ -1552,19 +1487,23 @@
             </div>
 
             <!-- =================================================
-                         ACCESS RIGHTS
-                    ================================================= -->
+                     ACCESS RIGHTS
+                ================================================== -->
 
             <div id="accessRightsEditor" class="d-none">
-              <!-- DATA SCOPE -->
+              <div class="rights-heading">
+                <div>
+                  <h5>Access Rights</h5>
+
+                  <p>Control what actions this user is allowed to perform.</p>
+                </div>
+              </div>
 
               <div class="data-scope-wrap">
-                <label class="form-label fw-bold" for="modalDataScope">
-                  Data Scope
-                </label>
+                <label class="form-label fw-semibold"> Data Scope </label>
 
-                <select id="modalDataScope" class="form-select">
-                  <option value="own">Own Data Only</option>
+                <select class="form-select" id="modalDataScope">
+                  <option value="own">Own Data</option>
 
                   <option value="assigned">Own + Assigned Data</option>
 
@@ -1572,137 +1511,151 @@
                 </select>
               </div>
 
-              <!-- DASHBOARD -->
-
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-chart-pie"></i>
-
-                  Dashboard
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewDashboard"
-                    />
-
-                    View Dashboard
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewCompanyDashboard"
-                    />
-
-                    View Company Dashboard
-                  </label>
-                </div>
-              </div>
-
               <!-- USERS -->
 
               <div class="access-section">
                 <div class="access-section-header">
-                  <i class="fas fa-users"></i>
+                  <i class="fas fa-users me-2"></i>
 
-                  Users
+                  User Management
                 </div>
 
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewUsers"
-                    />
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewUsers"
+                      />
 
-                    View All Users
-                  </label>
+                      View Users
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewUserDetails"
-                    />
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="addUsers"
+                      />
 
-                    View User Details
-                  </label>
+                      Add Users
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="createEmployee"
-                    />
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="editUsers"
+                      />
 
-                    Add Employee
-                  </label>
+                      Edit Users
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editEmployee"
-                    />
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="activateUsers"
+                      />
 
-                    Edit Employee
-                  </label>
+                      Activate / Deactivate Users
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="deleteEmployee"
-                    />
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="deleteUsers"
+                      />
 
-                    Delete Employee
-                  </label>
+                      Delete Users
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="activateDeactivateEmployee"
-                    />
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="changeEmployeeRole"
+                      />
 
-                    Activate / Deactivate
-                  </label>
+                      Change Employee Role
+                    </label>
+                  </div>
+                </div>
+              </div>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="changeEmployeeRole"
-                    />
+              <!-- ROLE MANAGEMENT -->
 
-                    Change Employee Role
-                  </label>
+              <div class="access-section">
+                <div class="access-section-header">
+                  <i class="fas fa-user-shield me-2"></i>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="manageHR"
-                    />
+                  Role Management
+                </div>
 
-                    Manage HR
-                  </label>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="manageHR"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="manageAdmin"
-                    />
+                      Manage HR
+                    </label>
 
-                    Manage Admin
-                  </label>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="manageAdmin"
+                      />
+
+                      Manage Admin
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="manageEmployeeAppRights"
+                      />
+
+                      Manage Employee App Rights
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="manageEmployeeAccessRights"
+                      />
+
+                      Manage Employee Access Rights
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="manageHRAppRights"
+                      />
+
+                      Manage HR App Rights
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="manageHRAccessRights"
+                      />
+
+                      Manage HR Access Rights
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -1710,122 +1663,63 @@
 
               <div class="access-section">
                 <div class="access-section-header">
-                  <i class="fas fa-user-plus"></i>
+                  <i class="fas fa-address-book me-2"></i>
 
                   Leads
                 </div>
 
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewLeads"
-                    />
-                    View Leads
-                  </label>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewLeads"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewAllUsersLeads"
-                    />
-                    View All Users' Leads
-                  </label>
+                      View Leads
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="createLead"
-                    />
-                    Add Lead
-                  </label>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="addLeads"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editLead"
-                    />
-                    Edit Lead
-                  </label>
+                      Add Leads
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="deleteLead"
-                    />
-                    Delete Lead
-                  </label>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="editLeads"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="importLeads"
-                    />
-                    Import Leads
-                  </label>
+                      Edit Leads
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="exportLeads"
-                    />
-                    Export Leads
-                  </label>
-                </div>
-              </div>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="deleteLeads"
+                      />
 
-              <!-- INTERESTED LEADS -->
+                      Delete Leads
+                    </label>
 
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-user-check"></i>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="exportLeads"
+                      />
 
-                  Interested Leads
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewInterestedLeads"
-                    />
-                    View Interested Leads
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewAllInterestedLeads"
-                    />
-                    View All Interested Leads
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editInterestedLead"
-                    />
-                    Edit Interested Lead
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="exportInterestedLeads"
-                    />
-                    Export Interested Leads
-                  </label>
+                      Export Leads
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -1833,200 +1727,53 @@
 
               <div class="access-section">
                 <div class="access-section-header">
-                  <i class="fas fa-envelope-open-text"></i>
+                  <i class="fas fa-envelope me-2"></i>
 
                   Sequences
                 </div>
 
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewSequences"
-                    />
-                    View Sequences
-                  </label>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewSequences"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewAllUsersSequences"
-                    />
-                    View All Users' Sequences
-                  </label>
+                      View Sequences
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="createSequence"
-                    />
-                    Create Sequence
-                  </label>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="createSequences"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editSequence"
-                    />
-                    Edit Sequence
-                  </label>
+                      Create Sequences
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="deleteSequence"
-                    />
-                    Delete Sequence
-                  </label>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="editSequences"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="runSequence"
-                    />
-                    Run / Send Sequence
-                  </label>
-                </div>
-              </div>
+                      Edit Sequences
+                    </label>
 
-              <!-- TRACKING -->
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="runSequences"
+                      />
 
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-chart-line"></i>
-
-                  Tracking Report
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewTrackingReport"
-                    />
-                    View Tracking
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewAllUsersTracking"
-                    />
-                    View All Users' Tracking
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="exportTrackingReport"
-                    />
-                    Export Tracking
-                  </label>
-                </div>
-              </div>
-
-              <!-- SOCIAL LINKS -->
-
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-share-nodes"></i>
-
-                  Social Links
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewSocialLinks"
-                    />
-                    View Social Links
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="createSocialLink"
-                    />
-                    Create Social Link
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editSocialLink"
-                    />
-                    Edit Social Link
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="deleteSocialLink"
-                    />
-                    Delete Social Link
-                  </label>
-                </div>
-              </div>
-
-              <!-- BUSINESS LINK -->
-
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-link"></i>
-
-                  Business Link
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewBusinessLink"
-                    />
-                    View Business Link
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="createBusinessLink"
-                    />
-                    Create Business Link
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editBusinessLink"
-                    />
-                    Edit Business Link
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="deleteBusinessLink"
-                    />
-                    Delete Business Link
-                  </label>
+                      Run Sequences
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -2034,161 +1781,47 @@
 
               <div class="access-section">
                 <div class="access-section-header">
-                  <i class="fas fa-plug"></i>
+                  <i class="fas fa-plug me-2"></i>
 
                   Integrations
                 </div>
 
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewIntegrations"
-                    />
-                    View Integrations
-                  </label>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewIntegrations"
+                      />
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="connectIntegration"
-                    />
-                    Connect Integration
-                  </label>
+                      View Integrations
+                    </label>
 
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="disconnectIntegration"
-                    />
-                    Disconnect Integration
-                  </label>
-                </div>
-              </div>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="connectIntegrations"
+                      />
 
-              <!-- NOTIFICATIONS -->
+                      Connect Integrations
+                    </label>
 
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-bell"></i>
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="disconnectIntegrations"
+                      />
 
-                  Notifications
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewNotifications"
-                    />
-                    View Notifications
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="markNotificationRead"
-                    />
-                    Mark as Read
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="deleteNotification"
-                    />
-                    Delete Notification
-                  </label>
-                </div>
-              </div>
-
-              <!-- PROFILE -->
-
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-user"></i>
-
-                  Profile
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="viewProfile"
-                    />
-                    View Profile
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="editProfile"
-                    />
-                    Edit Profile
-                  </label>
-                </div>
-              </div>
-
-              <!-- PERMISSION MANAGEMENT -->
-
-              <div class="access-section">
-                <div class="access-section-header">
-                  <i class="fas fa-user-shield"></i>
-
-                  Permission Management
-                </div>
-
-                <div class="access-options">
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="manageEmployeeAppRights"
-                    />
-                    Manage Employee App Rights
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="manageEmployeeAccessRights"
-                    />
-                    Manage Employee Access Rights
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="manageHRAppRights"
-                    />
-                    Manage HR App Rights
-                  </label>
-
-                  <label class="access-option">
-                    <input
-                      type="checkbox"
-                      class="form-check-input access-right-check"
-                      value="manageHRAccessRights"
-                    />
-                    Manage HR Access Rights
-                  </label>
+                      Disconnect Integrations
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- FOOTER -->
 
           <div class="modal-footer">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">
@@ -2196,8 +1829,6 @@
             </button>
 
             <button type="button" id="saveRightsBtn" class="btn btn-primary">
-              <i class="fas fa-save me-1"></i>
-
               Save Rights
             </button>
           </div>
@@ -2205,63 +1836,59 @@
       </div>
     </div>
 
-    <!-- =====================================================
-         BOOTSTRAP
-    ====================================================== -->
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- =====================================================
-         USERS RIGHTS API
-    ====================================================== -->
+    <!-- =========================================================
+     SCRIPT
+========================================================= -->
 
     <script src="../js/user-rights-api.js"></script>
 
-    <!-- =====================================================
-         SIDEBAR LOGIC
-    ====================================================== -->
-
     <script>
-      const usersMenuToggle = document.getElementById("usersMenuToggle");
+      document.addEventListener("DOMContentLoaded", function () {
+        const sidebar = document.getElementById("sidebar");
 
-      const usersSubMenu = document.getElementById("usersSubMenu");
+        const overlay = document.getElementById("sidebarOverlay");
 
-      const usersArrow = document.getElementById("usersArrow");
+        const toggle = document.getElementById("sidebarToggle");
 
-      usersMenuToggle?.addEventListener("click", () => {
-        usersSubMenu?.classList.toggle("open");
+        toggle?.addEventListener("click", function () {
+          sidebar?.classList.toggle("show");
 
-        usersArrow?.classList.toggle("open");
-      });
-
-      const adminMenuToggle = document.getElementById("adminMenuToggle");
-
-      const adminSubMenu = document.getElementById("adminSubMenu");
-
-      const adminArrow = document.getElementById("adminArrow");
-
-      adminMenuToggle?.addEventListener("click", () => {
-        adminSubMenu?.classList.toggle("open");
-
-        adminArrow?.classList.toggle("open");
-      });
-
-      const sidebar = document.getElementById("sidebar");
-
-      const sidebarOverlay = document.getElementById("sidebarOverlay");
-
-      document
-        .getElementById("mobileSidebarBtn")
-        ?.addEventListener("click", () => {
-          sidebar?.classList.add("show");
-
-          sidebarOverlay?.classList.add("show");
+          overlay?.classList.toggle("show");
         });
 
-      sidebarOverlay?.addEventListener("click", () => {
-        sidebar?.classList.remove("show");
+        overlay?.addEventListener("click", function () {
+          sidebar?.classList.remove("show");
 
-        sidebarOverlay?.classList.remove("show");
+          overlay?.classList.remove("show");
+        });
+
+        /* USERS MENU */
+
+        const usersParent = document.getElementById("usersParentLink");
+
+        const usersMenu = document.getElementById("usersSubMenu");
+
+        usersParent?.addEventListener("click", function (event) {
+          event.preventDefault();
+
+          usersMenu?.classList.toggle("open");
+
+          usersParent.querySelector(".arrow")?.classList.toggle("open");
+        });
+
+        /* ADMIN MENU */
+
+        const adminParent = document.getElementById("adminParentLink");
+
+        const adminMenu = document.getElementById("adminSubMenu");
+
+        adminParent?.addEventListener("click", function (event) {
+          event.preventDefault();
+
+          adminMenu?.classList.toggle("open");
+
+          adminParent.querySelector(".arrow")?.classList.toggle("open");
+        });
       });
     </script>
   </body>
