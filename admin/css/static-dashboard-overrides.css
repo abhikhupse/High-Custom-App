@@ -1,6 +1,11 @@
 /* Static dashboard spacing fixes. */
+
+/* Keep the title/filter row in normal flow and leave enough room before cards. */
 .filter-bar {
-    margin-bottom: 0 !important;
+    position: relative !important;
+    z-index: 5 !important;
+    margin-top: 0 !important;
+    margin-bottom: 24px !important;
 }
 
 @media (min-width: 993px) {
@@ -9,14 +14,26 @@
         align-items: center !important;
     }
 
+    .filter-left {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
     .filter-right {
-        margin-left: auto;
+        margin-left: auto !important;
         flex-wrap: nowrap !important;
     }
 }
 
+/* Bootstrap .row.g-4 uses a negative top margin. The dashboard stats wrapper is
+   a direct child of that row, so neutralise the negative margin instead of
+   letting the cards slide underneath the Dashboard heading. */
+.filter-bar + .row.g-4,
+.filter-bar ~ .row.g-4:first-of-type,
 .stats-row {
-    margin-top: 26px !important;
+    position: relative !important;
+    z-index: 1 !important;
+    margin-top: 0 !important;
 }
 
 .dashboard-stats {
@@ -24,14 +41,19 @@
 }
 
 @media (max-width: 992px) {
-    .stats-row {
-        margin-top: 16px !important;
+    .filter-bar {
+        margin-bottom: 18px !important;
+    }
+
+    .filter-right {
+        width: 100% !important;
+        justify-content: flex-start !important;
     }
 }
 
 @media (max-width: 576px) {
-    .stats-row {
-        margin-top: 14px !important;
+    .filter-bar {
+        margin-bottom: 14px !important;
     }
 }
 
@@ -96,21 +118,14 @@ body.theme-dark .dashboard-card small {
     color: var(--dashboard-muted) !important;
 }
 
-body.theme-dark .chart-card .card-header {
-    background: #172235 !important;
-    border-bottom-color: var(--dashboard-border) !important;
-}
-
+body.theme-dark .chart-card .card-header,
 body.theme-dark .charts-row .card-header {
     color: var(--dashboard-text) !important;
     background: #172235 !important;
     border-bottom-color: var(--dashboard-border) !important;
 }
 
-body.theme-dark .chart-card .card-body {
-    background: var(--dashboard-panel) !important;
-}
-
+body.theme-dark .chart-card .card-body,
 body.theme-dark .charts-row .card-body {
     color: var(--dashboard-text) !important;
     background: var(--dashboard-panel) !important;
