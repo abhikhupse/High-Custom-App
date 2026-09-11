@@ -1,3 +1,4 @@
+import 'api_config.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,11 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class SequenceApi {
-  static const String _apiRoot = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://high-custom-app.onrender.com/api',
-  );
-  static const String baseUrl = '$_apiRoot/sequence';
+  static final String _apiRoot = ApiConfig.baseUrl;
+  static final String baseUrl = '$_apiRoot/sequence';
 
   static const FlutterSecureStorage _storage =
       FlutterSecureStorage();

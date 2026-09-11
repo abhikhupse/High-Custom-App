@@ -1,10 +1,11 @@
+import 'api_config.dart';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class SocialLinksApi {
-  static const String _baseUrl = 'https://high-custom-app.onrender.com/api/social-links';
+  static final String _baseUrl = '${ApiConfig.baseUrl}/social-links';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static Future<Map<String, String>?> _headers() async {

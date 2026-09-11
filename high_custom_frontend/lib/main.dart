@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'services/auth_api.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -11,8 +13,11 @@ import 'services/push_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  // Web push requires Firebase web options, which are not configured yet.
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
   runApp(const HighCustomApp());
 }
 
@@ -64,16 +69,23 @@ class _AuthGateState extends State<AuthGate> {
       }
     }
 
+    final profile = normalizedToken.isNotEmpty ? await AuthApi.getUserDetails() : null;
+    final authorized = profile?['success'] == true;
     if (!mounted) {
       return;
     }
+    if (profile != null && !authorized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(profile['message']?.toString() ?? 'Please sign in again.')));
+      });
+    }
 
     setState(() {
-      _isLoggedIn = normalizedToken.isNotEmpty;
+      _isLoggedIn = authorized;
       _isChecking = false;
     });
 
-    if (normalizedToken.isNotEmpty) {
+    if (authorized) {
       await PushNotificationService.startForSignedInUser();
     }
   }

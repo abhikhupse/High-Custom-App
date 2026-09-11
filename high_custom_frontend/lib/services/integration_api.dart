@@ -1,3 +1,4 @@
+import 'api_config.dart';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -8,10 +9,7 @@ class IntegrationApi {
   // BASE URL
   // ============================================================
 
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://high-custom-app.onrender.com/api',
-  );
+  static final String baseUrl = ApiConfig.baseUrl;
 
   // ============================================================
   // STORAGE

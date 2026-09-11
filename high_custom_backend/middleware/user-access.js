@@ -1,13 +1,179 @@
-const apps = ['Dashboard', 'Leads', 'Social Links', 'Tracking Reports', 'User Management', 'Sequences'];
-function denied(user, path, method) {
-  if (!user || user.deletedAt || user.isActive === false) return 'Your account is inactive. Please contact admin.';
-  if (user.accessRight === 'No Access') return 'Your account has no access.';
-  const resource = path.split('?')[0].replace(/^\/api/, '');
-  if (resource === '/user/edit-profile' && String(process.env.ADMIN_EMAILS || '').split(',').some(email => email.trim().toLowerCase() === String(user.email || '').toLowerCase())) return 'Administrators cannot edit their own profile.';
-  if (/^\/user\/(profile|logout)$/.test(resource)) return null;
-  if (user.accessRight === 'View Only' && !['GET', 'HEAD', 'OPTIONS'].includes(method)) return 'Your account has view-only access.';
-  const app = /^\/admin\/users/.test(resource) ? 'User Management' : /^\/admin\/dashboard/.test(resource) ? 'Dashboard' : /^\/leads/.test(resource) ? 'Leads' : /^\/sequence/.test(resource) ? 'Sequences' : /^\/email-tracking/.test(resource) ? 'Tracking Reports' : /^\/(social-links|business-card|business-types|business-link-settings)/.test(resource) ? 'Social Links' : null;
-  if (app && Array.isArray(user.appRights) && !user.appRights.includes(app)) return 'You do not have access to ' + app + '.';
+const { getRolePermissions } = require("../config/role-permissions");
+
+// ============================================================
+// GET EFFECTIVE APP RIGHTS
+// ============================================================
+
+function getAppRights(user) {
+  const defaults = getRolePermissions(user?.role);
+
+  return {
+    ...defaults.appRights,
+    ...(user?.appRights || {}),
+  };
+}
+
+// ============================================================
+// GET EFFECTIVE ACCESS RIGHTS
+// ============================================================
+
+function getAccessRights(user) {
+  const defaults = getRolePermissions(user?.role);
+
+  return {
+    ...defaults.accessRights,
+    ...(user?.accessRights || {}),
+  };
+}
+
+// ============================================================
+// GET DATA SCOPE
+// ============================================================
+
+function getDataScope(user) {
+  if (user?.dataScope) {
+    return user.dataScope;
+  }
+
+  return getRolePermissions(user?.role).dataScope;
+}
+
+// ============================================================
+// APP CHECK
+// ============================================================
+
+function hasAppRight(user, permission) {
+  const rights = getAppRights(user);
+
+  return rights[permission] === true;
+}
+
+// ============================================================
+// ACCESS CHECK
+// ============================================================
+
+function hasAccessRight(user, permission) {
+  const rights = getAccessRights(user);
+
+  return rights[permission] === true;
+}
+
+// ============================================================
+// REQUIRE APP RIGHT
+// ============================================================
+
+function requireAppRight(permission) {
+  return (req, res, next) => {
+    if (!hasAppRight(req.account, permission)) {
+      return res.status(403).json({
+        success: false,
+        message: `You do not have access to ${permission}.`,
+      });
+    }
+
+    next();
+  };
+}
+
+// ============================================================
+// REQUIRE ACCESS RIGHT
+// ============================================================
+
+function requireAccessRight(permission) {
+  return (req, res, next) => {
+    if (!hasAccessRight(req.account, permission)) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to perform this action.",
+        permission,
+      });
+    }
+
+    next();
+  };
+}
+
+// ============================================================
+// GLOBAL ACCOUNT VALIDATION
+// ============================================================
+
+function denied(user) {
+  if (!user) {
+    return "Account not found.";
+  }
+
+  if (user.deletedAt) {
+    return "Your account is inactive. Please contact admin.";
+  }
+
+  if (user.isActive === false) {
+    return "Your account is inactive. Please contact admin.";
+  }
+
+  if (user.accessRight === "No Access") {
+    return "Your account has no access.";
+  }
+
   return null;
 }
-module.exports = { apps, denied };
+
+// ============================================================
+// DATA ACCESS HELPER
+// ============================================================
+
+function buildUserDataFilter(req, userIdField = "userId") {
+  const scope = getDataScope(req.account);
+
+  // Admin / HR
+  if (scope === "all") {
+    return {};
+  }
+
+  // Employee
+  return {
+    [userIdField]: req.user.id,
+  };
+}
+
+// ============================================================
+// CAN MANAGE USER
+// ============================================================
+
+function canManageUser(currentUser, targetUser) {
+  if (!currentUser || !targetUser) {
+    return false;
+  }
+
+  const currentRole = currentUser.role;
+  const targetRole = targetUser.role;
+
+  // Admin can manage HR + Employee.
+  if (currentRole === "Admin") {
+    return targetRole !== "Admin";
+  }
+
+  // HR can manage Employees only.
+  if (currentRole === "HR") {
+    return targetRole === "Employee";
+  }
+
+  // Employee cannot manage users.
+  return false;
+}
+
+module.exports = {
+  denied,
+
+  getAppRights,
+  getAccessRights,
+  getDataScope,
+
+  hasAppRight,
+  hasAccessRight,
+
+  requireAppRight,
+  requireAccessRight,
+
+  buildUserDataFilter,
+  canManageUser,
+};

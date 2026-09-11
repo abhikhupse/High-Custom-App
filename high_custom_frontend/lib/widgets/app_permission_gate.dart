@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -30,6 +31,7 @@ class _AppPermissionGateState extends State<AppPermissionGate> {
   }
 
   Future<void> _showPromptIfNeeded() async {
+    if (kIsWeb) return;
     if (!Platform.isAndroid && !Platform.isIOS) return;
 
     final promptSeen = await _storage.read(key: _promptKey);

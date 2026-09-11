@@ -1,3 +1,4 @@
+import 'api_config.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -15,11 +16,8 @@ class AuthApi {
   // BASE URL
   // ============================================================
 
-  static const String _apiRoot = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://high-custom-app.onrender.com/api',
-  );
-  static const String baseUrl = '$_apiRoot/user';
+  static final String _apiRoot = ApiConfig.baseUrl;
+  static final String baseUrl = '$_apiRoot/user';
 
   // ============================================================
   // STORAGE
@@ -762,7 +760,7 @@ class AuthApi {
         };
       }
 
-      if (response.statusCode == 401) {
+      if (response.statusCode == 401 || response.statusCode == 403) {
         await clearLocalSession();
 
         return {

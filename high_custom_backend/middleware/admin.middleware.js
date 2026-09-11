@@ -5,18 +5,32 @@ function normalizeEmails(value) {
     .filter(Boolean);
 }
 
+// ============================================================
+// ADMIN MIDDLEWARE
+// ============================================================
+
 module.exports = (req, res, next) => {
   const allowedEmails = normalizeEmails(process.env.ADMIN_EMAILS);
-  const userEmail = String(req.user?.email || "").trim().toLowerCase();
 
-  if (!allowedEmails.length) {
-    return res.status(403).json({
-      success: false,
-      message: "Admin access is not configured.",
-    });
-  }
+  const userEmail = String(req.account?.email || req.user?.email || "")
+    .trim()
+    .toLowerCase();
 
-  if (!userEmail || !allowedEmails.includes(userEmail)) {
+  const role = req.account?.role || req.user?.role;
+
+  // ========================================================
+  // PRIMARY ADMIN FROM ENV
+  // ========================================================
+
+  const isConfiguredAdmin = allowedEmails.includes(userEmail);
+
+  // ========================================================
+  // DATABASE ADMIN
+  // ========================================================
+
+  const isRoleAdmin = role === "Admin";
+
+  if (!isConfiguredAdmin && !isRoleAdmin) {
     return res.status(403).json({
       success: false,
       message: "Administrator access is required.",

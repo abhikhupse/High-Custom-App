@@ -1,7 +1,18 @@
 const jwt = require("jsonwebtoken");
 
 const User = require("../model/user.model");
-const { denied } = require("./user-access");
+
+const {
+  denied,
+  getAppRights,
+  getAccessRights,
+  getDataScope,
+} = require("./user-access");
+
+// ============================================================
+// AUTH MIDDLEWARE
+// ============================================================
+
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.get("Authorization");
@@ -29,12 +40,67 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    // ========================================================
+    // VERIFY JWT
+    // ========================================================
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const account = await User.findById(decoded.id).select('email isActive deletedAt appRights accessRight').lean();
-    const reason = denied(account, req.originalUrl || req.url, req.method);
-    if (reason) return res.status(403).json({ success: false, message: reason });
-    req.user = { ...decoded, email: account.email };
+    // ========================================================
+    // LOAD ACCOUNT
+    // ========================================================
+
+    const account = await User.findById(decoded.id)
+      .select(
+        [
+          "firstName",
+          "lastName",
+          "email",
+          "role",
+          "dataScope",
+          "isActive",
+          "deletedAt",
+          "appRights",
+          "accessRights",
+          "accessRight",
+        ].join(" "),
+      )
+      .lean();
+
+    // ========================================================
+    // VALIDATE ACCOUNT
+    // ========================================================
+
+    const reason = denied(account);
+
+    if (reason) {
+      return res.status(403).json({
+        success: false,
+        message: reason,
+      });
+    }
+
+    // ========================================================
+    // STORE USER
+    // ========================================================
+
+    req.account = account;
+
+    req.user = {
+      ...decoded,
+
+      id: String(account._id),
+
+      email: account.email,
+
+      role: account.role,
+
+      dataScope: getDataScope(account),
+
+      appRights: getAppRights(account),
+
+      accessRights: getAccessRights(account),
+    };
 
     next();
   } catch (error) {

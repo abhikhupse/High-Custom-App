@@ -1,9 +1,10 @@
+import 'api_config.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class BusinessLinkSettingsApi {
-  static const _base = 'https://high-custom-app.onrender.com/api/business-link-settings';
+  static final String _base = '${ApiConfig.baseUrl}/business-link-settings';
   static const _storage = FlutterSecureStorage();
 
   static Future<Map<String, dynamic>> save(String businessType, List<String> actionLinkIds) =>

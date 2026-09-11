@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../screens/dashboard/notifications_screen.dart';
 import 'tracking_api.dart';
@@ -18,6 +19,7 @@ class PushNotificationService {
   static bool _started = false;
 
   static Future<void> startForSignedInUser() async {
+    if (kIsWeb) return;
     if (!_started) {
       _started = true;
       await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);

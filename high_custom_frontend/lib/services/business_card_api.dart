@@ -1,11 +1,11 @@
+import 'api_config.dart';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class BusinessCardApi {
-  static const String baseUrl =
-      'https://high-custom-app.onrender.com/api/business-card';
+  static final String baseUrl = '${ApiConfig.baseUrl}/business-card';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static Future<String?> _token() async {
