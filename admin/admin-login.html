@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>High Custom Admin Login</title>
+  <link rel="icon" type="image/png" href="images/company-logo.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --gold: #d7aa31; --gold-light: #f5dfa2; --ink: #08070c; --panel: #0c0a12; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; overflow: hidden; color: #f5f0df; font-family: Montserrat, Arial, sans-serif; background: radial-gradient(ellipse at center, #110e17 0, #08070b 44%, #020203 100%); }
+    .hexagon { position: fixed; width: 610px; height: 653px; pointer-events: none; background: rgba(165, 120, 19, .13); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+    .hexagon::after { content: ''; position: absolute; inset: 8px; background: #08070b; clip-path: inherit; }
+    .hexagon.one { left: 8%; top: 4%; }
+    .hexagon.two { width: 465px; height: 500px; left: 12%; top: 25%; }
+    .hexagon.two::after { inset: 6px; }
+    .hexagon.three { right: 8%; top: 4%; }
+    .hexagon.four { width: 465px; height: 500px; right: 12%; top: 25%; }
+    .hexagon.four::after { inset: 6px; }
+    .login-page { position: relative; z-index: 1; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .login-card { width: min(480px, 100%); padding: 38px 32px 36px; border: 1px solid rgba(196, 147, 26, .66); border-radius: 30px; background: rgba(13, 10, 18, .97); box-shadow: 0 28px 58px rgba(0, 0, 0, .65); }
+    .brand { margin: 0 0 7px; color: #e3bf51; text-align: center; font-family: Cinzel, Georgia, serif; font-size: clamp(28px, 3.2vw, 39px); font-weight: 600; line-height: 1.22; letter-spacing: 1.6px; }
+    .stars { margin: 0 0 28px; color: #c89a2f; text-align: center; font-size: 10px; letter-spacing: 12px; transform: translateX(6px); }
+    .field-label { display: flex; align-items: center; gap: 11px; margin: 19px 0 9px; color: #d8be77; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .field-label i { color: #d3a52e; width: 14px; text-align: center; }
+    .field { position: relative; }
+    input { width: 100%; height: 52px; padding: 0 51px 0 16px; color: #f8f5ed; font-size: 15px; outline: 0; border: 1px solid #806114; border-radius: 17px; background: #09080b; transition: border-color .2s, box-shadow .2s; }
+    input::placeholder { color: #77747b; }
+    input:focus { border-color: #d5a72f; box-shadow: 0 0 0 3px rgba(213, 167, 47, .12); }
+    .toggle-password { position: absolute; top: 0; right: 0; width: 50px; height: 52px; border: 0; color: #aa9251; font-size: 17px; cursor: pointer; background: transparent; }
+    .forgot { display: block; width: fit-content; margin: 8px 0 22px auto; color: #d4ae3c; font-size: 12px; font-weight: 700; text-decoration: none; }
+    .forgot:hover { color: #f6da88; }
+    .sign-in { width: 100%; height: 52px; border: 0; border-radius: 28px; color: #16110a; cursor: pointer; font-size: 16px; font-weight: 800; letter-spacing: 4px; background: linear-gradient(105deg, #bd8b1d, #f4dda2); transition: filter .2s, transform .2s; }
+    .sign-in:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .sign-in:disabled { cursor: wait; opacity: .75; transform: none; }
+    .error { min-height: 18px; margin: 12px 2px 0; color: #ff8f8f; text-align: center; font-size: 13px; }
+    @media (max-width: 700px) { body { overflow: auto; } .login-card { padding: 34px 24px 29px; border-radius: 25px; } .hexagon.one,.hexagon.three { width: 360px; height: 310px; top: 8%; } .hexagon.two,.hexagon.four { display: none; } .hexagon.one { left: -175px; } .hexagon.three { right: -175px; } }
+  </style>
+</head>
+<body>
+  <div class="hexagon one"></div><div class="hexagon two"></div><div class="hexagon three"></div><div class="hexagon four"></div>
+  <main class="login-page">
+    <section class="login-card" aria-label="Admin sign in">
+      <h1 class="brand">HIGH CUSTOM<br>JEWELLERS</h1>
+      <div class="stars">✦ ✦ ✦</div>
+      <form id="loginForm">
+        <label class="field-label" for="identity"><i class="fas fa-envelope"></i> EMAIL ADDRESS</label>
+        <div class="field"><input id="identity" autocomplete="username" placeholder="Email or Employer Code" required></div>
+        <label class="field-label" for="password"><i class="fas fa-lock"></i> PASSWORD</label>
+        <div class="field">
+          <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+          <button class="toggle-password" type="button" id="togglePassword" aria-label="Show password"><i class="fas fa-eye-slash"></i></button>
+        </div>
+        <a class="forgot" href="mailto:support@highcustomjewellers.com"><i class="fas fa-lock"></i> Forgot Password?</a>
+        <button class="sign-in" id="loginButton" type="submit"><i class="fas fa-gem"></i>&nbsp; SIGN IN &nbsp;<i class="fas fa-arrow-right"></i></button>
+        <p class="error" id="error" role="alert"></p>
+      </form>
+    </section>
+  </main>
+  <script>
+    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const apiBase = localStorage.getItem('highCustomApiBase') || (isLocal ? 'http://localhost:3000/api' : 'https://high-custom-app.onrender.com/api');
+    if (new URLSearchParams(window.location.search).get('reason') === 'access') {
+      document.getElementById('error').textContent = 'Your session expired or this account does not have administrator access. Please sign in with an authorized admin account.';
+    }
+    const password = document.getElementById('password');
+    document.getElementById('togglePassword').addEventListener('click', () => {
+      const isHidden = password.type === 'password';
+      password.type = isHidden ? 'text' : 'password';
+      document.querySelector('#togglePassword i').className = isHidden ? 'fas fa-eye' : 'fas fa-eye-slash';
+    });
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const identity = document.getElementById('identity').value.trim();
+      const button = document.getElementById('loginButton');
+      const error = document.getElementById('error');
+      button.disabled = true; button.textContent = 'SIGNING IN…'; error.textContent = '';
+      try {
+        const response = await fetch(`${apiBase}/user/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ ...(identity.includes('@') ? { email: identity } : { employerCode: identity }), password: password.value }) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.token) throw new Error(payload.message || 'Unable to sign in.');
+        // Confirm administrator access before navigating to the protected dashboard.
+        const accessResponse = await fetch(`${apiBase}/admin/dashboard`, { headers: { Accept: 'application/json', Authorization: `Bearer ${payload.token}` } });
+        const accessPayload = await accessResponse.json().catch(() => ({}));
+        if (!accessResponse.ok || accessPayload.success === false) {
+          throw new Error(accessPayload.message || 'Unable to open the admin dashboard. Please try again.');
+        }
+        localStorage.setItem('highCustomAdminToken', payload.token);
+        window.location.replace('index.html');
+      } catch (exception) { error.textContent = exception.message || 'Unable to sign in.'; }
+      finally { button.disabled = false; button.innerHTML = '<i class="fas fa-gem"></i>&nbsp; SIGN IN &nbsp;<i class="fas fa-arrow-right"></i>'; }
+    });
+  </script>
+</body>
+</html>

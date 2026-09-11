@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="—">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/company-logo.png">
+    <title>High Custom Admin</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ============================================================= -->
+    <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
+    <!-- ============================================================= -->
+    <style>
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f5f7fb;
+            --bg-topbar: #ffffff;
+            --bg-main: #f5f7fb;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            --dropdown-toggle-color: #1e293b;
+        }
+
+        /* Dark theme */
+        body.theme-dark {
+            --bg-body: #0f172a;
+            --bg-topbar: #1e293b;
+            --bg-main: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+            --dropdown-toggle-color: #f1f5f9;
+        }
+
+        /* Apply variables to existing elements */
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .top-navbar {
+            background: var(--bg-topbar);
+            box-shadow: var(--topbar-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .main-content {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Fix dropdown toggle text color in dark mode */
+        .top-navbar .dropdown-toggle {
+            color: var(--dropdown-toggle-color) !important;
+        }
+
+        /* Theme toggle button style */
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .theme-toggle:hover {
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        /* Sidebar remains dark – no changes */
+    </style>
+
+    <!-- ⚡ Inline script to apply saved theme class to <body> immediately (no flicker) -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== ORIGINAL STYLES (unchanged) ========== -->
+    <style>
+        /* ---------- RESET & BASE ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ---------- SIDEBAR (dark theme) ---------- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            z-index: 1050;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1.2rem 0.8rem 2rem;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            padding: 0 0.75rem 1.8rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-brand i {
+            color: #3b82f6;
+            font-size: 1.8rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link i {
+            width: 1.5rem;
+            font-size: 1.15rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link .menu-text {
+            flex: 1;
+        }
+
+        .nav-link .arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .nav-link .arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .nav-link.active .arrow {
+            color: #fff;
+        }
+
+        .nav-link.active-indicator {
+            border-left: 4px solid #0d6efd;
+            background: rgba(13, 110, 253, 0.08);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active-indicator i {
+            color: #0d6efd;
+        }
+
+        .sub-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0.2rem 0 0.2rem 1.8rem;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+            opacity: 0;
+        }
+
+        .sub-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        .sub-menu .nav-link {
+            padding: 0.5rem 0.9rem 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        .sub-menu .nav-link i {
+            font-size: 0.9rem;
+            width: 1.3rem;
+        }
+
+        .sub-menu .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0.8rem 0.5rem;
+        }
+
+        /* ---------- TOP NAVBAR ---------- */
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 260px;
+            height: 70px;
+            z-index: 1040;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 1.5rem;
+            transition: left 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9edf4;
+        }
+
+        .hc-user-code {
+            color: #fff;
+            border-radius: 18px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #6793d6 0%, #413b3b 40%, #0939a0 60%);
+            background-size: 400%;
+            font-weight: 600;
+            animation: Gradient 5s ease infinite;
+        }
+
+        @keyframes Gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ---------- SIDEBAR TOGGLE BUTTON (mobile) ---------- */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #1e293b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.6rem;
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            color: #0d6efd;
+        }
+
+        /* ---------- OVERLAY (mobile) ---------- */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1045;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* ---------- RESPONSIVE DESIGN ---------- */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                height: 100%;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .top-navbar {
+                left: 0;
+                padding: 0 1.2rem;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 60px;
+                padding: 0.6rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .hc-user-code {
+                font-size: 0.75rem;
+                padding: 5px 12px;
+            }
+
+            .profile-img {
+                width: 32px;
+                height: 32px;
+            }
+
+            .main-content {
+                margin-top: 60px;
+                padding: 12px;
+            }
+
+            .dropdown-menu {
+                min-width: 200px !important;
+            }
+        }
+
+        /* ---------- ACCESSIBILITY ---------- */
+        .nav-link:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .sidebar-brand {
+            padding: 15px;
+        }
+
+        .sidebar-brand a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            margin-top: -13%;
+        }
+
+        /* .sidebar-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 40%;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            padding: 3px;
+        }
+
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        } */
+
+        .sidebar-logo {
+            width: 65%;
+            height: auto;
+            object-fit: contain;
+            align-self: center;
+            justify-self: center;
+            display: block;
+        }
+
+        .top-navbar span {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #282929;
+            margin-right: auto;
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- ========== Set body theme class immediately ========== -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.body.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== OVERLAY (mobile) ========== -->
+    <div class="overlay" id="sidebarOverlay"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main sidebar">
+        
+        
+
+
+        <div class="sidebar-brand">
+            <a href="—" class="d-flex align-items-center text-decoration-none">
+                <div>
+                    <img src="/images/company-logo-1.png" alt="Company Logo" class="sidebar-logo">
+                </div>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#"
+                    aria-current="false">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  ADMIN DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-admin"
+                   id="adminParentLink"
+                   data-target="submenu-admin"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-envelope"></i>
+                    <span class="menu-text">Admin</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-admin" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-link"></i> Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-database"></i> Link
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-share-nodes"></i> Social Links
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Tracking Report
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  USERS DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-users"
+                   id="usersParentLink"
+                   data-target="submenu-users"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-user-group"></i>
+                    <span class="menu-text">Users</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-users" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-pen"></i> Users Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-lock"></i> Users Rights
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- All Tracking -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#">
+                    <i class="fas fa-location-dot"></i>
+                    <span class="menu-text">All Tracking</span>
+                </a>
+            </li>
+        </ul>
+
+         <!-- User Dropdown -->
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
+                    id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/images/user-icon.jpg"
+                        class="profile-img me-2" alt="User avatar">
+                    <strong class="d-none d-sm-inline">— —</strong>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    <li>
+                        <a class="dropdown-item" href="#">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </li>
+
+                     
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Gmail Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-danger">
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Gmail
+                            </a>
+                        </li>
+
+                    
+
+                    
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-success">
+
+                                <i class="fas fa-check-circle me-2"></i>
+                                Zoho Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-danger">
+
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Zoho
+                            </a>
+                        </li>
+                    
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+    </aside>
+
+    <!-- ========== TOP NAVBAR ========== -->
+    <nav class="top-navbar" id="topNavbar">
+         <span>ADMIN</span>
+        <!-- Mobile toggle button -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-left:auto;">
+
+            <!-- ============================================================= -->
+            <!--  SUN/MOON TOGGLE BUTTON                                        -->
+            <!-- ============================================================= -->
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                <i class="fas fa-sun"></i> <!-- default, will be overwritten immediately -->
+            </button>
+
+            <!-- ===== IMMEDIATE SCRIPT TO SET ICON (no flicker) ===== -->
+            <script>
+                (function() {
+                    const icon = document.querySelector('#themeToggle i');
+                    if (icon) {
+                        const stored = localStorage.getItem('userThemePreference') || 'light';
+                        if (stored === 'dark') {
+                            icon.classList.remove('fa-sun');
+                            icon.classList.add('fa-moon');
+                        } else {
+                            icon.classList.remove('fa-moon');
+                            icon.classList.add('fa-sun');
+                        }
+                    }
+                })();
+            </script>
+
+            <!-- User Code -->
+            <div class="hc-user-code">
+                <strong>—</strong>
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="main-content" id="mainContent">
+        
+    <style>
+        body {
+            background: #f4f7fb;
+        }
+
+        .business-wrapper {
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .business-card {
+            background: #ffffff;
+            border-radius: 30px;
+            padding: 45px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 10px 40px rgba(15, 23, 42, .08),
+                0 2px 8px rgba(15, 23, 42, .04);
+        }
+
+        .business-card::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            right: -120px;
+            width: 280px;
+            height: 280px;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            opacity: .08;
+            border-radius: 50%;
+        }
+
+        .business-card::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: -100px;
+            width: 240px;
+            height: 240px;
+            background: linear-gradient(135deg, #06b6d4, #2563eb);
+            opacity: .08;
+            border-radius: 50%;
+        }
+
+        .main-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .sub-title {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 35px;
+        }
+
+        .upload-box {
+            border: 2px dashed #dbe3ef;
+            border-radius: 18px;
+            padding: 15px;
+            background: linear-gradient(to bottom, #f8fbff, #ffffff);
+            transition: .3s;
+        }
+
+        .upload-box:hover {
+            border-color: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .preview-image {
+            width: 100%;
+            height: 130px;
+            object-fit: contain;
+            border-radius: 22px;
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #edf2f7;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, .06);
+        }
+
+        .custom-input {
+            height: 30px;
+            border-radius: 18px;
+            border: 1px solid #dbe3ef;
+            padding-left: 58px;
+            font-size: 15px;
+            transition: .25s;
+            background: #fff;
+        }
+
+        .custom-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, .10);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            z-index: 5;
+        }
+
+        .save-btn {
+            height: 60px;
+            border: none;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            transition: .3s;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, .25);
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 35px rgba(37, 99, 235, .35);
+        }
+
+        .upload-label {
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 14px;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #eff6ff;
+            color: #2563eb;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .text-danger {
+            font-size: 13px;
+            margin-top: 6px;
+            display: block;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+                .dropdown-header {
+            height: 60px;
+            border: 1px solid #dbe3ef;
+            border-radius: 18px;
+            background: #fff;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .dropdown-content {
+            display: none;
+            /* position: absolute; */
+            top: 68px;
+            left: 0;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 18px;
+            border: 1px solid #dbe3ef;
+            box-shadow: 0 15px 35px rgba(0,0,0,.08);
+            z-index: 999;
+            padding: 10px;
+        }
+
+        .dropdown-content.active {
+            display: block;
+        }
+
+        .dropdown-item-custom {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .dropdown-item-custom:hover {
+            background: #f8fafc;
+        }
+
+        .dropdown-item-custom input {
+            margin-top: 5px;
+        }
+
+        .link-info {
+            flex: 1;
+        }
+
+        .platform-name {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .platform-url {
+            font-size: 12px;
+            color: #64748b;
+            word-break: break-all;
+        }
+
+        @media(max-width:768px) {
+            .business-card {
+                padding: 25px;
+                border-radius: 24px;
+            }
+
+            .main-title {
+                font-size: 28px;
+            }
+
+            .preview-image {
+                height: 200px;
+            }
+
+        }
+
+        /* ===============================
+        Business Type
+        =================================*/
+
+        .business-type-item{
+            cursor:pointer;
+            padding:12px;
+            border-radius:12px;
+            font-weight:600;
+            transition:.2s;
+        }
+
+        .business-type-item:hover{
+            background:#f8fafc;
+        }
+
+        .business-type-item.active{
+            background:#2563eb;
+            color:#fff;
+        }
+
+        .business-type-group {
+            margin-bottom: 25px;
+        }
+
+        .business-type-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .business-type-wrapper .form-select {
+            height: 60px;
+            border-radius: 18px;
+            border: 1px solid #dbe3ef;
+            background: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            color: #0f172a;
+            transition: .25s;
+            box-shadow: none;
+        }
+
+        .business-type-wrapper .form-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, .10);
+        }
+
+        .add-type-btn {
+            min-width: 150px;
+            height: 60px;
+            border-radius: 18px;
+            font-weight: 700;
+            border: 1px solid #2563eb;
+            background: #fff;
+            color: #2563eb;
+            transition: .3s;
+        }
+
+        .add-type-btn:hover {
+            background: #2563eb;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, .20);
+        }
+
+        .add-type-btn i {
+            margin-right: 6px;
+        }
+
+        /* ===============================
+        Modal
+        =================================*/
+
+        #addBusinessTypeModal .modal-content {
+            border: none;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, .15);
+        }
+
+        #addBusinessTypeModal .modal-header {
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: #fff;
+            border-bottom: none;
+            padding: 18px 24px;
+        }
+
+        #addBusinessTypeModal .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        #addBusinessTypeModal .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        #addBusinessTypeModal .modal-body {
+            padding: 25px;
+        }
+
+        #addBusinessTypeModal .form-label {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        #addBusinessTypeModal .form-control {
+            height: 55px;
+            border-radius: 16px;
+            border: 1px solid #dbe3ef;
+        }
+
+        #addBusinessTypeModal .form-control:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, .10);
+        }
+
+        #addBusinessTypeModal .modal-footer {
+            border-top: 1px solid #edf2f7;
+            padding: 18px 24px;
+        }
+
+        #saveBusinessType {
+            min-width: 140px;
+            border-radius: 14px;
+            font-weight: 700;
+        }
+
+        #saveBusinessType:disabled {
+            cursor: not-allowed;
+        }
+
+        /* ===============================
+           Mobile
+        =================================*/
+
+        @media (max-width:768px) {
+
+            .business-type-wrapper {
+                flex-direction: column;
+            }
+
+            .add-type-btn {
+                width: 100%;
+                min-width: 100%;
+            }
+
+        }
+
+        .btn-add-type {
+            height: 60px;
+            border: none;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            transition: all .3s ease;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, .25);
+        }
+
+        .btn-add-type i {
+            font-size: 16px;
+        }
+
+        .btn-add-type:hover {
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 16px 35px rgba(37, 99, 235, .35);
+        }
+
+        .btn-add-type:active {
+            transform: scale(.98);
+        }
+
+        .btn-add-type:focus {
+            color: #fff;
+            box-shadow: 0 0 0 .25rem rgba(37, 99, 235, .25);
+        }
+    </style>
+
+    <div class="business-wrapper">
+        <div class="business-card">
+            <div class="text-center">
+                <div class="section-badge">
+                    <i class="fas fa-layer-group"></i>
+                    Business Branding
+                </div>
+                <h1 class="main-title">
+                    Business Links
+                </h1>
+                <p class="sub-title">
+                    Upload your company image and manage all business social links professionally.
+                </p>
+            </div>
+
+
+            <form id="businessForm" enctype="multipart/form-data">
+                
+
+                <div class="upload-box mb-4">
+                    <input type="hidden" name="removeLogo" id="removeLogo" value="0">
+
+                    <label class="upload-label d-flex justify-content-between align-items-center">
+                        Company Logo
+
+                        <button type="button" id="removeLogoBtn"
+                            class="btn btn-sm btn-outline-danger rounded-pill"
+                            —>
+                            Remove Logo
+                        </button>
+                    </label>
+
+                    <div class="text-center">
+                        <img src="/images/user-icon.jpg"
+                            id="imagePreview"
+                            class="preview-image"
+                            style="—">
+                    </div>
+
+                    <small class="text-muted d-block mt-2">
+                        <strong>Recommended Company Logo / Banner</strong><br>
+                        📌 <strong>Banner:</strong> 500 × 200 px or 800 × 300 px<br>
+                        📌 <strong>Logo:</strong> 300 × 300 px or 450 × 120 px
+                    </small>
+
+                    <div class="mt-4">
+                        <input type="file" name="company_logo" id="companyLogo" class="form-control custom-input">
+                        <small class="text-danger company_logo_error"></small>
+                    </div>
+                </div>
+
+                 
+
+                <!-- WHATSAPP -->
+                <div class="mb-4">
+                    <label class="upload-label">
+                        WhatsApp Link
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-whatsapp input-icon text-success"></i>
+                        <input type="text" name="whatsapp_link" class="form-control custom-input" value="—" placeholder="https://wa.me/919999999999">
+                    </div>
+                    <small class="text-danger whatsapp_link_error"></small>
+                </div>
+
+                
+
+                <!-- Selected Links (Tags) -->
+                <div class="mb-3" id="selectedLinksContainer">
+                    <label class="upload-label">Selected Action Links</label>
+                    <div id="selectedLinksList" class="d-flex flex-wrap gap-2 mt-2">
+                        
+                            <span class="badge badge-light d-flex align-items-center p-2"
+                                style="background: #404e4ede; font-size: 0.9rem; border-radius: 20px;">
+                                <span>—</span>
+                                <i class="fas fa-times ms-2 text-danger remove-link-tag"
+                                    style="cursor: pointer; font-size: 0.8rem;" data-link-id="—"></i>
+                            </span>
+                        
+                            <span id="noSelectedMsg" class="text-muted">No links selected</span>
+                        
+                    </div>
+                </div>
+
+                <!-- Dropdown with all available links -->
+                <div class="mb-4">
+                    <label class="upload-label">Select Action Links</label>
+                    <div class="custom-dropdown">
+                        <div class="dropdown-header" id="dropdownHeader">
+                            <span id="selectedCount">Select Links</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+
+                        <div class="dropdown-content" id="dropdownContent">
+                            
+                                <label class="dropdown-item-custom">
+                                    <input type="checkbox" name="social_link_ids[]" value="—"
+                                        class="action-link-checkbox"
+                                        —>
+                                    <div class="link-info">
+                                        <div class="platform-name">—</div>
+                                        <div class="platform-url">—</div>
+                                    </div>
+                                </label>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="upload-label">Business Type</label>
+                    <div class="row g-2">
+                        <div class="col-md-9">
+                            <div class="custom-dropdown">
+                                <div class="dropdown-header" id="businessTypeHeader">
+                                    <span id="businessTypeText">
+                                        Select Business Type
+                                    </span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                                <div class="dropdown-content" id="businessTypeContent">
+                                    
+                                        <div class="dropdown-item-custom business-type-item" data-id="—"
+                                            data-name="—">
+                                            —
+                                        </div>
+                                    
+                                </div>
+                            </div>
+                            <input type="hidden" name="business_type_id" id="business_type_id">
+                            <small class="text-danger business_type_id_error"></small>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-add-type w-100" data-bs-toggle="modal" data-bs-target="#addBusinessTypeModal">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                <span>Add New</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="saveBusinessBtn" class="btn btn-primary w-100 save-btn">
+                    <i class="fas fa-save me-2"></i>
+                    Save Business Details
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="addBusinessTypeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle text-primary me-2"></i>
+                        Add Business Type
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="businessTypeForm">
+                    
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Business Type
+                            </label>
+                            <input type="text" class="form-control" id="type_name" name="type_name"
+                                placeholder="Example : B2B">
+
+                            <small class="text-danger type_name_error"></small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="saveBusinessType">
+                            <i class="fas fa-save me-1"></i>
+                            Save Type
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        $(document).ready(function() {
+            // Dropdown toggle
+            $('#dropdownHeader').on('click', function() {
+                $('#dropdownContent').toggleClass('active');
+            });
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.custom-dropdown').length) {
+                    $('#dropdownContent').removeClass('active');
+                }
+            });
+
+            // Preview selected logo
+            $('#companyLogo').on('change', function () {
+                let file = this.files[0];
+
+                if (file) {
+                    let reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        $('#imagePreview')
+                            .attr('src', e.target.result)
+                            .show();
+
+                        $('#removeLogoBtn').show();
+                        $('#removeLogo').val('0');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Remove logo
+            $('#removeLogoBtn').on('click', function () {
+                $('#removeLogo').val('1');
+                $('#companyLogo').val('');
+                $('#imagePreview').attr('src', '').hide();
+                $(this).hide();
+            });
+
+            // Function to update selected count and tags
+            function updateSelectedUI() {
+                let checkedBoxes = $('.action-link-checkbox:checked');
+                let count = checkedBoxes.length;
+                let container = $('#selectedLinksList');
+
+                // Update count text
+                $('#selectedCount').text(count > 0 ? count + ' Link(s) Selected' : 'Select Links');
+
+                // Rebuild tags
+                let html = '';
+                checkedBoxes.each(function() {
+                    let $cb = $(this);
+                    let id = $cb.val();
+                    let label = $cb.closest('.dropdown-item-custom').find('.platform-name').text().trim();
+                    html += `<span class="badge badge-light d-flex align-items-center p-2"
+                          style="background: #404e4ede; font-size: 0.9rem; border-radius: 20px;">
+                         <span>${label}</span>
+                         <i class="fas fa-times ms-2 text-danger remove-link-tag"
+                            style="cursor: pointer; font-size: 0.8rem;"
+                            data-link-id="${id}"></i>
+                     </span>`;
+                });
+
+                if (html) {
+                    container.html(html);
+                    $('#noSelectedMsg').remove();
+                } else {
+                    container.html('<span id="noSelectedMsg" class="text-muted">No links selected</span>');
+                }
+
+                // Bind remove event to new tags
+                $('.remove-link-tag').off('click').on('click', function() {
+                    let id = $(this).data('link-id');
+                    let checkbox = $(`.action-link-checkbox[value="${id}"]`);
+                    if (checkbox.length) {
+                        checkbox.prop('checked', false).trigger('change');
+                    }
+                });
+            }
+
+            // Listen to checkbox changes
+            $(document).on('change', '.action-link-checkbox', function() {
+                updateSelectedUI();
+            });
+
+            // Initial setup
+            updateSelectedUI();
+
+            // Image preview
+            $('#companyLogo').change(function() {
+                let file = this.files[0];
+                if (file) {
+                    let reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#imagePreview').attr('src', e.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+
+            $('#businessForm').submit(function(e) {
+                e.preventDefault();
+                $('.text-danger').text('');
+                let formData = new FormData(this);
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    beforeSend: function() {
+                        $('#saveBusinessBtn').html(
+                            '<i class="fas fa-spinner fa-spin me-2"></i> Saving...').prop(
+                            'disabled', true);
+                    },
+                    success: function(response) {
+                        $('#saveBusinessBtn').html(
+                            '<i class="fas fa-check me-2"></i> Saved Successfully').prop(
+                            'disabled', false);
+                        toastr.success(response.message);
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        $('#saveBusinessBtn')
+                            .html('<i class="fas fa-save me-2"></i> Save Business Details')
+                            .prop('disabled', false);
+                        if (xhr.status == 422) {
+                            let errors = xhr.responseJSON.errors;
+                            $.each(errors, function(key, value) {
+                                $('.' + key + '_error').text(value[0]);
+                            });
+                        } else {
+                            toastr.error('Something went wrong');
+                        }
+                    }
+                });
+            });
+
+
+
+
+            // Open / Close
+            $('#businessTypeHeader').click(function () {
+                $('#businessTypeContent').toggleClass('active');
+            });
+
+            $(document).click(function(e){
+                if(!$(e.target).closest('#businessTypeHeader, #businessTypeContent').length){
+                    $('#businessTypeContent').removeClass('active');
+                }
+            });
+
+            $(document).on('click','.business-type-item',function(){
+                $('.business-type-item').removeClass('active');
+                $(this).addClass('active');
+                let id=$(this).data('id');
+                let name=$(this).data('name');
+                $('#business_type_id').val(id);
+                $('#businessTypeText').text(name);
+                $('#businessTypeContent').removeClass('active');
+            });
+
+            loadBusinessTypes();
+
+            // Save Business Type
+            $('#businessTypeForm').submit(function(e) {
+                e.preventDefault();
+                $('.type_name_error').text('');
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+
+                    data: {
+                        _token: "—",
+                        type_name: $('#type_name').val()
+                    },
+
+                    beforeSend: function() {
+                        $('#saveBusinessType')
+                            .html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...')
+                            .prop('disabled', true);
+                    },
+
+                    success: function(response) {
+                         console.log(response);
+
+                        toastr.success(response.message);
+                        $('#businessTypeForm')[0].reset();
+                        $('#saveBusinessType')
+                            .html('<i class="fas fa-save me-1"></i> Save Type')
+                            .prop('disabled', false);
+                        $('#addBusinessTypeModal').modal('hide');
+                            loadBusinessTypes(response.data.id);
+                    },
+
+                    error: function(xhr) {
+                        $('#saveBusinessType')
+                            .html('<i class="fas fa-save me-1"></i> Save Type')
+                            .prop('disabled', false);
+                        if (xhr.status == 422) {
+                            let errors = xhr.responseJSON.errors;
+                            if (errors.type_name) {
+                                $('.type_name_error').text(errors.type_name[0]);
+                            }
+                        } else {
+                            toastr.error('Something went wrong.');
+                        }
+                    }
+                });
+            });
+
+            loadBusinessTypes();
+            function loadBusinessTypes(selectedId = null) {
+                $.ajax({
+                    url: "#",
+                    type: "GET",
+                    cache: false,
+                    success: function(response) {
+                        let html = '';
+                        $.each(response, function(index, item) {
+                            html += `
+                                <div class="dropdown-item-custom business-type-item"
+                                    data-id="${item.id}"
+                                    data-name="${item.type_name}">
+                                    ${item.type_name}
+                                </div>
+                            `;
+                        });
+
+                        $('#businessTypeContent').empty().html(html);
+                        if (selectedId) {
+                            let selected = response.find(function(item){
+                                return item.id == selectedId;
+                            });
+
+                            if(selected){
+                                $('#business_type_id').val(selected.id);
+                                $('#businessTypeText').text(selected.type_name);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+
+
+
+    </script>
+
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        $(document).ready(function() {
+            // Logout functionality
+            $('#logoutBtn').click(function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        toastr.success("Logged out successfully");
+                        setTimeout(function() {
+                            window.location.href = "#";
+                        }, 1000);
+                    },
+                    error: function() {
+                        toastr.error("Logout failed");
+                    }
+                });
+            });
+        });
+
+        // ========== SIDEBAR TOGGLE (Custom JavaScript) ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleBtn = document.getElementById('sidebarToggle');
+
+            // Toggle sidebar on button click
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = sidebar.classList.contains('show');
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                    toggleBtn.setAttribute('aria-expanded', !isOpen);
+                    document.body.style.overflow = !isOpen ? 'hidden' : '';
+                });
+            }
+
+            // Close sidebar on overlay click
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                });
+            }
+
+            // Close sidebar on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  SUBMENU TOGGLE (Generic – works for any dropdown)
+            // =============================================================
+            window.toggleSubmenu = function(event) {
+                const parentLink = event.currentTarget;
+                const targetId = parentLink.getAttribute('data-target');
+                if (!targetId) return;
+                const submenu = document.getElementById(targetId);
+                if (!submenu) return;
+
+                const arrow = parentLink.querySelector('.arrow');
+                const isOpen = submenu.classList.contains('open');
+
+                // Toggle this submenu (open/close)
+                submenu.classList.toggle('open');
+                arrow.classList.toggle('open');
+                parentLink.setAttribute('aria-expanded', !isOpen);
+
+                // If we are opening, add active-indicator; if closing and no child active, remove it
+                if (!isOpen) {
+                    parentLink.classList.add('active-indicator');
+                } else {
+                    const hasActiveChild = submenu.querySelector('.nav-link.active') !== null;
+                    if (!hasActiveChild) {
+                        parentLink.classList.remove('active-indicator');
+                    }
+                }
+                event.preventDefault();
+            };
+
+            // =============================================================
+            //  ACTIVE MENU STATE (defensive – only updates indicators,
+            //  does NOT force-close any submenu)
+            // =============================================================
+            function setActiveMenu() {
+                const currentPath = window.location.pathname;
+
+                // 1) Find the best matching child link
+                let bestMatch = null;
+                let bestLength = 0;
+
+                document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href || href === '#') return;
+
+                    let linkPath;
+                    try {
+                        linkPath = new URL(href, window.location.origin).pathname;
+                    } catch {
+                        linkPath = href;
+                    }
+
+                    const cleanCurrent = currentPath.replace(/\/$/, '');
+                    const cleanLink = linkPath.replace(/\/$/, '');
+
+                    const isMatch = (cleanCurrent === cleanLink) ||
+                                    (cleanLink !== '/' && cleanCurrent.startsWith(cleanLink + '/'));
+
+                    if (isMatch && cleanLink.length > bestLength) {
+                        bestLength = cleanLink.length;
+                        bestMatch = link;
+                    }
+                });
+
+                // 2) Remove 'active' class from all links (but do NOT close submenus)
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                // 3) Remove 'active-indicator' from all parent buttons
+                document.querySelectorAll('[data-target]').forEach(parent => {
+                    parent.classList.remove('active-indicator');
+                });
+
+                // 4) If we found a match, activate it and set indicator on its parent
+                if (bestMatch) {
+                    bestMatch.classList.add('active');
+
+                    const parentSub = bestMatch.closest('.sub-menu');
+                    if (parentSub) {
+                        const parentBtn = document.querySelector(`[data-target="${parentSub.id}"]`);
+                        if (parentBtn) {
+                            parentBtn.classList.add('active-indicator');
+                            // Optionally, we can also ensure the parent is expanded
+                            // but we won't force it open here – user can toggle.
+                        }
+                    }
+                }
+            }
+
+            // Run on page load
+            setActiveMenu();
+
+            // Run every 1 second to keep indicators updated (does not close dropdowns)
+            setInterval(setActiveMenu, 1000);
+
+            // Also run after sidebar toggle (in case layout shift affects visibility)
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                setTimeout(setActiveMenu, 200);
+            });
+
+            // ========== KEYBOARD NAVIGATION ==========
+            document.querySelectorAll('.nav-link[role="button"]').forEach(link => {
+                link.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+
+            // Handle window resize - close sidebar on large screens
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 991.98 && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  THEME TOGGLE LOGIC (Sun/Moon) – handles click events
+            // =============================================================
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            const STORAGE_KEY = 'userThemePreference';
+
+            function applyTheme(theme) {
+                const isDark = (theme === 'dark');
+                document.body.classList.toggle('theme-dark', isDark);
+                if (isDark) {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            // Load saved preference (default 'light') – already set by inline script
+            const saved = localStorage.getItem(STORAGE_KEY) || 'light';
+            // applyTheme(saved); // already done by inline script
+
+            // Toggle on click
+            themeToggle.addEventListener('click', function() {
+                const current = localStorage.getItem(STORAGE_KEY) || 'light';
+                const newTheme = (current === 'light') ? 'dark' : 'light';
+                applyTheme(newTheme);
+            });
+
+        });
+    </script>
+<script src="/js/static-navigation.js"></script>
+<script src="/js/admin-own-workspace.js"></script>
+</body>
+
+</html>

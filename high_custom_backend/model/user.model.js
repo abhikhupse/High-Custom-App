@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
+    role: { type: String, default: "User", maxlength: 80 },
+    isActive: { type: Boolean, default: true },
+    deletedAt: { type: Date, default: null },
+    appRights: { type: [String], default: undefined },
+    accessRight: { type: String, enum: ["Full Access", "View & Edit", "View Only", "No Access"], default: "Full Access" },
     isEmailVerified: {
       type: Boolean,
       default: false,

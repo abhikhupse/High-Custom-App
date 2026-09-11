@@ -30,8 +30,10 @@ exports.save = async (req, res) => {
     const logoUrl = `${getPublicBaseUrl(req)}/uploads/brand/high_custom_logo.png`;
     const whatsappUrl = `https://wa.me/${digits}`;
     const primaryLink = links.find((link) => /^https?:\/\//i.test(link.url || ""));
+    // An empty business type represents the shared/default configuration.
+    // Keep it in a dedicated record instead of overwriting an arbitrary type.
     const data = await BusinessLinkSettings.findOneAndUpdate(
-      selectedBusinessType ? { userId: req.user.id, businessType } : { userId: req.user.id },
+      { userId: req.user.id, businessType },
       { $set: {
         logoKey: "high_custom_logo",
         logoUrl,
@@ -42,8 +44,12 @@ exports.save = async (req, res) => {
       } },
       { upsert: true, new: true, runValidators: true },
     );
+    // A type-specific save changes only that type. A blank selection is the
+    // "all sequences" option used by the Flutter Link screen.
     await Sequence.updateMany(
-      { userId: req.user.id, businessType },
+      selectedBusinessType
+        ? { userId: req.user.id, businessType }
+        : { userId: req.user.id },
       { $set: {
         brand: { enabled: true, logoUrl, logoPosition: "Center" },
         actionLinks: {

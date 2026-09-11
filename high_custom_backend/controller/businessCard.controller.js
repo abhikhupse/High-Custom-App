@@ -1,5 +1,12 @@
 const B_CARD_COLLECTION = require("../model/businessCard.model");
 const QRCode = require("qrcode");
+const normalizeWhatsapp = (value) => {
+  let digits = String(value || "").replace(/\D/g, "");
+  // Accept both a local 10-digit mobile number and an Indian +91 number.
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  return digits;
+};
+const isValidUrl = (value) => /^https?:\/\//i.test(String(value || "").trim());
 exports.createBusinessCard = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -11,8 +18,9 @@ exports.createBusinessCard = async (req, res) => {
       });
     }
 
-    const { fullName, role, companyName, whatsapp, email, qrLink, address } =
+    const { fullName, role, companyName, email, qrLink, address } =
       req.body;
+    const whatsapp = normalizeWhatsapp(req.body.whatsapp);
 
     if (
       !fullName ||
@@ -27,6 +35,12 @@ exports.createBusinessCard = async (req, res) => {
         success: false,
         message: "Please enter all the fields to generate business card",
       });
+    }
+    if (whatsapp.length !== 10) {
+      return res.status(400).json({ success: false, message: "Enter a valid 10-digit WhatsApp number." });
+    }
+    if (!isValidUrl(qrLink)) {
+      return res.status(400).json({ success: false, message: "Enter a complete QR link starting with http:// or https://." });
     }
     const businessCardExist = await B_CARD_COLLECTION.findOne({
       userId,
@@ -78,8 +92,15 @@ exports.updateBusinessCard = async (req, res) => {
       });
     }
 
-    const { fullName, role, companyName, whatsapp, email, address, qrLink } =
+    const { fullName, role, companyName, email, address, qrLink } =
       req.body;
+    const whatsapp = req.body.whatsapp === undefined ? undefined : normalizeWhatsapp(req.body.whatsapp);
+    if (whatsapp !== undefined && whatsapp.length !== 10) {
+      return res.status(400).json({ success: false, message: "Enter a valid 10-digit WhatsApp number." });
+    }
+    if (qrLink !== undefined && !isValidUrl(qrLink)) {
+      return res.status(400).json({ success: false, message: "Enter a complete QR link starting with http:// or https://." });
+    }
 
     // ============================================================
     // QR CODE

@@ -1,0 +1,167 @@
+/* Static dashboard spacing fixes. */
+.filter-bar {
+    margin-bottom: 0 !important;
+}
+
+@media (min-width: 993px) {
+    .filter-bar {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+
+    .filter-right {
+        margin-left: auto;
+        flex-wrap: nowrap !important;
+    }
+}
+
+.stats-row {
+    margin-top: 26px !important;
+}
+
+.dashboard-stats {
+    margin-top: 0 !important;
+}
+
+@media (max-width: 992px) {
+    .stats-row {
+        margin-top: 16px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-row {
+        margin-top: 14px !important;
+    }
+}
+
+/* Complete dashboard dark theme. */
+body.theme-dark {
+    --dashboard-panel: #172235;
+    --dashboard-panel-hover: #1d2b42;
+    --dashboard-border: #2c3a51;
+    --dashboard-text: #f8fafc;
+    --dashboard-muted: #aab7ca;
+}
+
+body.theme-dark .top-navbar {
+    background: #172235 !important;
+    border-bottom: 1px solid var(--dashboard-border);
+    box-shadow: 0 3px 14px rgba(0, 0, 0, .24) !important;
+}
+
+body.theme-dark .top-navbar .navbar-brand,
+body.theme-dark .top-navbar .navbar-brand *,
+body.theme-dark .top-navbar > span,
+body.theme-dark .filter-left h2 {
+    color: var(--dashboard-text) !important;
+}
+
+body.theme-dark .main-content {
+    background: #0f172a !important;
+}
+
+body.theme-dark .dashboard-card,
+body.theme-dark .chart-card,
+body.theme-dark .charts-row .card,
+body.theme-dark .mail-card,
+body.theme-dark .filter-right .card {
+    background: var(--dashboard-panel) !important;
+    border: 1px solid var(--dashboard-border) !important;
+    box-shadow: 0 7px 18px rgba(0, 0, 0, .2) !important;
+}
+
+body.theme-dark .dashboard-card {
+    transition: transform .2s ease, background-color .2s ease, box-shadow .2s ease;
+}
+
+body.theme-dark a:hover .dashboard-card {
+    background: var(--dashboard-panel-hover) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .28) !important;
+}
+
+body.theme-dark .dashboard-card h2,
+body.theme-dark .dashboard-card small,
+body.theme-dark .chart-card .card-header,
+body.theme-dark .chart-card .card-header h5,
+body.theme-dark .charts-row .card-header,
+body.theme-dark .charts-row .card-header h5,
+body.theme-dark .mail-card,
+body.theme-dark .mail-card span {
+    color: var(--dashboard-text) !important;
+}
+
+body.theme-dark .dashboard-card small {
+    color: var(--dashboard-muted) !important;
+}
+
+body.theme-dark .chart-card .card-header {
+    background: #172235 !important;
+    border-bottom-color: var(--dashboard-border) !important;
+}
+
+body.theme-dark .charts-row .card-header {
+    color: var(--dashboard-text) !important;
+    background: #172235 !important;
+    border-bottom-color: var(--dashboard-border) !important;
+}
+
+body.theme-dark .chart-card .card-body {
+    background: var(--dashboard-panel) !important;
+}
+
+body.theme-dark .charts-row .card-body {
+    color: var(--dashboard-text) !important;
+    background: var(--dashboard-panel) !important;
+}
+
+body.theme-dark .form-select,
+body.theme-dark .date-filter-wrap .btn {
+    color: var(--dashboard-text) !important;
+    background-color: var(--dashboard-panel) !important;
+    border-color: #40516c !important;
+}
+
+body.theme-dark .form-select {
+    color-scheme: dark;
+}
+
+body.theme-dark .date-filter-wrap .btn:hover,
+body.theme-dark .date-filter-wrap .btn:focus,
+body.theme-dark .form-select:focus {
+    background-color: var(--dashboard-panel-hover) !important;
+    border-color: #6b7f9e !important;
+    box-shadow: 0 0 0 .2rem rgba(96, 130, 185, .18) !important;
+}
+
+body.theme-dark .dropdown-menu {
+    color: var(--dashboard-text);
+    background: var(--dashboard-panel);
+    border-color: var(--dashboard-border);
+}
+
+body.theme-dark .dropdown-item,
+body.theme-dark .dropdown-menu .form-label {
+    color: var(--dashboard-text);
+}
+
+body.theme-dark .dropdown-item:hover,
+body.theme-dark .dropdown-item:focus {
+    color: #fff;
+    background: var(--dashboard-panel-hover);
+}
+
+body.theme-dark .apexcharts-text,
+body.theme-dark .apexcharts-legend-text,
+body.theme-dark .apexcharts-datalabel-label,
+body.theme-dark .apexcharts-datalabel-value,
+body.theme-dark .apexcharts-xaxis-label,
+body.theme-dark .apexcharts-yaxis-label {
+    fill: var(--dashboard-text) !important;
+    color: var(--dashboard-text) !important;
+}
+
+body.theme-dark .apexcharts-gridline {
+    stroke: #334158 !important;
+}

@@ -209,6 +209,7 @@ exports.createSequence = async (req, res) => {
 
     const existingSequence = await SEQUENCE_COLLECTION.findOne({
       userId,
+      businessType: formattedBusinessType,
       step: stepNumber,
       variant: formattedVariant,
     });
@@ -216,7 +217,7 @@ exports.createSequence = async (req, res) => {
     if (existingSequence) {
       return res.status(409).json({
         success: false,
-        message: "A sequence with this step and variant already exists",
+        message: "A sequence with this business type, step and variant already exists",
       });
     }
 
@@ -1257,7 +1258,7 @@ exports.updateSequence = async (req, res) => {
     }
 
     const formattedBusinessType =
-      typeof variant === "string" ? businessType.trim() : "";
+      typeof businessType === "string" ? businessType.trim() : "";
 
     if (!formattedBusinessType) {
       return res.status(400).json({

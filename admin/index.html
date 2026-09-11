@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="—">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/company-logo.png">
+    <title>High Custom Admin</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ============================================================= -->
+    <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
+    <!-- ============================================================= -->
+    <style>
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f5f7fb;
+            --bg-topbar: #ffffff;
+            --bg-main: #f5f7fb;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            --dropdown-toggle-color: #1e293b;
+        }
+
+        /* Dark theme */
+        body.theme-dark {
+            --bg-body: #0f172a;
+            --bg-topbar: #1e293b;
+            --bg-main: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+            --dropdown-toggle-color: #f1f5f9;
+        }
+
+        /* Apply variables to existing elements */
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .top-navbar {
+            background: var(--bg-topbar);
+            box-shadow: var(--topbar-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .main-content {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Fix dropdown toggle text color in dark mode */
+        .top-navbar .dropdown-toggle {
+            color: var(--dropdown-toggle-color) !important;
+        }
+
+        /* Theme toggle button style */
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .theme-toggle:hover {
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        /* Sidebar remains dark – no changes */
+    </style>
+
+    <!-- ⚡ Inline script to apply saved theme class to <body> immediately (no flicker) -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== ORIGINAL STYLES (unchanged) ========== -->
+    <style>
+        /* ---------- RESET & BASE ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ---------- SIDEBAR (dark theme) ---------- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            z-index: 1050;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1.2rem 0.8rem 2rem;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            padding: 0 0.75rem 1.8rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-brand i {
+            color: #3b82f6;
+            font-size: 1.8rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link i {
+            width: 1.5rem;
+            font-size: 1.15rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link .menu-text {
+            flex: 1;
+        }
+
+        .nav-link .arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .nav-link .arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .nav-link.active .arrow {
+            color: #fff;
+        }
+
+        .nav-link.active-indicator {
+            border-left: 4px solid #0d6efd;
+            background: rgba(13, 110, 253, 0.08);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active-indicator i {
+            color: #0d6efd;
+        }
+
+        .sub-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0.2rem 0 0.2rem 1.8rem;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+            opacity: 0;
+        }
+
+        .sub-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        .sub-menu .nav-link {
+            padding: 0.5rem 0.9rem 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        .sub-menu .nav-link i {
+            font-size: 0.9rem;
+            width: 1.3rem;
+        }
+
+        .sub-menu .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0.8rem 0.5rem;
+        }
+
+        /* ---------- TOP NAVBAR ---------- */
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 260px;
+            height: 70px;
+            z-index: 1040;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 1.5rem;
+            transition: left 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9edf4;
+        }
+
+        .hc-user-code {
+            color: #fff;
+            border-radius: 18px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #6793d6 0%, #413b3b 40%, #0939a0 60%);
+            background-size: 400%;
+            font-weight: 600;
+            animation: Gradient 5s ease infinite;
+        }
+
+        @keyframes Gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ---------- SIDEBAR TOGGLE BUTTON (mobile) ---------- */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #1e293b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.6rem;
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            color: #0d6efd;
+        }
+
+        /* ---------- OVERLAY (mobile) ---------- */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1045;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* ---------- RESPONSIVE DESIGN ---------- */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                height: 100%;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .top-navbar {
+                left: 0;
+                padding: 0 1.2rem;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 60px;
+                padding: 0.6rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .hc-user-code {
+                font-size: 0.75rem;
+                padding: 5px 12px;
+            }
+
+            .profile-img {
+                width: 32px;
+                height: 32px;
+            }
+
+            .main-content {
+                margin-top: 60px;
+                padding: 12px;
+            }
+
+            .dropdown-menu {
+                min-width: 200px !important;
+            }
+        }
+
+        /* ---------- ACCESSIBILITY ---------- */
+        .nav-link:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .sidebar-brand {
+            padding: 15px;
+        }
+
+        .sidebar-brand a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            margin-top: -13%;
+        }
+
+        /* .sidebar-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 40%;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            padding: 3px;
+        }
+
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        } */
+
+        .sidebar-logo {
+            width: 65%;
+            height: auto;
+            object-fit: contain;
+            align-self: center;
+            justify-self: center;
+            display: block;
+        }
+
+        .top-navbar span {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #282929;
+            margin-right: auto;
+        }
+
+    </style>
+<meta name="page-styles-restored" content="true">
+<style>
+    /* =========================================
+       DASHBOARD STATS – FULLY RESPONSIVE GRID
+       ========================================= */
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 18px;
+        margin: 0;
+        width: 100%;
+    }
+
+    .dashboard-card {
+        border-radius: 14px;
+        transition: .3s;
+        height: 100%;
+        overflow: hidden;
+        /* prevent content spill */
+        min-width: 0;
+        /* allow shrinking below content width */
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .75rem 1.5rem rgba(0, 0, 0, .12) !important;
+    }
+
+    .dashboard-card .card-body {
+        padding: 1.25rem;
+        min-width: 0;
+        /* allow text truncation */
+    }
+
+    .card-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .card-info>div {
+        min-width: 0;
+        /* allow text truncation */
+        /* flex: 1; */
+    }
+
+    .dashboard-card h6 {
+        font-size: 15px;
+        margin-bottom: 6px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dashboard-card h2 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .dashboard-card small {
+        color: #6c757d;
+        font-size: 13px;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dashboard-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 20px;
+        /* flex-shrink: 0; */
+        /* never shrink the icon */
+    }
+
+    /* =========================================
+       RESPONSIVE BREAKPOINTS – DASHBOARD GRID
+       ========================================= */
+    @media (max-width: 1400px) {
+        .dashboard-stats {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .dashboard-stats {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-stats {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .dashboard-card h2 {
+            font-size: 22px;
+        }
+
+        .dashboard-icon {
+            width: 45px;
+            height: 45px;
+            font-size: 18px;
+        }
+
+        .dashboard-card .card-body {
+            padding: 1rem;
+        }
+
+        .dashboard-card h6 {
+            font-size: 13px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-stats {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .dashboard-card h2 {
+            font-size: 20px;
+        }
+
+        .dashboard-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+        }
+
+        .dashboard-card .card-body {
+            padding: .85rem;
+        }
+    }
+
+    /* =========================================
+       FILTER BAR – FULLY RESPONSIVE
+       ========================================= */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .filter-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .filter-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        flex: 0 1 auto;
+        min-width: 0;
+    }
+
+    .filter-right .mail-card {
+        height: 38px;
+        min-width: 140px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .filter-right .mail-card .card-body {
+        padding: .4rem .75rem !important;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .filter-right .mail-card .card-body .d-flex {
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .filter-right .mail-card .card-body .fw-semibold {
+        white-space: nowrap;
+    }
+
+    .user-filter-wrap {
+        width: 270px;
+        flex-shrink: 0;
+        min-width: 200px;
+    }
+
+    .user-filter-wrap select {
+        width: 100%;
+        height: 38px;
+        font-size: 13px;
+        padding: .25rem .75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .date-filter-wrap {
+        flex-shrink: 0;
+    }
+
+    .date-filter-wrap .btn {
+        height: 38px;
+        font-size: 13px;
+        padding: .25rem .75rem;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 992px) {
+        .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .filter-left,
+        .filter-right {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            width: 100%;
+        }
+
+        .filter-right {
+            justify-content: flex-start;
+            gap: 10px;
+        }
+
+        .user-filter-wrap {
+            width: 100%;
+            min-width: unset;
+            flex: 1 1 auto;
+        }
+
+        .filter-right .mail-card {
+            min-width: 120px;
+            flex: 0 1 auto;
+        }
+
+        .date-filter-wrap .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .date-filter-wrap .dropdown {
+            width: 100%;
+        }
+
+        .date-filter-wrap .dropdown .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .filter-right {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .filter-right .mail-card {
+            width: 100%;
+            min-width: unset;
+        }
+
+        .user-filter-wrap {
+            width: 100%;
+        }
+
+        .date-filter-wrap {
+            width: 100%;
+        }
+
+        .date-filter-wrap .dropdown {
+            width: 100%;
+        }
+
+        .date-filter-wrap .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .filter-left {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .filter-left h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+        }
+    }
+
+    /* =========================================
+       MAIL CREDITS MODAL – RESPONSIVE
+       ========================================= */
+    .mail-credits-modal {
+        border: 0;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 25px 70px rgba(15, 23, 42, 0.18);
+    }
+
+    .mail-modal-header {
+        padding: 22px 24px 18px;
+        border-bottom: 1px solid #edf1f7;
+        background: #ffffff;
+    }
+
+    .mail-modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #17233c;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .mail-modal-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #edf4ff;
+        color: #1769ff;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    .mail-modal-subtitle {
+        margin-top: 5px;
+        margin-left: 48px;
+        color: #8a96a8;
+        font-size: 13px;
+    }
+
+    .mail-modal-search {
+        padding: 18px 24px;
+        background: #fafbfe;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9aa6b8;
+        font-size: 13px;
+    }
+
+    .search-box input {
+        width: 100%;
+        height: 42px;
+        padding: 0 15px 0 40px;
+        border: 1px solid #e1e7f0;
+        border-radius: 10px;
+        outline: none;
+        color: #344054;
+        font-size: 13px;
+        background: #ffffff;
+        transition: .2s;
+    }
+
+    .search-box input:focus {
+        border-color: #1769ff;
+        box-shadow: 0 0 0 3px rgba(23, 105, 255, .08);
+    }
+
+    .mail-modal-body {
+        padding: 0 24px;
+        max-height: 430px;
+        overflow-y: auto;
+    }
+
+    .mail-table-header {
+        display: grid;
+        grid-template-columns: 1.4fr 1.5fr .6fr;
+        align-items: center;
+        padding: 13px 14px;
+        border-bottom: 1px solid #edf1f7;
+        color: #8a96a8;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .mail-user-row {
+        display: grid;
+        grid-template-columns: 1.4fr 1.5fr .6fr;
+        align-items: center;
+        min-height: 72px;
+        padding: 10px 14px;
+        border-bottom: 1px solid #f0f2f6;
+        transition: .2s;
+    }
+
+    .mail-user-row:hover {
+        background: #f8faff;
+        border-radius: 10px;
+    }
+
+    .mail-user-info {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    .mail-avatar {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: 11px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .avatar-blue {
+        background: #eaf2ff;
+        color: #1769ff;
+    }
+
+    .avatar-purple {
+        background: #f1ebff;
+        color: #7048d8;
+    }
+
+    .avatar-green {
+        background: #e8f8f1;
+        color: #198754;
+    }
+
+    .avatar-orange {
+        background: #fff1e5;
+        color: #e87817;
+    }
+
+    .mail-user-name {
+        color: #25324a;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mail-user-email {
+        color: #6f7d93;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mail-credit-count {
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .mail-credit-count span {
+        color: #1769ff;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .mail-credit-count small {
+        color: #9aa6b8;
+        font-size: 12px;
+    }
+
+    .mail-modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-top: 1px solid #edf1f7;
+        color: #8a96a8;
+        font-size: 12px;
+        background: #ffffff;
+    }
+
+    .mail-close-btn {
+        padding: 7px 18px;
+        border: 1px solid #dfe5ee;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #526078;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .mail-close-btn:hover {
+        background: #f5f7fa;
+    }
+
+    .mail-modal-body::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .mail-modal-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .mail-modal-body::-webkit-scrollbar-thumb {
+        background: #d9e0ea;
+        border-radius: 10px;
+    }
+
+    /* Modal responsive */
+    @media (max-width: 768px) {
+        .mail-modal-body {
+            padding: 0 16px;
+            overflow-x: auto;
+        }
+
+        .mail-table-header,
+        .mail-user-row {
+            min-width: 550px;
+        }
+
+        .mail-modal-header,
+        .mail-modal-search,
+        .mail-modal-body,
+        .mail-modal-footer {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .mail-modal-title {
+            font-size: 17px;
+        }
+
+        .mail-modal-subtitle {
+            margin-left: 0;
+            font-size: 12px;
+        }
+
+        .mail-user-name {
+            font-size: 13px;
+        }
+
+        .mail-user-email {
+            font-size: 12px;
+        }
+
+        .mail-credit-count span {
+            font-size: 16px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .mail-modal-header {
+            padding: 16px;
+        }
+
+        .mail-modal-title {
+            font-size: 15px;
+            flex-wrap: wrap;
+        }
+
+        .mail-modal-subtitle {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .mail-table-header {
+            font-size: 10px;
+            padding: 10px 8px;
+        }
+
+        .mail-user-row {
+            padding: 8px 8px;
+            min-height: 60px;
+        }
+
+        .mail-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 10px;
+            border-radius: 8px;
+        }
+
+        .mail-user-info {
+            gap: 8px;
+        }
+
+        .mail-user-name {
+            font-size: 12px;
+        }
+
+        .mail-user-email {
+            font-size: 11px;
+        }
+
+        .mail-credit-count span {
+            font-size: 14px;
+        }
+
+        .mail-credit-count small {
+            font-size: 10px;
+        }
+
+        .mail-modal-footer {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+            text-align: center;
+            padding: 12px 16px;
+        }
+
+        .mail-close-btn {
+            width: 100%;
+        }
+    }
+
+    /* =========================================
+       CHARTS – RESPONSIVE
+       ========================================= */
+    .chart-scroll {
+        max-height: 315px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .chart-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chart-scroll::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 20px;
+    }
+
+    .chart-scroll::-webkit-scrollbar-track {
+        background: #f5f5f5;
+    }
+
+    #campaignStatusChart,
+    #platformClickChart,
+    #buttonClickBarChart {
+        width: 100%;
+        min-height: 250px;
+    }
+
+    #buttonClickBarChart {
+        min-height: 300px;
+    }
+
+    /* Chart container responsive */
+    .chart-container {
+        width: 100%;
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+
+        #campaignStatusChart,
+        #platformClickChart,
+        #buttonClickBarChart {
+            min-height: 220px;
+        }
+
+        #buttonClickBarChart {
+            min-height: 260px;
+        }
+
+        .chart-scroll {
+            max-height: 280px;
+        }
+    }
+
+    @media (max-width: 480px) {
+
+        #campaignStatusChart,
+        #platformClickChart,
+        #buttonClickBarChart {
+            min-height: 200px;
+        }
+
+        #buttonClickBarChart {
+            min-height: 230px;
+        }
+
+        .chart-scroll {
+            max-height: 250px;
+        }
+    }
+
+    /* =========================================
+       CARD HEADER – RESPONSIVE
+       ========================================= */
+    .card-header.bg-white {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .card-header.bg-white h5 {
+        font-size: 1rem;
+        margin-bottom: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .card-header.bg-white .badge {
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 576px) {
+        .card-header.bg-white h5 {
+            font-size: .9rem;
+        }
+
+        .card-header.bg-white .badge {
+            font-size: .75rem;
+        }
+    }
+
+    /* =========================================
+       MISC HELPERS
+       ========================================= */
+    .text-purple {
+        color: #6f42c1 !important;
+    }
+
+    .bg-leads {
+        color: #9642f5;
+    }
+
+    .bg-users {
+        color: #133a5a;
+    }
+
+    .today-bg-leads {
+        color: rgb(136, 113, 113);
+    }
+
+    .today-bg-total-leadst {
+        background: rgb(136, 113, 113);
+    }
+
+    .bg-total-leadst {
+        background: #9642f5;
+    }
+
+    .bg-total-users {
+        background: #133a5a;
+    }
+
+    .bg-mail {
+        background: #0d6efd;
+    }
+
+    .bg-pending {
+        background: #ffc107;
+    }
+
+    .bg-sent {
+        background: #198754;
+    }
+
+    .bg-seen {
+        background: #6f42c1;
+    }
+
+    .bg-fail {
+        background: #dc3545;
+    }
+
+    .bg-interest {
+        background: #20c997;
+    }
+
+    .bg-not-interest {
+        background: #fd7e14;
+    }
+
+    .bg-qr-scan {
+        background: rgba(var(--bs-info-rgb), var(--bs-text-opacity)) !important;
+    }
+
+    .bg-qr-scan-color {
+        color: rgba(var(--bs-info-rgb), var(--bs-text-opacity)) !important;
+    }
+
+    /* smooth transitions */
+    .dashboard-card,
+    .mail-user-row,
+    .mail-close-btn,
+    .search-box input {
+        transition: all .2s ease-in-out;
+    }
+</style>
+<link rel="stylesheet" href="/css/static-dashboard-overrides.css">
+</head>
+
+<body>
+    <!-- ========== Set body theme class immediately ========== -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.body.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== OVERLAY (mobile) ========== -->
+    <div class="overlay" id="sidebarOverlay"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main sidebar">
+        
+        
+
+
+        <div class="sidebar-brand">
+            <a href="—" class="d-flex align-items-center text-decoration-none">
+                <div>
+                    <img src="/images/company-logo-1.png" alt="Company Logo" class="sidebar-logo">
+                </div>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#"
+                    aria-current="false">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  ADMIN DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-admin"
+                   id="adminParentLink"
+                   data-target="submenu-admin"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-envelope"></i>
+                    <span class="menu-text">Admin</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-admin" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-link"></i> Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-database"></i> Link
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-share-nodes"></i> Social Links
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Tracking Report
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  USERS DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-users"
+                   id="usersParentLink"
+                   data-target="submenu-users"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-user-group"></i>
+                    <span class="menu-text">Users</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-users" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-pen"></i> Users Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-lock"></i> Users Rights
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- All Tracking -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#">
+                    <i class="fas fa-location-dot"></i>
+                    <span class="menu-text">All Tracking</span>
+                </a>
+            </li>
+        </ul>
+
+         <!-- User Dropdown -->
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
+                    id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/images/user-icon.jpg"
+                        class="profile-img me-2" alt="User avatar">
+                    <strong class="d-none d-sm-inline">— —</strong>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    <li>
+                        <a class="dropdown-item" href="#">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </li>
+
+                     
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Gmail Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-danger">
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Gmail
+                            </a>
+                        </li>
+
+                    
+
+                    
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-success">
+
+                                <i class="fas fa-check-circle me-2"></i>
+                                Zoho Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-danger">
+
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Zoho
+                            </a>
+                        </li>
+                    
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+    </aside>
+
+    <!-- ========== TOP NAVBAR ========== -->
+    <nav class="top-navbar" id="topNavbar">
+         <span>ADMIN</span>
+        <!-- Mobile toggle button -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-left:auto;">
+
+            <!-- ============================================================= -->
+            <!--  SUN/MOON TOGGLE BUTTON                                        -->
+            <!-- ============================================================= -->
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                <i class="fas fa-sun"></i> <!-- default, will be overwritten immediately -->
+            </button>
+
+            <!-- ===== IMMEDIATE SCRIPT TO SET ICON (no flicker) ===== -->
+            <script>
+                (function() {
+                    const icon = document.querySelector('#themeToggle i');
+                    if (icon) {
+                        const stored = localStorage.getItem('userThemePreference') || 'light';
+                        if (stored === 'dark') {
+                            icon.classList.remove('fa-sun');
+                            icon.classList.add('fa-moon');
+                        } else {
+                            icon.classList.remove('fa-moon');
+                            icon.classList.add('fa-sun');
+                        }
+                    }
+                })();
+            </script>
+
+            <!-- User Code -->
+            <div class="hc-user-code">
+                <strong>—</strong>
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="main-content" id="mainContent">
+        
+    <div class="container-fluid px-3 px-sm-4">
+
+        <!-- ============================================
+        HEADER + FILTERS – FULLY RESPONSIVE
+        ============================================ -->
+        <div class="filter-bar mb-4">
+            <!-- Left: Title -->
+            <div class="filter-left">
+                <h2 class="mb-0" style="font-size: clamp(1.25rem, 3vw, 2rem);">Dashboard</h2>
+            </div>
+
+            <!-- Right: Mail Credits + User Filter + Date Filter -->
+            <div class="filter-right">
+                <!-- Mail Credits Card -->
+                <div class="card border-0 shadow-sm mb-0 mail-card" style="height:38px; min-width:140px; cursor:pointer;">
+                    <div class="card-body p-2 px-3 d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-envelope text-primary"></i>
+                            <span class="fw-semibold small" style="white-space:nowrap;">Mail Credits</span>
+                        </div>
+                        <span style="white-space:nowrap; font-size:13px;">
+                            
+                        </span>
+                    </div>
+                </div>
+
+                <!-- User Filter -->
+                <div class="user-filter-wrap">
+                    <select id="userFilter" class="form-select shadow-sm" style="height:38px; font-size:13px;">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+
+                <!-- Date Filter -->
+                <div class="date-filter-wrap">
+                    <div class="dropdown">
+                        <button id="dateFilterBtn" class="btn btn-outline-secondary dropdown-toggle shadow-sm"
+                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            style="height:38px; font-size:13px; white-space:nowrap;">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            <span id="currentFilterLabel">All Time</span>
+                        </button>
+
+                        <div class="dropdown-menu dropdown-menu-end p-3 shadow" style="min-width:240px;">
+                            <a class="dropdown-item date-preset" data-filter="all" href="#">All Time</a>
+                            <a class="dropdown-item date-preset" data-filter="today" href="#">Today</a>
+                            <a class="dropdown-item date-preset" data-filter="weekly" href="#">Weekly</a>
+                            <a class="dropdown-item date-preset" data-filter="monthly" href="#">Monthly</a>
+                            <a class="dropdown-item date-preset" data-filter="yearly" href="#">Yearly</a>
+                            <hr>
+                            <div class="mb-2">
+                                <label class="form-label small">Start Date</label>
+                                <input type="date" id="startDate" class="form-control form-control-sm"
+                                    value="">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">End Date</label>
+                                <input type="date" id="endDate" class="form-control form-control-sm"
+                                    value="">
+                            </div>
+                            <button id="applyCustomFilter" class="btn btn-primary btn-sm w-100">Apply Filter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="mailCreditsModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content mail-credits-modal">
+
+                    
+                    <div class="modal-header mail-modal-header">
+
+                        <div>
+                            <div class="mail-modal-title">
+                                <span class="mail-modal-icon">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+
+                                Mail Credits
+                            </div>
+
+                            <div class="mail-modal-subtitle">
+                                User-wise mail credit usage
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                        </button>
+
+                    </div>
+
+
+                    
+                    <div class="mail-modal-body">
+
+                        
+                        <div class="mail-table-header">
+
+                            <div>User</div>
+
+                            <div>Email</div>
+
+                            <div class="text-center">
+                                Credits
+                            </div>
+
+                        </div>
+
+
+                        
+                        
+                            
+
+
+                            <div class="mail-user-row">
+
+                                
+                                <div class="mail-user-info">
+
+                                    <div class="mail-avatar —">
+                                        —
+                                    </div>
+
+                                    <div>
+                                        <div class="mail-user-name">
+                                            —
+                                        </div>
+                                    </div>
+
+                                </div>
+
+
+                                
+                                <div class="mail-user-email">
+                                    —
+                                </div>
+
+
+                                
+                                <div class="mail-credit-count">
+
+                                    <span>
+                                        —
+                                    </span>
+
+                                    <small>
+                                        / —
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        
+
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-users mb-2"></i>
+                                <div>No users found.</div>
+                            </div>
+                        
+
+                    </div>
+
+
+                    
+                    <div class="mail-modal-footer">
+
+                        <span>
+                            —
+                            —
+                        </span>
+
+                        <button type="button" class="btn mail-close-btn" data-bs-dismiss="modal">
+
+                            Close
+
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================
+    STATS CARDS – FULLY RESPONSIVE GRID
+    ============================================ -->
+        <div class="row g-4 stats-row">
+            <div class="dashboard-stats">
+
+                <!-- Total Leads -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="allUserLeads">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="bg-leads">Total Leads</h6>
+                                    <h2 id="totalLeads">—</h2>
+                                    <small>Total leads</small>
+                                </div>
+                                <div class="dashboard-icon bg-total-leadst">
+                                    <i class="fas fa-address-book"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Mails -->
+                <a href="#" class="text-decoration-none text-dark">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-primary">Total Mails</h6>
+                                    <h2 id="totalMails">—</h2>
+                                    <small>Total emails</small>
+                                </div>
+                                <div class="dashboard-icon bg-mail">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Today Leads -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="todayUserLeads">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="today-bg-leads">Today Leads</h6>
+                                    <h2 id="todayLeads">—</h2>
+                                    <small>Today leads</small>
+                                </div>
+                                <div class="dashboard-icon today-bg-total-leadst">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Pending -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="pending">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-warning">Total Pending</h6>
+                                    <h2 id="pending">—</h2>
+                                    <small>Total Pending emails</small>
+                                </div>
+                                <div class="dashboard-icon bg-pending">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Sent -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="send">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-success">Total Sent</h6>
+                                    <h2 id="sent">—</h2>
+                                    <small>Total sent emails</small>
+                                </div>
+                                <div class="dashboard-icon bg-sent">
+                                    <i class="fas fa-paper-plane"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Seen -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="seen">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-purple">Total Seen</h6>
+                                    <h2 id="seen">—</h2>
+                                    <small>Total opened emails</small>
+                                </div>
+                                <div class="dashboard-icon bg-seen">
+                                    <i class="fas fa-eye"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Failed -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="failed">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-danger">Total Failed</h6>
+                                    <h2 id="failed">—</h2>
+                                    <small>Total Failed emails</small>
+                                </div>
+                                <div class="dashboard-icon bg-fail">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Interested -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="interested">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-success">Total Interested</h6>
+                                    <h2 id="interested">—</h2>
+                                    <small>Total interested</small>
+                                </div>
+                                <div class="dashboard-icon bg-interest">
+                                    <i class="fas fa-thumbs-up"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total Not Interested – FIXED: no fixed width -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark card-not-interested"
+                    data-status="not_interested">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="text-danger">Total Not Interested</h6>
+                                    <h2 id="notInterested">—</h2>
+                                    <small>Total not interested</small>
+                                </div>
+                                <div class="dashboard-icon bg-not-interest">
+                                    <i class="fas fa-thumbs-down"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Total QR Scans -->
+                <a href="#" class="text-decoration-none text-dark">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="card-info">
+                                <div>
+                                    <h6 class="bg-qr-scan-color">Total QR Scans</h6>
+                                    <h2 id="qrScans">—</h2>
+                                    <small>Total QR code scans</small>
+                                </div>
+                                <div class="dashboard-icon bg-qr-scan">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+
+        <!-- ============================================
+    CHARTS ROW – FULLY RESPONSIVE
+    ============================================ -->
+        <div class="row mt-4 g-3 charts-row">
+
+            <!-- Campaign Status -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Campaign Status Overview</h5>
+                    </div>
+                    <div class="card-body chart-container">
+                        <div id="campaignStatusChart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Platform Click Tracking -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Platform Click Tracking</h5>
+                    </div>
+                    <div class="card-body chart-container">
+                        <div id="platformClickChart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Button Click Analytics -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar text-success me-2"></i>
+                            QR Button Click Analytics
+                        </h5>
+                        <span class="badge bg-success fs-6">
+                            Total:
+                            <span id="totalButtonClicks">0</span>
+                        </span>
+                    </div>
+                    <div class="card-body p-2 chart-container">
+                        <div class="chart-scroll">
+                            <div id="buttonClickBarChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================
+    SCRIPTS
+    ============================================ -->
+        <script src="/js/apexcharts.js"></script>
+
+        <script>
+            $(document).on('click', 'a[data-status]', function(e) {
+                e.preventDefault();
+                const filters = getFilters();
+                const status = $(this).data('status');
+                if (status === 'allUserLeads' || status === 'todayUserLeads') {
+                    const params = new URLSearchParams({
+                        filter: status,
+                        user_id: filters.user_id || '',
+                        from: 'admin-dash'
+                    });
+                    window.location.href = "#?" + params.toString();
+                    return;
+                }
+                const params = new URLSearchParams({
+                    status: status,
+                    filter: filters.filter || 'today',
+                    user_id: filters.user_id || '',
+                    start_date: filters.start_date || '',
+                    end_date: filters.end_date || '',
+                    from: 'admin-dash'
+                });
+                window.location.href = "#?" + params.toString();
+            });
+
+            // ---------- Chart instances ----------
+            let campaignChart, platformChart, buttonClickBarChart;
+
+            // ---------- Helpers ----------
+            function getFilters() {
+                return {
+                    user_id: $('#userFilter').val(),
+                    filter: getFilterValue(),
+                    start_date: $('#startDate').val(),
+                    end_date: $('#endDate').val()
+                };
+            }
+
+            function getFilterValue() {
+                const label = $('#currentFilterLabel').text().toLowerCase();
+                return ['today', 'weekly', 'monthly', 'yearly'].includes(label) ? label : 'custom';
+            }
+
+            // ---------- Render Campaign Chart ----------
+            function renderCampaignChart(data) {
+                const series = [
+                    data.pending || 0,
+                    data.sent || 0,
+                    data.seen || 0,
+                    data.fail || 0,
+                    data.interested || 0,
+                    data.not_interested || 0
+                ];
+                const labels = ['Pending', 'Sent', 'Seen', 'Fail', 'Interested', 'Not Interested'];
+                const colors = ['#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4', '#6b7280'];
+                const totalMail = data.total_mail || series.reduce((a, b) => a + b, 0);
+
+                if (campaignChart) {
+                    campaignChart.updateOptions({
+                        series: series,
+                        labels: labels,
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    labels: {
+                                        total: {
+                                            formatter: () => totalMail
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    campaignChart = new ApexCharts(document.querySelector('#campaignStatusChart'), {
+                        series: series,
+                        chart: {
+                            type: 'donut',
+                            height: 300,
+                            toolbar: {
+                                show: false
+                            },
+                            animations: {
+                                enabled: true
+                            }
+                        },
+                        labels: labels,
+                        colors: colors,
+                        legend: {
+                            position: 'right',
+                            fontSize: '12px',
+                            labels: {
+                                colors: '#333'
+                            }
+                        },
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '60%',
+                                    labels: {
+                                        show: true,
+                                        total: {
+                                            show: true,
+                                            showAlways: true,
+                                            label: 'Total Mail',
+                                            formatter: () => totalMail
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        responsive: [{
+                            breakpoint: 576,
+                            options: {
+                                chart: {
+                                    height: 240
+                                },
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }]
+                    });
+                    campaignChart.render();
+                }
+            }
+
+            // ---------- Render Platform Chart ----------
+            function renderPlatformChart(data) {
+                const series = data.series || [];
+                const labels = data.labels || [];
+                const totalClicks = data.total || series.reduce((a, b) => a + b, 0);
+
+                if (platformChart) {
+                    platformChart.updateOptions({
+                        series: series,
+                        labels: labels,
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    labels: {
+                                        total: {
+                                            formatter: () => totalClicks
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    platformChart = new ApexCharts(document.querySelector('#platformClickChart'), {
+                        series: series,
+                        chart: {
+                            type: 'donut',
+                            height: 300,
+                            toolbar: {
+                                show: false
+                            },
+                            animations: {
+                                enabled: true
+                            }
+                        },
+                        labels: labels,
+                        colors: ['#25D366', '#E4405F', '#1877F2', '#229ED9', '#0A66C2', '#000000', '#7C3AED',
+                            '#6B7280'],
+                        legend: {
+                            position: 'right',
+                            fontSize: '12px',
+                            labels: {
+                                colors: '#333'
+                            }
+                        },
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '60%',
+                                    labels: {
+                                        show: true,
+                                        total: {
+                                            show: true,
+                                            showAlways: true,
+                                            label: 'Total Clicks',
+                                            formatter: () => totalClicks
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        responsive: [{
+                            breakpoint: 576,
+                            options: {
+                                chart: {
+                                    height: 240
+                                },
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }]
+                    });
+                    platformChart.render();
+                }
+            }
+
+            // ---------- Render Button Chart ----------
+            function renderButtonChart(data) {
+                const total = data.total || 0;
+                $('#totalButtonClicks').text(total);
+
+                const labels = data.labels || [];
+                const series = data.series || [];
+
+                if (buttonClickBarChart) {
+                    buttonClickBarChart.destroy();
+                    buttonClickBarChart = null;
+                }
+
+                const chartHeight = Math.max(labels.length * 32, 300);
+                $('#buttonClickBarChart').css('height', chartHeight + 'px');
+
+                buttonClickBarChart = new ApexCharts(document.querySelector('#buttonClickBarChart'), {
+                    chart: {
+                        type: 'bar',
+                        height: chartHeight,
+                        toolbar: {
+                            show: false
+                        },
+                        animations: {
+                            enabled: true
+                        }
+                    },
+                    series: [{
+                        name: 'Clicks',
+                        data: series
+                    }],
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,
+                            distributed: true,
+                            borderRadius: 6,
+                            barHeight: '60%'
+                        }
+                    },
+                    colors: ['#25D366', '#0A66C2', '#E4405F', '#FF0000', '#1877F2', '#229ED9', '#7C3AED', '#000000',
+                        '#f59e0b', '#10b981'
+                    ],
+                    xaxis: {
+                        categories: labels,
+                        labels: {
+                            show: false
+                        },
+                        axisTicks: {
+                            show: false
+                        },
+                        axisBorder: {
+                            show: false
+                        },
+                        title: {
+                            text: ''
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        style: {
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            colors: ['#333']
+                        }
+                    },
+                    legend: {
+                        show: false
+                    },
+                    tooltip: {
+                        y: {
+                            formatter: val => val + ' Clicks'
+                        }
+                    },
+                    responsive: [{
+                        breakpoint: 480,
+                        options: {
+                            dataLabels: {
+                                style: {
+                                    fontSize: '10px'
+                                }
+                            },
+                            plotOptions: {
+                                bar: {
+                                    barHeight: '50%'
+                                }
+                            }
+                        }
+                    }]
+                });
+
+                buttonClickBarChart.render();
+            }
+
+            // ---------- Fetch all charts ----------
+            function fetchAllCharts() {
+                const filters = getFilters();
+
+                $.ajax({
+                    url: "#",
+                    type: "GET",
+                    data: filters,
+                    success: response => renderCampaignChart(response),
+                    error: xhr => console.error('Campaign chart error:', xhr)
+                });
+
+                $.ajax({
+                    url: "#",
+                    type: "GET",
+                    data: filters,
+                    success: response => renderPlatformChart(response),
+                    error: xhr => console.error('Platform chart error:', xhr)
+                });
+
+                $.ajax({
+                    url: "#",
+                    type: "GET",
+                    data: filters,
+                    success: response => renderButtonChart(response),
+                    error: xhr => console.error('Button chart error:', xhr)
+                });
+            }
+
+            // ---------- Refresh dashboard ----------
+            function refreshDashboard() {
+                const filters = getFilters();
+
+                // Stats
+                $.ajax({
+                    url: "#",
+                    type: "GET",
+                    data: filters,
+                    success: function(response) {
+                        $('#totalUsers').text(response.stats.totalUsers.toLocaleString());
+                        $('#totalLeads').text(response.stats.total_leads.toLocaleString());
+                        $('#todayLeads').text(response.stats.today_leads.toLocaleString());
+                        $('#pending').text(response.stats.pending.toLocaleString());
+                        $('#sent').text(response.stats.sent.toLocaleString());
+                        $('#seen').text(response.stats.seen.toLocaleString());
+                        $('#failed').text(response.stats.fail.toLocaleString());
+                        $('#interested').text(response.stats.interested.toLocaleString());
+                        $('#notInterested').text(response.stats.not_interested.toLocaleString());
+                        $('#qrScans').text(response.stats.qr_scans.toLocaleString());
+                    },
+                    error: xhr => console.error('Stats error:', xhr)
+                });
+
+                // Charts
+                fetchAllCharts();
+            }
+
+            // ---------- DOM ready ----------
+            $(document).ready(function() {
+                refreshDashboard();
+
+                $('#userFilter').on('change', refreshDashboard);
+
+                $('.date-preset').on('click', function(e) {
+                    e.preventDefault();
+                    const filter = $(this).data('filter');
+                    $('#currentFilterLabel').text(filter.charAt(0).toUpperCase() + filter.slice(1));
+                    refreshDashboard();
+                });
+
+                $('#applyCustomFilter').on('click', function(e) {
+                    e.preventDefault();
+                    $('#currentFilterLabel').text('Custom');
+                    refreshDashboard();
+                });
+            });
+
+            // ---------- Mail Credits Modal ----------
+            document.addEventListener('DOMContentLoaded', function() {
+                const mailCard = document.querySelector('.mail-card');
+                const mailModalElement = document.getElementById('mailCreditsModal');
+
+                if (mailCard && mailModalElement) {
+                    mailCard.addEventListener('click', function() {
+                        const mailModal = new bootstrap.Modal(mailModalElement);
+                        mailModal.show();
+                    });
+                }
+            });
+
+            // ---------- Window resize: refresh charts to avoid distortion ----------
+            let resizeTimer;
+            $(window).on('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    if (campaignChart) campaignChart.updateOptions({
+                        chart: {
+                            width: '100%'
+                        }
+                    });
+                    if (platformChart) platformChart.updateOptions({
+                        chart: {
+                            width: '100%'
+                        }
+                    });
+                    if (buttonClickBarChart) buttonClickBarChart.updateOptions({
+                        chart: {
+                            width: '100%'
+                        }
+                    });
+                }, 300);
+            });
+        </script>
+    
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        $(document).ready(function() {
+            // Logout functionality
+            $('#logoutBtn').click(function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        toastr.success("Logged out successfully");
+                        setTimeout(function() {
+                            window.location.href = "#";
+                        }, 1000);
+                    },
+                    error: function() {
+                        toastr.error("Logout failed");
+                    }
+                });
+            });
+        });
+
+        // ========== SIDEBAR TOGGLE (Custom JavaScript) ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleBtn = document.getElementById('sidebarToggle');
+
+            // Toggle sidebar on button click
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = sidebar.classList.contains('show');
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                    toggleBtn.setAttribute('aria-expanded', !isOpen);
+                    document.body.style.overflow = !isOpen ? 'hidden' : '';
+                });
+            }
+
+            // Close sidebar on overlay click
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                });
+            }
+
+            // Close sidebar on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  SUBMENU TOGGLE (Generic – works for any dropdown)
+            // =============================================================
+            window.toggleSubmenu = function(event) {
+                const parentLink = event.currentTarget;
+                const targetId = parentLink.getAttribute('data-target');
+                if (!targetId) return;
+                const submenu = document.getElementById(targetId);
+                if (!submenu) return;
+
+                const arrow = parentLink.querySelector('.arrow');
+                const isOpen = submenu.classList.contains('open');
+
+                // Toggle this submenu (open/close)
+                submenu.classList.toggle('open');
+                arrow.classList.toggle('open');
+                parentLink.setAttribute('aria-expanded', !isOpen);
+
+                // If we are opening, add active-indicator; if closing and no child active, remove it
+                if (!isOpen) {
+                    parentLink.classList.add('active-indicator');
+                } else {
+                    const hasActiveChild = submenu.querySelector('.nav-link.active') !== null;
+                    if (!hasActiveChild) {
+                        parentLink.classList.remove('active-indicator');
+                    }
+                }
+                event.preventDefault();
+            };
+
+            // =============================================================
+            //  ACTIVE MENU STATE (defensive – only updates indicators,
+            //  does NOT force-close any submenu)
+            // =============================================================
+            function setActiveMenu() {
+                const currentPath = window.location.pathname;
+
+                // 1) Find the best matching child link
+                let bestMatch = null;
+                let bestLength = 0;
+
+                document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href || href === '#') return;
+
+                    let linkPath;
+                    try {
+                        linkPath = new URL(href, window.location.origin).pathname;
+                    } catch {
+                        linkPath = href;
+                    }
+
+                    const cleanCurrent = currentPath.replace(/\/$/, '');
+                    const cleanLink = linkPath.replace(/\/$/, '');
+
+                    const isMatch = (cleanCurrent === cleanLink) ||
+                                    (cleanLink !== '/' && cleanCurrent.startsWith(cleanLink + '/'));
+
+                    if (isMatch && cleanLink.length > bestLength) {
+                        bestLength = cleanLink.length;
+                        bestMatch = link;
+                    }
+                });
+
+                // 2) Remove 'active' class from all links (but do NOT close submenus)
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                // 3) Remove 'active-indicator' from all parent buttons
+                document.querySelectorAll('[data-target]').forEach(parent => {
+                    parent.classList.remove('active-indicator');
+                });
+
+                // 4) If we found a match, activate it and set indicator on its parent
+                if (bestMatch) {
+                    bestMatch.classList.add('active');
+
+                    const parentSub = bestMatch.closest('.sub-menu');
+                    if (parentSub) {
+                        const parentBtn = document.querySelector(`[data-target="${parentSub.id}"]`);
+                        if (parentBtn) {
+                            parentBtn.classList.add('active-indicator');
+                            // Optionally, we can also ensure the parent is expanded
+                            // but we won't force it open here – user can toggle.
+                        }
+                    }
+                }
+            }
+
+            // Run on page load
+            setActiveMenu();
+
+            // Run every 1 second to keep indicators updated (does not close dropdowns)
+            setInterval(setActiveMenu, 1000);
+
+            // Also run after sidebar toggle (in case layout shift affects visibility)
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                setTimeout(setActiveMenu, 200);
+            });
+
+            // ========== KEYBOARD NAVIGATION ==========
+            document.querySelectorAll('.nav-link[role="button"]').forEach(link => {
+                link.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+
+            // Handle window resize - close sidebar on large screens
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 991.98 && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  THEME TOGGLE LOGIC (Sun/Moon) – handles click events
+            // =============================================================
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            const STORAGE_KEY = 'userThemePreference';
+
+            function applyTheme(theme) {
+                const isDark = (theme === 'dark');
+                document.body.classList.toggle('theme-dark', isDark);
+                if (isDark) {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            // Load saved preference (default 'light') – already set by inline script
+            const saved = localStorage.getItem(STORAGE_KEY) || 'light';
+            // applyTheme(saved); // already done by inline script
+
+            // Toggle on click
+            themeToggle.addEventListener('click', function() {
+                const current = localStorage.getItem(STORAGE_KEY) || 'light';
+                const newTheme = (current === 'light') ? 'dark' : 'light';
+                applyTheme(newTheme);
+            });
+
+        });
+    </script>
+<script src="/js/static-dashboard.js"></script>
+<script src="/js/static-navigation.js"></script>
+</body>
+
+</html>

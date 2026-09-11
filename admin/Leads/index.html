@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="—">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/company-logo.png">
+    <title>High Custom Admin</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ============================================================= -->
+    <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
+    <!-- ============================================================= -->
+    <style>
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f5f7fb;
+            --bg-topbar: #ffffff;
+            --bg-main: #f5f7fb;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            --dropdown-toggle-color: #1e293b;
+        }
+
+        /* Dark theme */
+        body.theme-dark {
+            --bg-body: #0f172a;
+            --bg-topbar: #1e293b;
+            --bg-main: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+            --dropdown-toggle-color: #f1f5f9;
+        }
+
+        /* Apply variables to existing elements */
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .top-navbar {
+            background: var(--bg-topbar);
+            box-shadow: var(--topbar-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .main-content {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Fix dropdown toggle text color in dark mode */
+        .top-navbar .dropdown-toggle {
+            color: var(--dropdown-toggle-color) !important;
+        }
+
+        /* Theme toggle button style */
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .theme-toggle:hover {
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        /* Sidebar remains dark – no changes */
+    </style>
+
+    <!-- ⚡ Inline script to apply saved theme class to <body> immediately (no flicker) -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== ORIGINAL STYLES (unchanged) ========== -->
+    <style>
+        /* ---------- RESET & BASE ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ---------- SIDEBAR (dark theme) ---------- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            z-index: 1050;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1.2rem 0.8rem 2rem;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            padding: 0 0.75rem 1.8rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-brand i {
+            color: #3b82f6;
+            font-size: 1.8rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link i {
+            width: 1.5rem;
+            font-size: 1.15rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link .menu-text {
+            flex: 1;
+        }
+
+        .nav-link .arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .nav-link .arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .nav-link.active .arrow {
+            color: #fff;
+        }
+
+        .nav-link.active-indicator {
+            border-left: 4px solid #0d6efd;
+            background: rgba(13, 110, 253, 0.08);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active-indicator i {
+            color: #0d6efd;
+        }
+
+        .sub-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0.2rem 0 0.2rem 1.8rem;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+            opacity: 0;
+        }
+
+        .sub-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        .sub-menu .nav-link {
+            padding: 0.5rem 0.9rem 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        .sub-menu .nav-link i {
+            font-size: 0.9rem;
+            width: 1.3rem;
+        }
+
+        .sub-menu .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0.8rem 0.5rem;
+        }
+
+        /* ---------- TOP NAVBAR ---------- */
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 260px;
+            height: 70px;
+            z-index: 1040;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 1.5rem;
+            transition: left 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9edf4;
+        }
+
+        .hc-user-code {
+            color: #fff;
+            border-radius: 18px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #6793d6 0%, #413b3b 40%, #0939a0 60%);
+            background-size: 400%;
+            font-weight: 600;
+            animation: Gradient 5s ease infinite;
+        }
+
+        @keyframes Gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ---------- SIDEBAR TOGGLE BUTTON (mobile) ---------- */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #1e293b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.6rem;
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            color: #0d6efd;
+        }
+
+        /* ---------- OVERLAY (mobile) ---------- */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1045;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* ---------- RESPONSIVE DESIGN ---------- */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                height: 100%;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .top-navbar {
+                left: 0;
+                padding: 0 1.2rem;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 60px;
+                padding: 0.6rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .hc-user-code {
+                font-size: 0.75rem;
+                padding: 5px 12px;
+            }
+
+            .profile-img {
+                width: 32px;
+                height: 32px;
+            }
+
+            .main-content {
+                margin-top: 60px;
+                padding: 12px;
+            }
+
+            .dropdown-menu {
+                min-width: 200px !important;
+            }
+        }
+
+        /* ---------- ACCESSIBILITY ---------- */
+        .nav-link:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .sidebar-brand {
+            padding: 15px;
+        }
+
+        .sidebar-brand a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            margin-top: -13%;
+        }
+
+        /* .sidebar-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 40%;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            padding: 3px;
+        }
+
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        } */
+
+        .sidebar-logo {
+            width: 65%;
+            height: auto;
+            object-fit: contain;
+            align-self: center;
+            justify-self: center;
+            display: block;
+        }
+
+        .top-navbar span {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #282929;
+            margin-right: auto;
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- ========== Set body theme class immediately ========== -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.body.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== OVERLAY (mobile) ========== -->
+    <div class="overlay" id="sidebarOverlay"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main sidebar">
+        
+        
+
+
+        <div class="sidebar-brand">
+            <a href="—" class="d-flex align-items-center text-decoration-none">
+                <div>
+                    <img src="/images/company-logo-1.png" alt="Company Logo" class="sidebar-logo">
+                </div>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#"
+                    aria-current="false">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  ADMIN DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-admin"
+                   id="adminParentLink"
+                   data-target="submenu-admin"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-envelope"></i>
+                    <span class="menu-text">Admin</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-admin" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-link"></i> Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-database"></i> Link
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-share-nodes"></i> Social Links
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Tracking Report
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  USERS DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-users"
+                   id="usersParentLink"
+                   data-target="submenu-users"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-user-group"></i>
+                    <span class="menu-text">Users</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-users" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-pen"></i> Users Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-lock"></i> Users Rights
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- All Tracking -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#">
+                    <i class="fas fa-location-dot"></i>
+                    <span class="menu-text">All Tracking</span>
+                </a>
+            </li>
+        </ul>
+
+         <!-- User Dropdown -->
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
+                    id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/images/user-icon.jpg"
+                        class="profile-img me-2" alt="User avatar">
+                    <strong class="d-none d-sm-inline">— —</strong>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    <li>
+                        <a class="dropdown-item" href="#">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </li>
+
+                     
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Gmail Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-danger">
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Gmail
+                            </a>
+                        </li>
+
+                    
+
+                    
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-success">
+
+                                <i class="fas fa-check-circle me-2"></i>
+                                Zoho Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-danger">
+
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Zoho
+                            </a>
+                        </li>
+                    
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+    </aside>
+
+    <!-- ========== TOP NAVBAR ========== -->
+    <nav class="top-navbar" id="topNavbar">
+         <span>ADMIN</span>
+        <!-- Mobile toggle button -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-left:auto;">
+
+            <!-- ============================================================= -->
+            <!--  SUN/MOON TOGGLE BUTTON                                        -->
+            <!-- ============================================================= -->
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                <i class="fas fa-sun"></i> <!-- default, will be overwritten immediately -->
+            </button>
+
+            <!-- ===== IMMEDIATE SCRIPT TO SET ICON (no flicker) ===== -->
+            <script>
+                (function() {
+                    const icon = document.querySelector('#themeToggle i');
+                    if (icon) {
+                        const stored = localStorage.getItem('userThemePreference') || 'light';
+                        if (stored === 'dark') {
+                            icon.classList.remove('fa-sun');
+                            icon.classList.add('fa-moon');
+                        } else {
+                            icon.classList.remove('fa-moon');
+                            icon.classList.add('fa-sun');
+                        }
+                    }
+                })();
+            </script>
+
+            <!-- User Code -->
+            <div class="hc-user-code">
+                <strong>—</strong>
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="main-content" id="mainContent">
+        
+    <style>
+        /* ----- GLOBAL RESET & FONTS ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 10% 20%, #ffffff, #ffffff);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            color: #eef2ff;
+        }
+
+        /* custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1e2a;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #f6d58b;
+            border-radius: 10px;
+        }
+
+        /* ----- GLASS CARD (enhanced) ----- */
+        .glass-card {
+            background: rgba(18, 22, 32, 0.7);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(246, 213, 139, 0.2);
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(246, 213, 139, 0.1) inset;
+            transition: all 0.2s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(246, 213, 139, 0.4);
+            box-shadow: 0 25px 40px -14px rgba(0, 0, 0, 0.6);
+        }
+
+        /* ----- TYPOGRAPHY & GOLD ACCENTS ----- */
+        .gold-title {
+            font-weight: 700;
+            font-size: 1.0rem;
+            background: linear-gradient(135deg, #f9e0a0, #e4b363);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            border-left: 4px solid #f6d58b;
+            padding-left: 1rem;
+        }
+
+        /* ----- FORM CONTROLS (glossy dark) ----- */
+        .custom-input,
+        .form-select.custom-input {
+            background: #0f121c;
+            border: 1px solid #2a2e3f;
+            color: #f0f3fa;
+            height: 52px;
+            border-radius: 18px;
+            padding: 0 1rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .custom-input:focus,
+        .form-select.custom-input:focus {
+            border-color: #f6d58b;
+            box-shadow: 0 0 0 3px rgba(246, 213, 139, 0.2);
+            outline: none;
+            background: #0b0e16;
+        }
+
+        .custom-input::placeholder {
+            color: #5a6077;
+            font-weight: 400;
+        }
+
+        /* date inputs specific */
+        .date-input {
+            background: #7c88ad;
+            border: 1px solid #2a2e3f;
+            border-radius: 18px;
+            height: 52px;
+            padding: 0 1rem;
+            color: #f0f3fa;
+            width: 100%;
+        }
+
+        .date-input:focus {
+            border-color: #f6d58b;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(246, 213, 139, 0.3);
+        }
+
+        /* buttons */
+        .btn-gold {
+            background: linear-gradient(105deg, #f6d58b, #e7b651);
+            border: none;
+            color: #0a0c12;
+            font-weight: 700;
+            padding: 0 1.5rem;
+            height: 52px;
+            border-radius: 18px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.03);
+            box-shadow: 0 12px 20px -8px rgba(230, 182, 70, 0.4);
+        }
+
+        .btn-gold:active {
+            transform: translateY(1px);
+        }
+
+        .btn-outline-gold {
+            background: transparent;
+            border: 1px solid #f6d58b;
+            color: #f6d58b;
+            border-radius: 18px;
+            height: 52px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .btn-outline-gold:hover {
+            background: rgba(246, 213, 139, 0.1);
+            border-color: #ffdf8c;
+            transform: translateY(-1px);
+        }
+
+        /* ----- TABLE (modern, clean) ----- */
+        .lead-table {
+            border-radius: 24px;
+            overflow-x: auto;
+        }
+
+        .lead-table table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .lead-table th {
+            background: #0e111b;
+            color: #f6d58b;
+            font-weight: 600;
+            padding: 1rem 1rem;
+            border-bottom: 1px solid #262b3a;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lead-table td {
+            background: #11141f;
+            padding: 1rem;
+            border-bottom: 1px solid #1e2332;
+            color: #eef2ff;
+            vertical-align: middle;
+        }
+
+        .lead-table tr:hover td {
+            background: #171c2b;
+            transition: 0.1s;
+        }
+
+        /* today badge */
+        .today-badge {
+            background: linear-gradient(125deg, #f6d58b, #e4b05a);
+            color: #0a0c12;
+            padding: 8px 22px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* filter section active indicator */
+        .filter-active {
+            background: rgba(246, 213, 139, 0.1);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            color: #f6d58b;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* pagination refined */
+        .pagination-nav {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+        }
+
+        .page-btn {
+            background: #0f121c;
+            border: 1px solid #2d3245;
+            color: #f6d58b;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .page-btn:hover:not(.disabled) {
+            background: #1e2538;
+            border-color: #f6d58b;
+            transform: translateY(-2px);
+        }
+
+        .page-btn.active {
+            background: #f6d58b;
+            color: #0a0c12;
+            border-color: #f6d58b;
+            font-weight: 700;
+        }
+
+        .page-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* loader skeleton */
+        .skeleton-row td {
+            height: 68px;
+            background: linear-gradient(90deg, #151a28 25%, #1f2538 50%, #151a28 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        .btn-delete {
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 10px;
+            background: #fff1f2;
+            color: #dc3545;
+            cursor: pointer;
+            transition: all .3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete:hover {
+            background: #dc3545;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(220, 53, 69, .25);
+        }
+
+        .btn-delete:active {
+            transform: scale(.95);
+        }
+
+        .btn-delete i {
+            font-size: 14px;
+        }
+
+        .delete-popup {
+            border-radius: 18px !important;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* responsive */
+        @media (max-width: 768px) {
+            .gold-title {
+                font-size: 1.3rem;
+            }
+
+            .btn-gold,
+            .btn-outline-gold,
+            .custom-input {
+                height: 46px;
+            }
+
+            .date-input {
+                height: 46px;
+            }
+
+            .lead-table th,
+            .lead-table td {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .today-badge {
+                font-size: 0.75rem;
+                padding: 5px 16px;
+            }
+        }
+
+        /* today badge */
+        .today-badge {
+            background: linear-gradient(125deg, #f6d58b, #e4b05a);
+            color: #0a0c12;
+            padding: 10px 22px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+
+        /* download demo */
+        .download-box {
+            height: 46px;
+            padding: 0 18px;
+            border-radius: 60px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(246, 213, 139, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .download-box:hover {
+            background: rgba(246, 213, 139, 0.12);
+            border-color: #f6d58b;
+            transform: translateY(-2px);
+        }
+
+        .upload-box {
+            width: 150px;
+            height: 48px;
+            border-radius: 14px;
+            border: 1px dashed rgba(246, 213, 139, 0.5);
+            background: rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-box:hover {
+            background: rgba(246, 213, 139, 0.08);
+            border-color: #f6d58b;
+            transform: translateY(-2px);
+        }
+
+        .upload-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #f6d58b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .upload-icon {
+            font-size: 18px;
+        }
+
+        .download-box {
+            height: 48px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-box:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+            border-color: #f6d58b;
+        }
+
+        .container {
+            max-width: 100%;
+        }
+
+        .btn-delete {
+            background: white;
+        }
+    </style>
+
+    <div class="container py-4">
+        <!-- NEW LEAD ENTRY CARD -->
+        <div class="glass-card p-4 p-md-3 mb-3">
+            <h3 class="gold-title mb-4">✨ New Lead Entry</h3>
+            <form id="leadForm">
+                
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2 col-sm-6">
+                        <input type="email" name="email" id="email" class="custom-input w-100" placeholder="Email ID *"
+                            autocomplete="off">
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <input type="text" name="name" id="name" class="custom-input w-100"
+                            placeholder="First Name *">
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <input type="text" name="lastname" id="lastname" class="custom-input w-100"
+                            placeholder="Last Name *">
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <input type="text" name="company_name" id="company_name" class="custom-input w-100"
+                            placeholder="Company Name *">
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex gap-2">
+                            <select name="type" id="leadType" class="form-select custom-input" required>
+                                <option value="" selected disabled>
+                                    Select Business Type
+                                </option>
+                                
+                                    <option value="—"
+                                        —>
+                                        —
+                                    </option>
+                                
+                            </select>
+                            <button type="button" class="btn-gold px-4" onclick="submitLeadFromButton()">Add Lead</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- LIVE LEAD LIST CARD -->
+        <div class="glass-card p-4 p-md-3">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+
+                
+                
+                    <script>
+                        toastr.success(@json(Session::get('success')));
+                    </script>
+                
+
+                
+                    <script>
+                        toastr.error(@json(Session::get('error')));
+                    </script>
+                
+
+                
+                <a href="#" class="download-box text-decoration-none">
+                    <div class="upload-content">
+                        <i class="fa fa-download upload-icon"></i>
+                        <span>Download Excel File</span>
+                    </div>
+
+                </a>
+
+                
+                <form action="#" method="POST" enctype="multipart/form-data" class="mb-0">
+                    
+                    <label class="upload-box mb-0">
+                        <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" hidden
+                            onchange="this.form.submit()">
+
+                        <div class="upload-content">
+                            <i class="fa fa-file-excel-o upload-icon"></i>
+                            <span>Excel Upload</span>
+                        </div>
+                    </label>
+                </form>
+
+                
+                <div class="today-badge">
+                    📅
+                    <span id="periodLabel">
+                        —
+                    </span>
+                    Added :
+                    <span id="todayCount" class="fw-bold">
+                        0
+                    </span>
+                </div>
+
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" style="background: #6c757d; color: #fff; border-color: #6c757d;">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        —
+                    </button>
+
+                    <div class="dropdown-menu dropdown-menu-end p-3 shadow">
+
+                        <a class="dropdown-item" href="?filter=today">
+                            <i class="fas fa-calendar-day me-2"></i>
+                            Today
+                        </a>
+
+                        <a class="dropdown-item" href="?filter=weekly">
+                            <i class="fas fa-calendar-week me-2"></i>
+                            Weekly
+                        </a>
+
+                        <a class="dropdown-item" href="?filter=monthly">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            Monthly
+                        </a>
+
+                        <a class="dropdown-item" href="?filter=yearly">
+                            <i class="fas fa-calendar me-2"></i>
+                            Yearly
+                        </a>
+
+                        <hr>
+
+                        
+                        <form method="GET" action="—">
+                            <input type="hidden" name="filter" value="custom">
+
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold small">
+                                    Start Date
+                                </label>
+
+                                <input type="date" name="start_date" class="form-control form-control-sm"
+                                    value="—">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold small">
+                                    End Date
+                                </label>
+
+                                <input type="date" name="end_date" class="form-control form-control-sm"
+                                    value="—">
+                            </div>
+
+                            <button class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-search me-1"></i>
+                                Apply Filter
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-responsive lead-table">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Company</th>
+                            <th>Type</th>
+                            <th>Tracking</th>
+                            <th>Added Date</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadTableBody">
+                        <!-- skeleton loading injected by js -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <div id="paginationContainer" class="pagination-nav mt-4"></div>
+        </div>
+    </div>
+
+    <script src="/js/jquery.min.js"></script>
+    <script>
+        // =====================================================================
+        // GLOBAL STATE
+        // =====================================================================
+        let currentPage = 1;
+        let currentFilter = 'today';
+        let currentStartDate = '';
+        let currentEndDate = '';
+        let isLoading = false;          // prevent overlapping requests
+        let refreshInterval = null
+
+        // =====================================================================
+        // HELPER FUNCTIONS (unchanged)
+        // =====================================================================
+        function formatDateToDMY(dateInput) {
+            let date;
+            if (!dateInput) return '';
+            if (typeof dateInput === 'string' && dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                let parts = dateInput.split('-');
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            date = new Date(dateInput);
+            if (isNaN(date.getTime())) return '';
+            let day = String(date.getDate()).padStart(2, '0');
+            let month = String(date.getMonth() + 1).padStart(2, '0');
+            let year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        function showSkeleton() {
+            let $tbody = $('#leadTableBody');
+            if (!$tbody.length) return;
+            $tbody.empty();
+            for (let i = 0; i < 5; i++) {
+                $tbody.append(
+                    '<tr class="skeleton-row"><td colspan="8" style="padding:0"><div style="height:68px"></div></tr>');
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // =====================================================================
+        // RENDER TABLE & PAGINATION (unchanged)
+        // =====================================================================
+        function renderTable(data) {
+            if (!data.length) {
+                $('#leadTableBody').html(
+                    '<tr><td colspan="8" class="text-center py-5">✨ No leads found for this period</td></tr>'
+                );
+                return;
+            }
+            let html = '';
+            data.forEach(function(item) {
+                let formattedDate = formatDateToDMY(item.created_at);
+                html += `<tr data-id="${item.id}">
+                        <td class="editable-cell" data-field="email">${escapeHtml(item.email)}</td>
+                        <td class="editable-cell" data-field="name">${escapeHtml(item.name)}</td>
+                        <td class="editable-cell" data-field="lastname">${escapeHtml(item.lastname)}</td>
+                        <td class="editable-cell" data-field="company_name">${escapeHtml(item.company_name)}</td>
+                        <td><span class="badge bg-primary">${item.type ?? '-'}</span></td>
+                        <td data-field="tracking">${item.tracking}</td>
+                        <td>${formattedDate}</td>
+                        <td>
+                            <button class="btn-delete" onclick="deleteLead(${item.id})" title="Delete Lead">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+            $('#leadTableBody').html(html);
+        }
+
+        function renderPagination(pagination) {
+            if (pagination.total === 0) {
+                $('#paginationContainer').html('');
+                return;
+            }
+            let html = '';
+            html += `<button class="page-btn ${pagination.current_page <= 1 ? 'disabled' : ''}"
+                    onclick="loadLeads(${pagination.current_page - 1})" ${pagination.current_page <= 1 ? 'disabled' : ''}>
+                    ← Prev
+                </button>`;
+
+            let start = Math.max(1, pagination.current_page - 2);
+            let end = Math.min(pagination.last_page, pagination.current_page + 2);
+
+            if (start > 1) {
+                html += `<button class="page-btn" onclick="loadLeads(1)">1</button>`;
+                if (start > 2) html += `<span class="mx-1 text-muted">⋯</span>`;
+            }
+
+            for (let i = start; i <= end; i++) {
+                html +=
+                    `<button class="page-btn ${i === pagination.current_page ? 'active' : ''}" onclick="loadLeads(${i})">${i}</button>`;
+            }
+
+            if (end < pagination.last_page) {
+                if (end < pagination.last_page - 1) html += `<span class="mx-1 text-muted">⋯</span>`;
+                html +=
+                    `<button class="page-btn" onclick="loadLeads(${pagination.last_page})">${pagination.last_page}</button>`;
+            }
+
+            html += `<button class="page-btn ${pagination.current_page >= pagination.last_page ? 'disabled' : ''}"
+                    onclick="loadLeads(${pagination.current_page + 1})" ${pagination.current_page >= pagination.last_page ? 'disabled' : ''}>
+                    Next →
+                </button>`;
+            $('#paginationContainer').html(html);
+        }
+
+        // =====================================================================
+        // MAIN loadLeads() – UPDATED FOR FILTERING
+        // =====================================================================
+        function loadLeads(page = 1, filter = null, start_date = null, end_date = null, showLoader = true) {
+
+            if (isLoading) return;                  // skip if already loading
+            isLoading = true;
+
+            // If no filter provided, use stored values
+            if (filter === null) {
+                filter = currentFilter;
+                start_date = currentStartDate;
+                end_date = currentEndDate;
+            } else {
+                // Update stored values
+                currentFilter = filter;
+                currentStartDate = start_date || '';
+                currentEndDate = end_date || '';
+            }
+
+            currentPage = page;
+
+            let params = {
+                page: page,
+                filter: filter
+            };
+            if (filter === 'custom' && start_date && end_date) {
+                params.start_date = start_date;
+                params.end_date = end_date;
+            }
+
+            // showSkeleton();
+
+            // Show skeleton only when explicitly requested
+            if (showLoader) {
+                showSkeleton();
+            }
+
+            $.ajax({
+                url: '#',
+                method: 'GET',
+                data: params,
+                success: function(response) {
+                    renderTable(response.data);
+                    renderPagination(response.pagination);
+                    $('#todayCount').text(response.today_count);
+                    // Update the badge label and dropdown button
+                    updateFilterUI(filter, start_date, end_date);
+                },
+                error: function() {
+                    if (showLoader) {
+                        toastr.error('Failed to load leads');
+                        $('#leadTableBody').html(
+                            '<tr><td colspan="8" class="text-center py-5 text-muted">⚠️ Could not fetch leads</td></tr>'
+                        );
+                    }
+                },
+
+                complete: function() {
+                    isLoading = false;
+                }
+            });
+        }
+        // =====================================================================
+        // AUTO-REFRESH (every 3 seconds, no skeleton)
+        // =====================================================================
+        function refreshLeads() {
+            loadLeads(currentPage, currentFilter, currentStartDate, currentEndDate, false);
+        }
+        // =====================================================================
+        // UI UPDATE HELPER
+        // =====================================================================
+        function updateFilterUI(filter, start_date, end_date) {
+            let label = '';
+            switch (filter) {
+                case 'today':
+                    label = 'Today';
+                    break;
+                case 'weekly':
+                    label = 'Weekly';
+                    break;
+                case 'monthly':
+                    label = 'Monthly';
+                    break;
+                case 'yearly':
+                    label = 'Yearly';
+                    break;
+                case 'custom':
+                    if (start_date && end_date) {
+                        label = start_date + ' → ' + end_date;
+                    } else {
+                        label = 'Custom';
+                    }
+                    break;
+                default:
+                    label = 'Today';
+            }
+            $('#filterLabel').text(label);
+            $('#periodLabel').text(label);
+        }
+
+        // =====================================================================
+        // FILTER CLICK HANDLERS (AJAX)
+        // =====================================================================
+        $(document).on('click', '.dropdown-item[data-filter]', function(e) {
+            e.preventDefault();
+            let filter = $(this).data('filter');
+            loadLeads(1, filter, null, null);
+        });
+
+        // =====================================================================
+        // CUSTOM DATE RANGE SUBMISSION
+        // =====================================================================
+        function applyCustomDate(e) {
+            e.preventDefault();
+            let start = $('#customStartDate').val();
+            let end = $('#customEndDate').val();
+            if (!start || !end) {
+                toastr.warning('Please select both start and end dates.');
+                return;
+            }
+            if (start > end) {
+                toastr.warning('Start date cannot be after end date.');
+                return;
+            }
+            loadLeads(1, 'custom', start, end);
+            // Close the dropdown
+            $('.dropdown-toggle').dropdown('toggle');
+        }
+
+        // =====================================================================
+        // EXISTING FUNCTIONS (UNCHANGED)
+        // =====================================================================
+        function submitLeadFromButton() {
+            let type = $('#leadType').val();
+            if (type == '') {
+                toastr.error('Please select Business Type');
+                return;
+            }
+            submitLead(type);
+        }
+
+        function submitLead(type) {
+            const form = document.getElementById('leadForm');
+            const formData = new FormData(form);
+            formData.append('type', type);
+
+            let email = $('#email').val().trim();
+
+            if (!email) {
+                toastr.error('Please Enter Email');
+                return;
+            }
+
+            $.ajax({
+                url: '#',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    toastr.success(response.message);
+                    $('#leadForm')[0].reset();
+                    $('#leadType').val('');
+                    // Reload the current page to reflect the new lead
+                    loadLeads(currentPage, currentFilter, currentStartDate, currentEndDate);
+                },
+                error: function(xhr) {
+                    if (xhr.status === 422) {
+                        let errors = xhr.responseJSON.errors;
+                        let firstError = Object.values(errors)[0][0];
+                        toastr.error(firstError);
+                    } else {
+                        toastr.error('Server error. Please try again.');
+                    }
+                }
+            });
+        }
+
+
+        $(document).on('click', '#leadTableBody td.editable-cell', function () {
+            if ($(this).find('input').length) return;
+            let td = $(this);
+            let currentValue = td.text().trim();
+            let field = td.data('field');
+            let id = td.closest('tr').data('id');
+
+            let input = $('<input>', {
+                type: field === 'email' ? 'email' : 'text',
+                value: currentValue,
+                class: 'editable-input',
+                style: 'background:#0f121c;color:#fff;border:1px solid #f6d58b;border-radius:12px;padding:8px;width:100%;'
+            });
+
+            td.html(input);
+            input.focus();
+            input.on('blur', function () {
+                let newValue = $(this).val().trim();
+                saveInlineEdit(td, id, field, newValue);
+            }).on('keypress', function (e) {
+                if (e.which == 13) {
+                    $(this).blur();
+                }
+            });
+        });
+
+        function saveInlineEdit(td, id, field, newValue) {
+            if (field !== 'type' && field !== 'company_name' && newValue === '') {
+                toastr.warning('Value cannot be empty');
+                return;
+            }
+
+            let originalHtml = td.html();
+            td.html('<span class="text-muted"><i class="fas fa-spinner fa-spin"></i> saving...</span>');
+
+            $.ajax({
+                url: '#'.replace(':id', id),
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '—'
+                },
+                data: {
+                    field: field,
+                    value: newValue
+                },
+                success: function (response) {
+                    if (response.success) {
+                        td.text(newValue);
+                        toastr.success(response.message);
+                    } else {
+                        td.html(originalHtml);
+                        toastr.error(response.message);
+                    }
+                },
+                error: function (xhr) {
+                    td.html(originalHtml);
+                    toastr.error(xhr.responseJSON?.message || 'Server Error');
+                }
+            });
+        }
+
+        // ========== DELETE LEAD ==========
+        function deleteLead(id) {
+            Swal.fire({
+                title: 'Delete Lead?',
+                text: "This action cannot be undone.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Yes, Delete',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'delete-popup'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '#'.replace(':id', id),
+                        type: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: response.message || 'Lead deleted successfully.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            // Remove row and if empty, show message
+                            $(`tr[data-id="${id}"]`).fadeOut(300, function() {
+                                $(this).remove();
+                                if ($('#leadTableBody tr').length === 0) {
+                                    $('#leadTableBody').html(`
+                                        <tr>
+                                            <td colspan="8" class="text-center py-5">
+                                                ✨ No leads found
+                                            </td>
+                                        </tr>
+                                    `);
+                                }
+                            });
+                            // Update the count after deletion
+                            loadLeads(currentPage, currentFilter, currentStartDate, currentEndDate);
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: xhr.responseJSON?.message || 'Failed to delete lead'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // =====================================================================
+        // INITIAL LOAD – parse URL parameters or default to today
+        // =====================================================================
+        $(document).ready(function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let filter = urlParams.get('filter') || 'today';
+            let start = urlParams.get('start_date') || '';
+            let end = urlParams.get('end_date') || '';
+            // If custom but missing dates, fallback to today
+            if (filter === 'custom' && (!start || !end)) {
+                filter = 'today';
+                start = '';
+                end = '';
+            }
+            currentFilter = filter;
+            currentStartDate = start;
+            currentEndDate = end;
+            // Set UI labels
+            updateFilterUI(filter, start, end);
+            // Load leads
+            loadLeads(1, filter, start, end);
+
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(refreshLeads, 2000);
+        });
+
+        // Pause auto-refresh while editing
+        $(document).on('focus', '.editable-input', function() {
+            clearInterval(refreshInterval);
+        });
+
+        $(document).on('blur', '.editable-input', function() {
+            setTimeout(() => {
+                if (refreshInterval) clearInterval(refreshInterval);
+                refreshInterval = setInterval(refreshLeads, 2000);
+            }, 1000);
+        });
+
+        // Clean up interval on page unload
+        $(window).on('beforeunload', function() {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    </script>
+
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        $(document).ready(function() {
+            // Logout functionality
+            $('#logoutBtn').click(function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        toastr.success("Logged out successfully");
+                        setTimeout(function() {
+                            window.location.href = "#";
+                        }, 1000);
+                    },
+                    error: function() {
+                        toastr.error("Logout failed");
+                    }
+                });
+            });
+        });
+
+        // ========== SIDEBAR TOGGLE (Custom JavaScript) ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleBtn = document.getElementById('sidebarToggle');
+
+            // Toggle sidebar on button click
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = sidebar.classList.contains('show');
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                    toggleBtn.setAttribute('aria-expanded', !isOpen);
+                    document.body.style.overflow = !isOpen ? 'hidden' : '';
+                });
+            }
+
+            // Close sidebar on overlay click
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                });
+            }
+
+            // Close sidebar on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  SUBMENU TOGGLE (Generic – works for any dropdown)
+            // =============================================================
+            window.toggleSubmenu = function(event) {
+                const parentLink = event.currentTarget;
+                const targetId = parentLink.getAttribute('data-target');
+                if (!targetId) return;
+                const submenu = document.getElementById(targetId);
+                if (!submenu) return;
+
+                const arrow = parentLink.querySelector('.arrow');
+                const isOpen = submenu.classList.contains('open');
+
+                // Toggle this submenu (open/close)
+                submenu.classList.toggle('open');
+                arrow.classList.toggle('open');
+                parentLink.setAttribute('aria-expanded', !isOpen);
+
+                // If we are opening, add active-indicator; if closing and no child active, remove it
+                if (!isOpen) {
+                    parentLink.classList.add('active-indicator');
+                } else {
+                    const hasActiveChild = submenu.querySelector('.nav-link.active') !== null;
+                    if (!hasActiveChild) {
+                        parentLink.classList.remove('active-indicator');
+                    }
+                }
+                event.preventDefault();
+            };
+
+            // =============================================================
+            //  ACTIVE MENU STATE (defensive – only updates indicators,
+            //  does NOT force-close any submenu)
+            // =============================================================
+            function setActiveMenu() {
+                const currentPath = window.location.pathname;
+
+                // 1) Find the best matching child link
+                let bestMatch = null;
+                let bestLength = 0;
+
+                document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href || href === '#') return;
+
+                    let linkPath;
+                    try {
+                        linkPath = new URL(href, window.location.origin).pathname;
+                    } catch {
+                        linkPath = href;
+                    }
+
+                    const cleanCurrent = currentPath.replace(/\/$/, '');
+                    const cleanLink = linkPath.replace(/\/$/, '');
+
+                    const isMatch = (cleanCurrent === cleanLink) ||
+                                    (cleanLink !== '/' && cleanCurrent.startsWith(cleanLink + '/'));
+
+                    if (isMatch && cleanLink.length > bestLength) {
+                        bestLength = cleanLink.length;
+                        bestMatch = link;
+                    }
+                });
+
+                // 2) Remove 'active' class from all links (but do NOT close submenus)
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                // 3) Remove 'active-indicator' from all parent buttons
+                document.querySelectorAll('[data-target]').forEach(parent => {
+                    parent.classList.remove('active-indicator');
+                });
+
+                // 4) If we found a match, activate it and set indicator on its parent
+                if (bestMatch) {
+                    bestMatch.classList.add('active');
+
+                    const parentSub = bestMatch.closest('.sub-menu');
+                    if (parentSub) {
+                        const parentBtn = document.querySelector(`[data-target="${parentSub.id}"]`);
+                        if (parentBtn) {
+                            parentBtn.classList.add('active-indicator');
+                            // Optionally, we can also ensure the parent is expanded
+                            // but we won't force it open here – user can toggle.
+                        }
+                    }
+                }
+            }
+
+            // Run on page load
+            setActiveMenu();
+
+            // Run every 1 second to keep indicators updated (does not close dropdowns)
+            setInterval(setActiveMenu, 1000);
+
+            // Also run after sidebar toggle (in case layout shift affects visibility)
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                setTimeout(setActiveMenu, 200);
+            });
+
+            // ========== KEYBOARD NAVIGATION ==========
+            document.querySelectorAll('.nav-link[role="button"]').forEach(link => {
+                link.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+
+            // Handle window resize - close sidebar on large screens
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 991.98 && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  THEME TOGGLE LOGIC (Sun/Moon) – handles click events
+            // =============================================================
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            const STORAGE_KEY = 'userThemePreference';
+
+            function applyTheme(theme) {
+                const isDark = (theme === 'dark');
+                document.body.classList.toggle('theme-dark', isDark);
+                if (isDark) {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            // Load saved preference (default 'light') – already set by inline script
+            const saved = localStorage.getItem(STORAGE_KEY) || 'light';
+            // applyTheme(saved); // already done by inline script
+
+            // Toggle on click
+            themeToggle.addEventListener('click', function() {
+                const current = localStorage.getItem(STORAGE_KEY) || 'light';
+                const newTheme = (current === 'light') ? 'dark' : 'light';
+                applyTheme(newTheme);
+            });
+
+        });
+    </script>
+<script src="/js/static-navigation.js"></script>
+<script src="/js/admin-own-workspace.js"></script>
+</body>
+
+</html>

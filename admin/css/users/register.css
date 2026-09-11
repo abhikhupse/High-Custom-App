@@ -1,0 +1,109 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f0f0f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Background Container */
+.container {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+}
+
+/* Form Box */
+.form-box {
+    background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+    border: 1px solid #c8a96a;
+    border-radius: 15px;
+    padding: 40px;
+    color: #fff;
+    box-shadow: 0 0 30px rgba(200, 169, 106, 0.3);
+    text-align: center;
+}
+
+/* Heading */
+.form-box h1 {
+    color: #c8a96a;
+    margin: 0;
+}
+
+.form-box h2 {
+    margin: 5px 0;
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+.sub {
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
+/* Inputs */
+form input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #c8a96a;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    outline: none;
+}
+
+/* Row */
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+.row input {
+    width: 100%;
+}
+
+/* Phone */
+.phone {
+    display: flex;
+    gap: 10px;
+}
+
+.phone select {
+    width: 30%;
+}
+
+.phone input {
+    width: 70%;
+}
+
+/* Button */
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(to right, #c8a96a, #e6c78f);
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+/* Footer */
+.login {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.login a {
+    color: #c8a96a;
+    text-decoration: none;
+}

@@ -20,10 +20,13 @@ const businessCardSchema = new mongoose.Schema({
     required: true,
   },
   whatsapp: {
-    type: Number,
+    // Phone numbers are identifiers, not numeric values. Keeping this as a
+    // string preserves leading zeroes and avoids cast errors from +91 input.
+    type: String,
     required: true,
-    minLength: 10,
-    maxLength: 10,
+    minlength: 10,
+    maxlength: 10,
+    trim: true,
   },
   email: {
     type: String,

@@ -562,6 +562,12 @@ exports.login = async (req, res) => {
       });
     }
 
+    if (user.deletedAt || user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'Your account is inactive. Please contact admin.' });
+    }
+    if (user.accessRight === 'No Access') {
+      return res.status(403).json({ success: false, message: 'Your account has no access. Please contact admin.' });
+    }
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {

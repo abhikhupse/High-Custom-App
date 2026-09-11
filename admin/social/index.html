@@ -1,0 +1,4806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="—">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/company-logo.png">
+    <title>High Custom Admin</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ============================================================= -->
+    <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
+    <!-- ============================================================= -->
+    <style>
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f5f7fb;
+            --bg-topbar: #ffffff;
+            --bg-main: #f5f7fb;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            --dropdown-toggle-color: #1e293b;
+        }
+
+        /* Dark theme */
+        body.theme-dark {
+            --bg-body: #0f172a;
+            --bg-topbar: #1e293b;
+            --bg-main: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+            --dropdown-toggle-color: #f1f5f9;
+        }
+
+        /* Apply variables to existing elements */
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .top-navbar {
+            background: var(--bg-topbar);
+            box-shadow: var(--topbar-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .main-content {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Fix dropdown toggle text color in dark mode */
+        .top-navbar .dropdown-toggle {
+            color: var(--dropdown-toggle-color) !important;
+        }
+
+        /* Theme toggle button style */
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .theme-toggle:hover {
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        /* Sidebar remains dark – no changes */
+    </style>
+
+    <!-- ⚡ Inline script to apply saved theme class to <body> immediately (no flicker) -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== ORIGINAL STYLES (unchanged) ========== -->
+    <style>
+        /* ---------- RESET & BASE ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ---------- SIDEBAR (dark theme) ---------- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            z-index: 1050;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1.2rem 0.8rem 2rem;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            padding: 0 0.75rem 1.8rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-brand i {
+            color: #3b82f6;
+            font-size: 1.8rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link i {
+            width: 1.5rem;
+            font-size: 1.15rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link .menu-text {
+            flex: 1;
+        }
+
+        .nav-link .arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .nav-link .arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .nav-link.active .arrow {
+            color: #fff;
+        }
+
+        .nav-link.active-indicator {
+            border-left: 4px solid #0d6efd;
+            background: rgba(13, 110, 253, 0.08);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active-indicator i {
+            color: #0d6efd;
+        }
+
+        .sub-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0.2rem 0 0.2rem 1.8rem;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+            opacity: 0;
+        }
+
+        .sub-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        .sub-menu .nav-link {
+            padding: 0.5rem 0.9rem 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        .sub-menu .nav-link i {
+            font-size: 0.9rem;
+            width: 1.3rem;
+        }
+
+        .sub-menu .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0.8rem 0.5rem;
+        }
+
+        /* ---------- TOP NAVBAR ---------- */
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 260px;
+            height: 70px;
+            z-index: 1040;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 1.5rem;
+            transition: left 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9edf4;
+        }
+
+        .hc-user-code {
+            color: #fff;
+            border-radius: 18px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #6793d6 0%, #413b3b 40%, #0939a0 60%);
+            background-size: 400%;
+            font-weight: 600;
+            animation: Gradient 5s ease infinite;
+        }
+
+        @keyframes Gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ---------- SIDEBAR TOGGLE BUTTON (mobile) ---------- */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #1e293b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.6rem;
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            color: #0d6efd;
+        }
+
+        /* ---------- OVERLAY (mobile) ---------- */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1045;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* ---------- RESPONSIVE DESIGN ---------- */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                height: 100%;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .top-navbar {
+                left: 0;
+                padding: 0 1.2rem;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 60px;
+                padding: 0.6rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .hc-user-code {
+                font-size: 0.75rem;
+                padding: 5px 12px;
+            }
+
+            .profile-img {
+                width: 32px;
+                height: 32px;
+            }
+
+            .main-content {
+                margin-top: 60px;
+                padding: 12px;
+            }
+
+            .dropdown-menu {
+                min-width: 200px !important;
+            }
+        }
+
+        /* ---------- ACCESSIBILITY ---------- */
+        .nav-link:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .sidebar-brand {
+            padding: 15px;
+        }
+
+        .sidebar-brand a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            margin-top: -13%;
+        }
+
+        /* .sidebar-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 40%;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            padding: 3px;
+        }
+
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        } */
+
+        .sidebar-logo {
+            width: 65%;
+            height: auto;
+            object-fit: contain;
+            align-self: center;
+            justify-self: center;
+            display: block;
+        }
+
+        .top-navbar span {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #282929;
+            margin-right: auto;
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- ========== Set body theme class immediately ========== -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.body.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== OVERLAY (mobile) ========== -->
+    <div class="overlay" id="sidebarOverlay"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main sidebar">
+        
+        
+
+
+        <div class="sidebar-brand">
+            <a href="—" class="d-flex align-items-center text-decoration-none">
+                <div>
+                    <img src="/images/company-logo-1.png" alt="Company Logo" class="sidebar-logo">
+                </div>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#"
+                    aria-current="false">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  ADMIN DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-admin"
+                   id="adminParentLink"
+                   data-target="submenu-admin"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-envelope"></i>
+                    <span class="menu-text">Admin</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-admin" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-link"></i> Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-database"></i> Link
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-share-nodes"></i> Social Links
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Tracking Report
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  USERS DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-users"
+                   id="usersParentLink"
+                   data-target="submenu-users"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-user-group"></i>
+                    <span class="menu-text">Users</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-users" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-pen"></i> Users Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-lock"></i> Users Rights
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- All Tracking -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#">
+                    <i class="fas fa-location-dot"></i>
+                    <span class="menu-text">All Tracking</span>
+                </a>
+            </li>
+        </ul>
+
+         <!-- User Dropdown -->
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
+                    id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/images/user-icon.jpg"
+                        class="profile-img me-2" alt="User avatar">
+                    <strong class="d-none d-sm-inline">— —</strong>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    <li>
+                        <a class="dropdown-item" href="#">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </li>
+
+                     
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Gmail Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-danger">
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Gmail
+                            </a>
+                        </li>
+
+                    
+
+                    
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-success">
+
+                                <i class="fas fa-check-circle me-2"></i>
+                                Zoho Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-danger">
+
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Zoho
+                            </a>
+                        </li>
+                    
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+    </aside>
+
+    <!-- ========== TOP NAVBAR ========== -->
+    <nav class="top-navbar" id="topNavbar">
+         <span>ADMIN</span>
+        <!-- Mobile toggle button -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-left:auto;">
+
+            <!-- ============================================================= -->
+            <!--  SUN/MOON TOGGLE BUTTON                                        -->
+            <!-- ============================================================= -->
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                <i class="fas fa-sun"></i> <!-- default, will be overwritten immediately -->
+            </button>
+
+            <!-- ===== IMMEDIATE SCRIPT TO SET ICON (no flicker) ===== -->
+            <script>
+                (function() {
+                    const icon = document.querySelector('#themeToggle i');
+                    if (icon) {
+                        const stored = localStorage.getItem('userThemePreference') || 'light';
+                        if (stored === 'dark') {
+                            icon.classList.remove('fa-sun');
+                            icon.classList.add('fa-moon');
+                        } else {
+                            icon.classList.remove('fa-moon');
+                            icon.classList.add('fa-sun');
+                        }
+                    }
+                })();
+            </script>
+
+            <!-- User Code -->
+            <div class="hc-user-code">
+                <strong>—</strong>
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="main-content" id="mainContent">
+        
+
+    
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: #f5f7fb;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 75px auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .company-name h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1a1a1a;
+        }
+
+        .company-name p {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .team-member {
+            text-align: right;
+        }
+
+        .team-member .label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .team-member .name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 30px;
+        }
+
+        /* Left Panel */
+        .left-panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        /* Table Styles */
+        .links-table {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .links-table thead tr {
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .links-table th {
+            padding: 15px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .links-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .platform-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .platform-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .platform-icon i {
+            font-size: 20px;
+        }
+
+        .platform-icon img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .platform-name {
+            font-weight: 500;
+        }
+
+        .link-url-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .link-url-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+
+        .copy-btn,
+        .save-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .copy-btn {
+            color: #667eea;
+        }
+
+        .copy-btn:hover {
+            background: #667eea10;
+        }
+
+        .save-btn {
+            color: #28a745;
+        }
+
+        .save-btn:hover {
+            background: #28a74510;
+        }
+
+        /* App Link Styles - Editable */
+        .app-link {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .app-link:hover {
+            background: #e9ecef;
+        }
+
+        .app-link i {
+            width: 30px;
+            font-size: 20px;
+        }
+
+        .app-link .link-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            background: white;
+        }
+
+        .app-link .link-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .app-link .copy-btn-sm {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .app-link .copy-btn-sm:hover {
+            background: #5a67d8;
+        }
+
+        .app-link .save-btn-sm {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            margin-right: 5px;
+        }
+
+        .app-link .save-btn-sm:hover {
+            background: #218838;
+        }
+
+        .app-link .count-btn-sm {
+            background: #f1f3f5;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-right: 5px;
+            opacity: 1;
+        }
+
+        /* Bottom Actions */
+        .bottom-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+            gap: 20px;
+        }
+
+        .add-platform {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .add-platform input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .add-platform input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Right Panel */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-card {
+            text-align: center;
+        }
+
+        .qr-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .qr-code {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .qr-code svg,
+        .qr-code img {
+            width: 180px;
+            height: 180px;
+        }
+
+        .profile-url {
+            font-size: 11px;
+            color: #999;
+            word-break: break-all;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        /* .share-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        } */
+
+        .share-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: white;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .whatsapp-share {
+            background: #25D366;
+        }
+
+        .telegram-share {
+            background: #0088cc;
+        }
+
+        .email-share {
+            background: #ea4335;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            width: 100%;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .team-member {
+                text-align: center;
+            }
+
+            .bottom-actions {
+                flex-direction: column;
+            }
+
+            .add-platform {
+                width: 100%;
+                flex-direction: column;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+
+        /* Modal Styles */
+        .platform-row {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            border: 1px solid #e0e0e0;
+        }
+
+        .platform-row:hover {
+            background: #f8f9fa;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            background: white;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .add-platform-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-action{
+            width:100%;
+            height:42px;
+            border:none;
+            border-radius:10px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            transition:all .3s ease;
+            font-size:14px;
+        }
+
+        .btn-remove{
+            background:#fee2e2;
+            color:#dc2626;
+        }
+
+        .btn-remove:hover{
+            background:#dc2626;
+            color:#fff;
+        }
+
+        .btn-copy{
+            background:#e0e7ff;
+            color:#4f46e5;
+        }
+
+        .btn-copy:hover{
+            background:#4f46e5;
+            color:#fff;
+        }
+
+        .modal-backdrop.show {
+            opacity: 0.25 !important;
+        }
+
+        .QR_name {
+            width: 120px;
+            max-width: 90%;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            outline: none;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .08);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        /* Add to your existing <style> section */
+        .accordion-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px !important;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .accordion-button {
+            background: white;
+            color: #1a1a1a;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background: #f8f9fa;
+            color: #667eea;
+            box-shadow: none;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: #667eea;
+        }
+
+        .accordion-button .badge {
+            background: #667eea !important;
+            font-size: 12px;
+            padding: 4px 10px;
+        }
+
+        .accordion-body {
+            padding: 15px 20px;
+            background: #fafafa;
+        }
+
+        .accordion-body .app-link {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .accordion-body .app-link:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ===== ACTUAL CARD (fixed size) BUSINESS CARD ===== */
+        .business-card-preview {
+            width: 1050px;
+            height: 600px;
+            flex-shrink: 0;
+            background: url('/images/card-image-1.jpg');
+            background-position: right;
+            background-size: cover;
+            background-color: #1a1a1a;
+            border: 2px solid #d4af37;
+            padding: 30px 35px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.15);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            /* Ensure content fits */
+        }
+
+        /* ===== SCALING FOR PREVIEW ===== */
+        @media (max-width: 1200px) {
+            .business-card-preview {
+                transform: scale(0.85);
+                transform-origin: top center;
+                margin-bottom: -90px;
+                /* adjust for scale */
+            }
+        }
+
+        @media (max-width: 992px) {
+            .business-card-preview {
+                transform: scale(0.7);
+                margin-bottom: -180px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .business-card-preview {
+                transform: scale(0.55);
+                margin-bottom: -270px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .business-card-preview {
+                transform: scale(0.45);
+                margin-bottom: -330px;
+            }
+        }
+
+        /* ===== INNER ELEMENTS (adjusted for 1050x600) ===== */
+        .business-card-preview .gold-text {
+            color: #d4af37;
+        }
+
+        .business-card-preview .company {
+            font-size: 22px;
+            font-weight: 300;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .business-card-preview .tagline {
+            font-size: 13px;
+            letter-spacing: 3px;
+            color: #b0b0b0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #d4af37;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .business-card-preview .monogram {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 2px solid #d4af37;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            background: rgba(212, 175, 55, 0.05);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .business-card-preview .monogram img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .business-card-preview .full-name {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 5px 0 4px;
+            letter-spacing: 1px;
+        }
+
+        .business-card-preview .role {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .business-card-preview .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: start;
+            margin-top: 10px;
+            flex: 1;
+        }
+
+        .business-card-preview .contact-info {
+            text-align: left;
+        }
+
+        .business-card-preview .contact-info .detail {
+            font-size: 20px;
+            color: #ddd;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .business-card-preview .contact-info .detail i {
+            color: #d4af37;
+            width: 24px;
+            font-size: 18px;
+        }
+
+        .business-card-preview .qr-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .business-card-preview .qr-wrapper {
+            background: #fff;
+            padding: 10px;
+            border-radius: 12px;
+            border: 2px solid #d4af37;
+            display: inline-block;
+        }
+
+        .business-card-preview .qr-wrapper canvas,
+        .business-card-preview .qr-wrapper img {
+            width: 140px;
+            height: 140px;
+            display: block;
+        }
+
+        .business-card-preview .scan-label {
+            font-size: 13px;
+            color: #d4af37;
+            letter-spacing: 3px;
+            margin-top: 8px;
+        }
+
+        .business-card-preview .footer-thanks {
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-size: 13px;
+            color: #666;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        /* ==========================================
+            BUSINESS CARD MODAL
+            ========================================== */
+
+        .business-card-modal {
+            max-width: 1200px;
+        }
+
+        #businessCardModal .modal-content {
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        #businessCardModal .modal-header {
+            padding: 16px 24px;
+        }
+
+        #businessCardModal .modal-body {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        #businessCardModal .modal-footer {
+            padding: 15px 24px;
+        }
+
+
+        /* =========================================
+            CAR
+            ========================================== */
+        #businessCardModal.card {
+            border-radius: 1px;
+            overflow: hidden;
+        }
+
+        #businessCardModal .card-header {
+            border-bottom: 1px solid #ececec;
+        }
+
+        #businessCardModl .card-body {
+            padding: 22px;
+        }
+
+        /* =========================================
+            FOR
+            ========================================== */
+        #businessCardForm.form-label {
+            font-size: 14px font-weight:600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        #businessCardForm .form-control {
+            height: 48px;
+            border-radius: 10px;
+            border: 1px solid #d9d9d9;
+            transition: .3s;
+        }
+
+        #businessCardForm textarea.form-control {
+            min-height: 90px;
+            resize: none;
+        }
+
+        #businessCardForm .form-control:focus {
+            border-color: #d4af37;
+            box-shadow: 0 0 0 .15rem rgba(212, 175, 55, .20);
+        }
+
+        /* =========================================
+            LIVE PREVIE
+            ========================================== */
+        #businessCardPreview {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .business-card-preview-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Preview Placeholder */
+        .preview-placeholder {
+            width: 100%;
+            min-height: 300px;
+            background: #ffffff;
+            border: 2px dashed #d5d5d5;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+
+        .placeholder-icon {
+
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #fff4d5;
+            color: #d4af37;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            margin-bottom: 20px;
+        }
+
+        .preview-placeholder h4 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .preview-placeholder p {
+            margin: 0;
+            color: #777;
+        }
+
+
+        /* ==========================================
+            BUTTONS
+            ========================================== */
+
+        #generateBusinessCard {
+            min-width: 240px;
+            height: 48px;
+            font-weight: 600;
+            border-radius: 10px;
+        }
+
+        .modal-footer .btn {
+            min-width: 150px;
+            height: 46px;
+            border-radius: 10px;
+        }
+
+
+        /* ==========================================
+            TABLET
+            ========================================== */
+
+        @media (max-width:992px) {
+            .business-card-modal {
+                max-width: 95%;
+            }
+
+            #businessCardModal .modal-body {
+                padding: 15px;
+            }
+
+            #businessCardPreview {
+                padding: 10px;
+            }
+
+            .business-card-preview-wrapper {
+
+                transform: scale(.82);
+                transform-origin: top center;
+            }
+
+        }
+
+
+        /* ==========================================
+            MOBILE
+            ========================================== */
+
+        @media (max-width:768px) {
+            #businessCardModal .modal-header {
+                padding: 14px 16px;
+            }
+
+            #businessCardModal .modal-body {
+                padding: 15px;
+            }
+
+            #businessCardModal .card-body {
+                padding: 18px;
+            }
+
+            #businessCardForm .form-control {
+                height: 44px;
+            }
+
+            #businessCardForm textarea.form-control {
+                min-height: 80px;
+            }
+
+            .business-card-preview-wrapper {
+                transform: scale(.60);
+                transform-origin: top center;
+            }
+
+            #businessCardPreview {
+                min-height: 360px;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+
+        }
+
+
+        /* ==========================================
+            SMALL MOBILE
+            ========================================== */
+
+        @media (max-width:576px) {
+            .modal-title {
+                font-size: 18px;
+            }
+
+            .card-header h5 {
+                font-size: 16px;
+            }
+
+            .business-card-preview-wrapper {
+                transform: scale(.48);
+                transform-origin: top center;
+            }
+
+            #businessCardPreview {
+                min-height: 280px;
+            }
+        }
+         /* =========================================================
+        QR GRID
+        ========================================================= */
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 18px;
+            width: 100%;
+        }
+
+        /* =========================================================
+               QR CARD
+               ========================================================= */
+
+        .qr-card {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .qr-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
+        }
+
+        /* =========================================================
+               QR TITLE
+               ========================================================= */
+
+        .qr-card .qr-title-input {
+            width: 100%;
+            border: 1px solid #dee2e6;
+            border-radius: 7px;
+            padding: 6px 8px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        .qr-card .qr-title-input:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.08);
+        }
+
+        /* =========================================================
+               QR CODE
+               ========================================================= */
+
+        .qr-card .qr-code-wrapper {
+            width: 100%;
+            min-height: 155px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin: 5px 0 8px;
+        }
+
+        .qr-card .qr-code-wrapper canvas,
+        .qr-card .qr-code-wrapper img {
+            width: 150px !important;
+            height: 150px !important;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        /* =========================================================
+               PLATFORM ICONS
+               ========================================================= */
+
+        .platform-icons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 3px !important;
+        }
+
+        /* =========================================================
+               ACTION BUTTONS
+               ========================================================= */
+
+        .qr-card .qr-actions {
+            display: flex;
+            gap: 6px;
+            margin: 10px 0;
+        }
+
+        .qr-card .qr-actions .btn {
+            flex: 1;
+            font-size: 12px;
+            padding: 5px 7px;
+            white-space: nowrap;
+        }
+
+        /* =========================================================
+        QR LINK
+        ========================================================= */
+
+        .qr-card .qr-link {
+            background: #f8f9fa;
+            border: 1px solid #eef0f2;
+            border-radius: 7px;
+            padding: 7px 8px;
+            font-size: 10px;
+            line-height: 1.4;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            cursor: pointer;
+            margin: 8px 0;
+        }
+
+        .qr-card .qr-link:hover {
+            background: #f1f3f5;
+        }
+
+        /* =========================================================
+        QR STATS
+        ========================================================= */
+
+        .qr-card .qr-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .qr-card .qr-stats span {
+            display: block;
+            background: #f8f9fa;
+            border: 1px solid #eef0f2;
+            padding: 5px 4px;
+            border-radius: 7px;
+            font-size: 11px;
+        }
+
+        /* =========================================================
+               MODAL
+               ========================================================= */
+
+        #multipleQRModal .modal-dialog {
+            max-width: 1600px;
+            width: 96%;
+            margin: 1.5rem auto;
+        }
+
+        #multipleQRModal .modal-content {
+            border: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.20);
+        }
+
+        #multipleQRModal .modal-header {
+            padding: 15px 20px;
+        }
+
+        #multipleQRModal .modal-body {
+            background: #f6f7f9;
+            padding: 20px;
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+        }
+
+        #multipleQRModal .modal-footer {
+            padding: 10px 20px;
+        }
+
+        /* =========================================================
+               SCROLLBAR
+               ========================================================= */
+
+        #multipleQRModal .modal-body::-webkit-scrollbar {
+            width: 7px;
+        }
+
+        #multipleQRModal .modal-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        #multipleQRModal .modal-body::-webkit-scrollbar-thumb {
+            background: #bbb;
+            border-radius: 10px;
+        }
+
+        /* =========================================================
+               RESPONSIVE
+               ========================================================= */
+
+        /* Large desktop */
+        @media (max-width: 1400px) {
+
+            .qr-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            #multipleQRModal .modal-dialog {
+                max-width: 1400px;
+            }
+        }
+
+        /* Laptop / smaller desktop */
+        @media (max-width: 1200px) {
+
+            .qr-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            #multipleQRModal .modal-dialog {
+                width: 95%;
+            }
+        }
+
+        /* Tablet */
+        @media (max-width: 768px) {
+
+            .qr-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 14px;
+            }
+
+            #multipleQRModal .modal-dialog {
+                width: 95%;
+                margin: 1rem auto;
+            }
+
+            #multipleQRModal .modal-body {
+                padding: 14px;
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 576px) {
+
+            .qr-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-card .qr-code-wrapper canvas,
+            .qr-card .qr-code-wrapper img {
+                width: 160px !important;
+                height: 160px !important;
+            }
+
+            #multipleQRModal .modal-dialog {
+                width: 96%;
+                margin: 0.5rem auto;
+            }
+        }
+    </style>
+
+    <div class="main-container">
+        <div class="header">
+            <!-- Left Side -->
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+
+                <div class="company-name">
+                    <h1>Digital Business Card</h1>
+                    <p>Smart Social Links Manager</p>
+                </div>
+            </div>
+
+            <!-- Right Side Buttons -->
+            <div class="header-actions">
+                <button type="button" id="viewAllQRBtn" class="btn btn-primary">
+                    <i class="fas fa-qrcode me-2"></i>
+                    View All QR
+                </button>
+
+                <button type="button" class="btn btn-dark" onclick="BusinessCardModalOpen()">
+                    <i class="fa-solid fa-id-card me-2"></i>
+                    BUSINESS CARD
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+<div class="left-panel">
+    <div style="margin-top:20px; text-align:end;">
+        <button onclick="addMultipleQR()" class="btn-add">
+            <i class="fas fa-qrcode"></i> Generate QR Code
+        </button>
+    </div>
+    <div style="margin-top: 20px;">
+        <!-- ==================== ACCORDION 1: SOCIAL MEDIA LINKS ==================== -->
+        <div class="accordion" id="socialAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#socialCollapse" aria-expanded="false">
+                        <i class="fas fa-share-alt me-2" style="color: #667eea;"></i>
+                        <strong>Social Media Links</strong>
+                        <span class="badge bg-primary ms-2"></span>
+                    </button>
+                </h2>
+                <div id="socialCollapse" class="accordion-collapse collapse" data-bs-parent="#socialAccordion">
+                    <div class="accordion-body">
+
+                         
+
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="WhatsApp" data-input="whatsapp_url">
+                            <i class="fab fa-whatsapp" style="color: #25D366;"></i>
+                            <strong>WhatsApp:</strong>
+                            <input type="url" id="whatsapp_url" placeholder="https://wa.me/yournumber" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('whatsapp_url','WhatsApp', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Telegram" data-input="telegram_url">
+                            <i class="fab fa-telegram" style="color: #0088cc;"></i>
+                            <strong>Telegram:</strong>
+                            <input type="url" id="telegram_url" placeholder="https://t.me/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('telegram_url','Telegram', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Facebook" data-input="facebook_url">
+                            <i class="fab fa-facebook" style="color: #1877f2;"></i>
+                            <strong>Facebook:</strong>
+                            <input type="url" id="facebook_url" placeholder="https://facebook.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('facebook_url','Facebook', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="YouTube" data-input="youtube_url">
+                            <i class="fab fa-youtube" style="color: #ff0000;"></i>
+                            <strong>YouTube:</strong>
+                            <input type="url" id="youtube_url" placeholder="https://youtube.com/@username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('youtube_url','YouTube', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="LinkedIn" data-input="linkedin_url">
+                            <i class="fab fa-linkedin" style="color: #0077b5;"></i>
+                            <strong>LinkedIn:</strong>
+                            <input type="url" id="linkedin_url" placeholder="https://linkedin.com/in/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('linkedin_url','LinkedIn', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Instagram" data-input="instagram_url">
+                            <i class="fab fa-instagram" style="color: #E4405F;"></i>
+                            <strong>Instagram:</strong>
+                            <input type="url" id="instagram_url" placeholder="https://instagram.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('instagram_url','Instagram', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="X" data-input="x_url">
+                            <i class="fab fa-x-twitter" style="color: #000;"></i>
+                            <strong>X:</strong>
+                            <input type="url" id="x_url" placeholder="https://x.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('x_url','X', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Threads" data-input="threads_url">
+                            <i class="fab fa-threads" style="color: #000;"></i>
+                            <strong>Threads:</strong>
+                            <input type="url" id="threads_url" placeholder="https://threads.net/@username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('threads_url','Threads', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Snapchat" data-input="snapchat_url">
+                            <i class="fab fa-snapchat" style="color: #FFFC00;"></i>
+                            <strong>Snapchat:</strong>
+                            <input type="url" id="snapchat_url" placeholder="https://snapchat.com/add/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('snapchat_url','Snapchat', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Messenger" data-input="messenger_url">
+                            <i class="fab fa-facebook-messenger" style="color: #0084FF;"></i>
+                            <strong>Messenger:</strong>
+                            <input type="url" id="messenger_url" placeholder="https://m.me/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('messenger_url','Messenger', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="TikTok" data-input="tiktok_url">
+                            <i class="fab fa-tiktok" style="color: #000;"></i>
+                            <strong>TikTok:</strong>
+                            <input type="url" id="tiktok_url" placeholder="https://tiktok.com/@username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('tiktok_url','TikTok', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br>
+
+        <!-- ==================== ACCORDION 2: ECOMMERCE LINKS ==================== -->
+        <div class="accordion" id="ecommerceAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#ecommerceCollapse" aria-expanded="false">
+                        <i class="fas fa-shopping-cart me-2" style="color: #667eea;"></i>
+                        <strong>Ecommerce Links</strong>
+                        <span class="badge bg-primary ms-2"></span>
+                    </button>
+                </h2>
+                <div id="ecommerceCollapse" class="accordion-collapse collapse" data-bs-parent="#ecommerceAccordion">
+                    <div class="accordion-body">
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="eBay" data-input="ebay_url">
+                            <i class="fab fa-ebay" style="color: #e53238; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">eBay:</strong>
+                            <input type="url" id="ebay_url" placeholder="https://www.ebay.com/usr/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('ebay_url','eBay', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Alibaba" data-input="alibaba_url">
+                            <i class="fas fa-globe-asia" style="color: #FF6A00; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Alibaba:</strong>
+                            <input type="url" id="alibaba_url" placeholder="https://www.alibaba.com/member/username.html" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('alibaba_url','Alibaba', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="IndiaMart" data-input="indiamart_url">
+                            <i class="fas fa-building" style="color: #E65100; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">IndiaMart:</strong>
+                            <input type="url" id="indiamart_url" placeholder="https://www.indiamart.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('indiamart_url','IndiaMart', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Etsy" data-input="etsy_url">
+                            <i class="fab fa-etsy" style="color: #f16521; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Etsy:</strong>
+                            <input type="url" id="etsy_url" placeholder="https://www.etsy.com/shop/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('etsy_url','Etsy', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="TradeIndia" data-input="tradeindia_url">
+                            <i class="fas fa-handshake" style="color: #FF6A00; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">TradeIndia:</strong>
+                            <input type="url" id="tradeindia_url" placeholder="https://www.tradeindia.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('tradeindia_url','TradeIndia', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Amazon" data-input="amazon_url">
+                            <i class="fab fa-amazon" style="color: #ff9900; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Amazon:</strong>
+                            <input type="url" id="amazon_url" placeholder="https://www.amazon.com/shop/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('amazon_url','Amazon', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Flipkart" data-input="flipkart_url">
+                            <i class="fas fa-store" style="color: #2874f0; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Flipkart:</strong>
+                            <input type="url" id="flipkart_url" placeholder="https://www.flipkart.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('flipkart_url','Flipkart', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Shopify" data-input="shopify_url">
+                            <i class="fab fa-shopify" style="color: #7ab55c; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Shopify:</strong>
+                            <input type="url" id="shopify_url" placeholder="https://username.myshopify.com" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('shopify_url','Shopify', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br>
+
+        <!-- ==================== ACCORDION 3: PAYMENT GATEWAYS ==================== -->
+        <div class="accordion" id="paymentAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#paymentCollapse" aria-expanded="false">
+                        <i class="fas fa-credit-card me-2" style="color: #667eea;"></i>
+                        <strong>Payment Gateways</strong>
+                        <span class="badge bg-primary ms-2"></span>
+                    </button>
+                </h2>
+                <div id="paymentCollapse" class="accordion-collapse collapse" data-bs-parent="#paymentAccordion">
+                    <div class="accordion-body">
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="PayPal" data-input="paypal_url">
+                            <i class="fab fa-paypal" style="color: #003087; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">PayPal:</strong>
+                            <input type="url" id="paypal_url" placeholder="https://paypal.me/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('paypal_url','PayPal', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Stripe" data-input="stripe_url">
+                            <i class="fab fa-stripe" style="color: #008CDD; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Stripe:</strong>
+                            <input type="url" id="stripe_url" placeholder="https://stripe.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('stripe_url','Stripe', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Razorpay" data-input="razorpay_url">
+                            <i class="fas fa-credit-card" style="color: #0C4A6E; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Razorpay:</strong>
+                            <input type="url" id="razorpay_url" placeholder="https://razorpay.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('razorpay_url','Razorpay', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Payoneer" data-input="payoneer_url">
+                            <i class="fas fa-globe" style="color: #FF4800; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Payoneer:</strong>
+                            <input type="url" id="payoneer_url" placeholder="https://payoneer.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('payoneer_url','Payoneer', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Wise" data-input="wise_url">
+                            <i class="fas fa-exchange-alt" style="color: #00BFA5; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Wise:</strong>
+                            <input type="url" id="wise_url" placeholder="https://wise.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('wise_url','Wise', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Airwallex" data-input="airwallex_url">
+                            <i class="fas fa-plane" style="color: #0055FF; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Airwallex:</strong>
+                            <input type="url" id="airwallex_url" placeholder="https://airwallex.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('airwallex_url','Airwallex', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Skydo" data-input="skydo_url">
+                            <i class="fas fa-cloud-sun" style="color: #3B82F6; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Skydo:</strong>
+                            <input type="url" id="skydo_url" placeholder="https://skydo.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('skydo_url','Skydo', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Cashfree" data-input="cashfree_url">
+                            <i class="fas fa-coins" style="color: #00A859; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Cashfree:</strong>
+                            <input type="url" id="cashfree_url" placeholder="https://cashfree.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('cashfree_url','Cashfree', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Instamojo" data-input="instamojo_url">
+                            <i class="fas fa-hand-holding-heart" style="color: #FF6A00; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Instamojo:</strong>
+                            <input type="url" id="instamojo_url" placeholder="https://instamojo.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('instamojo_url','Instamojo', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="PayU" data-input="payu_url">
+                            <i class="fas fa-university" style="color: #0057B8; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">PayU India:</strong>
+                            <input type="url" id="payu_url" placeholder="https://payu.in/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('payu_url','PayU', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="WesternUnion" data-input="westernunion_url">
+                            <i class="fas fa-hand-holding-usd" style="color: #FFD700; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Western Union:</strong>
+                            <input type="url" id="westernunion_url" placeholder="https://westernunion.com/username" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('westernunion_url','WesternUnion', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="GooglePay" data-input="googlepay_url">
+                            <i class="fab fa-google-pay" style="color: #4285F4; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Google Pay:</strong>
+                            <input type="url" id="googlepay_url" placeholder="Enter Google Pay UPI" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('googlepay_url','GooglePay', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="UPI" data-input="upi_url">
+                            <i class="fas fa-mobile-alt" style="color: #00BFA5; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">UPI:</strong>
+                            <input type="text" id="upi_url" placeholder="example@upi" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('upi_url','UPI', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Zelle" data-input="zelle_url">
+                            <i class="fas fa-exchange-alt" style="color: #6C1D45; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Zelle:</strong>
+                            <input type="text" id="zelle_url" placeholder="Enter Zelle email/phone" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('zelle_url','Zelle', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="CryptoBTC" data-input="crypto_btc_url">
+                            <i class="fab fa-bitcoin" style="color: #F7931A; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Crypto (BTC):</strong>
+                            <input type="text" id="crypto_btc_url" placeholder="Enter BTC Address" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('crypto_btc_url','CryptoBTC', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="CryptoUSDT" data-input="crypto_usdt_url">
+                            <i class="fas fa-coins" style="color: #26A17B; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Crypto (USDT):</strong>
+                            <input type="text" id="crypto_usdt_url" placeholder="Enter USDT Address" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('crypto_usdt_url','CryptoUSDT', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                        
+                        <div class="app-link quick-link-item">
+                            <input type="checkbox" class="qr-platform-checkbox" data-platform="Bank" data-input="bank_url">
+                            <i class="fas fa-university" style="color: #1a237e; font-size: 20px; width: 30px;"></i>
+                            <strong style="min-width: 80px;">Bank Details:</strong>
+                            <input type="text" id="bank_url" placeholder="Enter Bank Account Details" class="link-input" value="—">
+                            <button type="button" onclick="saveQuickLink('bank_url','Bank', this)" class="save-btn-sm">
+    <i class="fas fa-save"></i> Save
+</button>
+<button type="button" onclick="copyTrackingLink(this)" class="copy-btn-sm tracking-copy-btn"
+    data-tracking-url="—">
+    <i class="fas fa-copy"></i> Copy
+</button>
+<button type="button" class="count-btn-sm" disabled>
+    <i class="fas fa-chart-line"></i>
+    <span class="open-count">—</span>
+</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom links are kept separate from preset social, ecommerce and payment links. -->
+        <div class="accordion" id="customLinksAccordion" style="margin-top:20px;">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#customLinksCollapse" aria-expanded="false" aria-controls="customLinksCollapse">
+                        <i class="fas fa-link me-2" style="color:#667eea;"></i>
+                        <strong>Custom Links</strong>
+                        <span class="badge bg-primary ms-2" id="customLinksCount">0</span>
+                    </button>
+                </h2>
+                <div id="customLinksCollapse" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        <div id="customLinksContainer">
+                            <p class="text-muted mb-0" id="customLinksEmpty">No custom links added yet.</p>
+                        </div>
+                        <div class="bottom-actions mt-3">
+                            <div class="add-platform">
+                                <input type="text" id="newPlatformName" placeholder="Platform Name (e.g., TikTok)">
+                                <input type="url" id="newPlatformUrl" placeholder="Platform URL (https://...)">
+                                <button type="button" onclick="addCustomPlatform(this)" class="btn-add">
+                                    <i class="fas fa-plus"></i> ADD NEW
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="printBusinessCard()" class="print-btn">
+            <i class="fas fa-print"></i> PRINT BUSINESS CARD
+        </button>
+    </div>
+</div>
+
+    <div class="modal fade" id="multipleQRModal" tabindex="-1" aria-labelledby="multipleQRModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-xl-down modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="multipleQRModalLabel">
+                        <i class="fas fa-qrcode me-2"></i> All QR Codes
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Container for QR cards -->
+                    <div id="multipleQrContainer"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--</div>-->
+
+
+    <!-- Business Card Modal -->
+    <div class="modal fade" id="businessCardModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-lg-down modal-xl">
+            <div class="modal-content border-0 shadow-lg">
+                <!-- Header -->
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-id-card text-warning me-2"></i>
+                        Create Digital Business Card
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body">
+                    <!-- ================= Card Details ================= -->
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="fas fa-edit text-warning me-2"></i>
+                                Card Details
+                            </h5>
+                        </div>
+
+                        <div class="card-body">
+                            <form id="businessCardForm">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Full Name</label>
+
+                                        <input type="text" class="form-control" name="full_name"
+                                            placeholder="Enter Full Name">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Role / Designation</label>
+                                        <input type="text" class="form-control" name="role_name"
+                                            placeholder="Sales Executive">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Company Name</label>
+                                        <input type="text" class="form-control" name="company_name"
+                                            placeholder="High Custom Jewellers">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">WhatsApp</label>
+                                        <input type="text" class="form-control" name="whatsapp"
+                                            placeholder="+91 9876543210">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="email"
+                                            placeholder="info@example.com">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            QR Link
+                                        </label>
+                                        <input type="url" class="form-control" id="qr_links" name="qr_links"
+                                            placeholder="https://example.com">
+                                        <small class="text-muted">
+                                            This URL will open when the QR code is scanned.
+                                        </small>
+                                        <div id="qrLinkError" class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">
+                                            address
+                                        </label>
+                                        <textarea class="form-control" rows="3" name="address" placeholder="Enter Address"></textarea>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- ================= Live Preview ================= -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-eye text-warning me-2"></i>
+                                Live Preview
+                            </h5>
+                            <small>
+                                1050 × 600 px
+                            </small>
+                        </div>
+
+                        <div class="card-body bg-light">
+                            <div id="businessCardPreview" class="text-center">
+                                <div class="business-card-preview-wrapper">
+                                    <div id="cardPreviewContent">
+                                        <div class="py-5">
+                                            <i class="fas fa-image fa-3x text-secondary mb-3"></i>
+                                            <h5 class="text-muted">
+                                                Card Preview
+                                            </h5>
+                                            <p class="text-muted mb-0">
+                                                Fill in the details above to see the live preview.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cardActions" class="mt-4"></div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        Close
+                    </button>
+                    <button type="button" class="btn btn-warning px-4" id="generateBusinessCard">
+                        <i class="fas fa-magic me-2"></i>
+                        Generate Business Card
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- Edit QR Modal -->
+    <div class="modal fade" id="editQrModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-qrcode me-2"></i>
+                        Edit QR Code Links
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="main-container">
+                    <!-- Add New Platform Section -->
+                    <div class="add-platform-section">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Platform Dropdown</label>
+                                <select class="form-select" id="platformDropdown">
+                                    <option value="">-- Select Platform --</option>
+                                   <!-- ===== SOCIAL MEDIA PLATFORMS ===== -->
+                                    <optgroup label="Social Media">
+                                        <option value="WhatsApp">🟢 WhatsApp</option>
+                                        <option value="Instagram">📸 Instagram</option>
+                                        <option value="Facebook">🔵 Facebook</option>
+                                        <option value="Telegram">✈️ Telegram</option>
+                                        <option value="LinkedIn">💼 LinkedIn</option>
+                                        <option value="YouTube">▶️ YouTube</option>
+                                        <option value="Twitter/X">𝕏 Twitter/X</option>
+                                        <option value="Threads">🧵 Threads</option>
+                                        <option value="TikTok">🎵 TikTok</option>
+                                        <option value="Snapchat">👻 Snapchat</option>
+                                        <option value="Messenger">💬 Messenger</option>
+                                        <option value="Pinterest">📌 Pinterest</option>
+                                        <option value="Reddit">🤖 Reddit</option>
+                                        <option value="Discord">🎮 Discord</option>
+                                        <option value="Twitch">🎮 Twitch</option>
+                                        <option value="Quora">❓ Quora</option>
+                                        <option value="Medium">✍️ Medium</option>
+                                        <option value="Tumblr">📝 Tumblr</option>
+                                        <option value="Viber">📱 Viber</option>
+                                        <option value="Skype">💬 Skype</option>
+                                        <option value="Slack">💼 Slack</option>
+                                        <option value="Rumble">📹 Rumble</option>
+                                        <option value="Flickr">📷 Flickr</option>
+                                        <option value="SoundCloud">🎵 SoundCloud</option>
+                                        <option value="Vimeo">🎬 Vimeo</option>
+                                        <option value="Spotify">🎶 Spotify</option>
+                                        <option value="GitHub">💻 GitHub</option>
+                                        <option value="Stack Overflow">📚 Stack Overflow</option>
+                                        <option value="Behance">🎨 Behance</option>
+                                        <option value="Dribbble">🏀 Dribbble</option>
+                                    </optgroup>
+
+                                    <!-- ===== ECOMMERCE PLATFORMS ===== -->
+                                    <optgroup label="Ecommerce">
+                                        <option value="eBay">🛒 eBay</option>
+                                        <option value="Amazon">📦 Amazon</option>
+                                        <option value="Alibaba">🌐 Alibaba</option>
+                                        <option value="IndiaMart">🇮🇳 IndiaMart</option>
+                                        <option value="TradeIndia">🇮🇳 TradeIndia</option>
+                                        <option value="Etsy">🎨 Etsy</option>
+                                        <option value="Flipkart">🛍️ Flipkart</option>
+                                        <option value="Shopify">🛒 Shopify</option>
+                                        <option value="Walmart">🛒 Walmart</option>
+                                        <option value="AliExpress">📦 AliExpress</option>
+                                        <option value="Meesho">🛍️ Meesho</option>
+                                        <option value="Nykaa">💄 Nykaa</option>
+                                        <option value="Myntra">👗 Myntra</option>
+                                        <option value="Snapdeal">🛒 Snapdeal</option>
+                                        <option value="Ajio">👕 Ajio</option>
+                                    </optgroup>
+
+                                    <!-- ===== PAYMENT GATEWAYS ===== -->
+                                    <optgroup label="Payment Gateways">
+                                        <option value="PayPal">💳 PayPal</option>
+                                        <option value="Stripe">💳 Stripe</option>
+                                        <option value="Payoneer">💳 Payoneer</option>
+                                        <option value="Wise">💳 Wise</option>
+                                        <option value="Airwallex">💳 Airwallex</option>
+                                        <option value="Skydo">💳 Skydo</option>
+                                        <option value="Cashfree">💳 Cashfree</option>
+                                        <option value="Instamojo">💳 Instamojo</option>
+                                        <option value="PayU">💳 PayU India</option>
+                                        <option value="WesternUnion">💳 Western Union</option>
+                                        <option value="GooglePay">📱 Google Pay</option>
+                                        <option value="ApplePay">📱 Apple Pay</option>
+                                        <option value="SamsungPay">📱 Samsung Pay</option>
+                                        <option value="PhonePe">📱 PhonePe</option>
+                                        <option value="Paytm">📱 Paytm</option>
+                                        <option value="AmazonPay">📱 Amazon Pay</option>
+                                        <option value="UPI">📱 UPI</option>
+                                        <option value="Zelle">📱 Zelle</option>
+                                        <option value="Venmo">📱 Venmo</option>
+                                        <option value="CryptoBTC">₿ Crypto (BTC)</option>
+                                        <option value="CryptoUSDT">₿ Crypto (USDT)</option>
+                                        <option value="Bank">🏦 Bank Details</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Custom Platform Name</label>
+                                <input type="text" class="form-control" id="customPlatformName"
+                                    placeholder="Custom Platform Name">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Platform URL *</label>
+                                <input type="url" class="form-control" id="platformUrl"
+                                    placeholder="https://example.com">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">&nbsp;</label>
+                                <button type="button"
+                                    class="btn btn-primary rounded-pill w-100 shadow-sm"
+                                    onclick="addNewPlatformRow()">
+                                    <i class="fas fa-plus me-2"></i>Add Link
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="editQrLinksContainer" class="qr-links-list">
+                        <!-- Dynamic rows will appear here -->
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    
+                    <button type="button"
+                        class="btn btn-success rounded-pill shadow-sm btn-save" onclick="saveEditedQR()">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+
+        $(document).on('click', '#viewAllQRBtn', function() {
+            const modalElement = document.getElementById('multipleQRModal');
+            if (!modalElement) {
+                console.error('Modal #multipleQRModal not found');
+                return;
+            }
+
+            const container = document.getElementById('modalQrContainer');
+            if (container) {
+                container.innerHTML =
+                    '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            }
+
+            refreshAllQRs();
+
+            setTimeout(function() {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modal.show();
+            }, 150);
+        });
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '—';
+        let currentQRCode = null;
+
+        function showToast(message, type = 'success') {
+            let toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function copyToClipboard(text) {
+            if (!text) {
+                showToast('Nothing to copy!', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('Link copied to clipboard!');
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function printBusinessCard() {
+            window.open('#', '_blank');
+        }
+
+        function addCustomPlatform(btn) {
+            const platformNameInput = document.getElementById('newPlatformName');
+            const platformUrlInput = document.getElementById('newPlatformUrl');
+            const platformName = platformNameInput.value.trim();
+            const platformUrl = platformUrlInput.value.trim();
+
+            if (!platformName || !platformUrl) {
+                showToast('Please fill both fields!', 'error');
+                return;
+            }
+
+            if (!btn) {
+                showToast('ADD NEW button not found.', 'error');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            btn.disabled = true;
+
+            fetch('#', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        platform_name: platformName,
+                        platform_url: platformUrl
+                    })
+                })
+                .then(async function(response) {
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Unable to add platform.');
+                    }
+
+                    return data;
+                })
+                .then(function(data) {
+                    platformNameInput.value = '';
+                    platformUrlInput.value = '';
+                    data.link.tracking_url = data.link.tracking_url || data.tracking_url || '';
+                    data.link.open_count = data.link.open_count ?? data.open_count ?? 0;
+                    addNewLinkToContainer(data.link);
+                    showToast(data.message || 'Platform added successfully!');
+                })
+                .catch(function(error) {
+                    console.error('Add platform error:', error);
+                    showToast(error.message || 'Error adding platform', 'error');
+                })
+                .finally(function() {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                });
+        }
+
+
+        function saveQuickLink(platformKey, platformName, btn) {
+            const urlInput = document.getElementById(platformKey);
+
+            if (!urlInput) {
+                showToast('URL input not found.', 'error');
+                return;
+            }
+
+            const platformUrl = urlInput.value.trim();
+            if (!platformUrl) {
+                showToast('Please enter a valid URL for ' + platformName, 'error');
+                return;
+            }
+            if (!btn) {
+                showToast('Save button not found.', 'error');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            btn.disabled = true;
+
+            fetch('#', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        platform_name: platformName,
+                        platform_url: platformUrl,
+                        platform_key: platformKey
+                    })
+                })
+                .then(async function(response) {
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Unable to save link.');
+                    }
+
+                    return data;
+                })
+                .then(function(data) {
+                    const linkRow = btn.closest('.quick-link-item');
+
+                    if (linkRow) {
+                        const trackingCopyButton = linkRow.querySelector('.tracking-copy-btn');
+                        const openCount = linkRow.querySelector('.open-count');
+
+                        if (trackingCopyButton && data.tracking_url) {
+                            trackingCopyButton.dataset.trackingUrl = data.tracking_url;
+                            urlInput.dataset.trackingUrl = data.tracking_url;
+                        }
+
+                        if (openCount) {
+                            openCount.textContent = data.open_count ?? 0;
+                        }
+                    }
+
+                    showToast(data.message || platformName + ' link saved successfully!');
+                })
+                .catch(function(error) {
+                    console.error('Save link error:', error);
+                    showToast(error.message || 'Error saving link', 'error');
+                })
+                .finally(function() {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMultipleQRs(@json($multiQrs));
+
+            document.querySelectorAll('.quick-link-item').forEach(function(linkRow) {
+                bindTrackingCopyForRow(linkRow);
+            });
+        });
+
+        function addMultipleQR() {
+            let checkboxes = document.querySelectorAll('.qr-platform-checkbox');
+            let selectedLinks = [];
+            checkboxes.forEach(function(box) {
+                if (box.checked) {
+                    let platform = box.getAttribute('data-platform');
+                    let inputId = box.getAttribute('data-input');
+                    let url = document.getElementById(inputId).value;
+                    if (url) {
+                        selectedLinks.push({
+                            platform: platform,
+                            url: url
+                        });
+                    }
+                }
+            });
+
+            if (selectedLinks.length === 0) {
+                showToast('Please select at least one platform', 'error');
+                return;
+            }
+
+            let btn = event.target;
+            let originalHtml = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            btn.disabled = true;
+
+            fetch('#', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        links: selectedLinks
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('QR Code Generated Successfully!');
+                         refreshAllQRs();
+                        checkboxes.forEach(function(box) {
+                            box.checked = false;
+                        });
+                    } else {
+                        showToast(data.message || 'Error generating QR', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error generating QR', 'error');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                });
+        }
+
+        const qrPlatformIcons = {
+            whatsapp: 'fab fa-whatsapp',
+            telegram: 'fab fa-telegram',
+            instagram: 'fab fa-instagram',
+            facebook: 'fab fa-facebook',
+            youtube: 'fab fa-youtube',
+            linkedin: 'fab fa-linkedin',
+            x: 'fab fa-x-twitter',
+            twitter: 'fab fa-twitter',
+            snapchat: 'fab fa-snapchat',
+            reddit: 'fab fa-reddit',
+            discord: 'fab fa-discord',
+            pinterest: 'fab fa-pinterest',
+            quora: 'fab fa-quora',
+            messenger: 'fab fa-facebook-messenger',
+            twitch: 'fab fa-twitch',
+            rumble: 'fas fa-video',
+            viber: 'fab fa-viber',
+            threads: 'fab fa-threads',
+            tiktok: 'fab fa-tiktok',
+             // ===== ECOMMERCE =====
+            ebay: 'fab fa-ebay',
+            amazon: 'fab fa-amazon',
+            etsy: 'fab fa-etsy',
+            shopify: 'fab fa-shopify',
+            flipkart: 'fas fa-store',
+            walmart: 'fas fa-store',
+            aliexpress: 'fas fa-globe',
+            meesho: 'fas fa-shopping-bag',
+            nykaa: 'fas fa-paint-brush',
+            myntra: 'fas fa-shopping-bag',
+            snapdeal: 'fas fa-shopping-cart',
+            ajio: 'fas fa-tshirt',
+            alibaba: 'fas fa-globe-asia',
+            indiamart: 'fas fa-building',
+            tradeindia: 'fas fa-handshake',
+
+            // ===== PAYMENT GATEWAYS =====
+            paypal: 'fab fa-paypal',
+            stripe: 'fab fa-stripe',
+            applepay: 'fab fa-apple-pay',
+            amazonpay: 'fab fa-amazon-pay',
+            googlepay: 'fab fa-google-pay',
+            upi: 'fas fa-mobile-alt',
+            zelle: 'fas fa-exchange-alt',
+            venmo: 'fas fa-hand-holding-usd',
+            cryptobtc: 'fab fa-bitcoin',
+            crypto_eth: 'fab fa-ethereum',
+            cryptousdt: 'fas fa-coins',
+            bank: 'fas fa-university',
+            razorpay: 'fas fa-credit-card',
+            payoneer: 'fas fa-globe',
+            wise: 'fas fa-exchange-alt',
+            airwallex: 'fas fa-plane',
+            skydo: 'fas fa-cloud-sun',
+            cashfree: 'fas fa-coins',
+            instamojo: 'fas fa-hand-holding-heart',
+            payu: 'fas fa-university',
+            westernunion: 'fas fa-hand-holding-usd',
+            samsungpay: 'fas fa-mobile-alt',
+            phonepe: 'fas fa-phone',
+            paytm: 'fas fa-mobile-alt'
+        };
+        const customPlatformLogo = '/images/cm_logo.png';
+
+
+         function renderMultipleQRs(qrs, containerSelector = '#multipleQrContainer') {
+            const container = document.querySelector(containerSelector);
+            if (!container) {
+                console.error(`Container ${containerSelector} not found`);
+                return;
+            }
+
+            container.innerHTML = '';
+
+            if (!qrs || qrs.length === 0) {
+                container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-qrcode fa-3x text-muted mb-3"></i>
+                    <h5>No QR Codes Found</h5>
+                    <p class="text-muted">Generate your first QR code by selecting platforms and clicking "Generate QR Code".</p>
+                </div>
+            `;
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'qr-grid';
+
+            qrs.forEach(function(qr) {
+                let platformIconsHtml = '';
+                if (qr.links) {
+                    qr.links.forEach(function(link) {
+                        let platformName = link.platform.toLowerCase();
+                        let iconClass = qrPlatformIcons[platformName];
+                        if (iconClass) {
+                            platformIconsHtml +=
+                                `<i class="${iconClass}" title="${escapeHtml(link.platform)}"></i>`;
+                        } else {
+                            platformIconsHtml +=
+                                `<img src="${customPlatformLogo}" title="${escapeHtml(link.platform)}" style="width:24px;height:24px;object-fit:contain;">`;
+                        }
+                    });
+                }
+
+                const card = document.createElement('div');
+                card.className = 'qr-card';
+
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.className = 'qr-title-input';
+                titleInput.value = qr.title || '';
+                titleInput.placeholder = 'QR Name';
+                titleInput.onblur = function() {
+                    updateQRTitle(qr.id, this.value);
+                };
+                card.appendChild(titleInput);
+
+                const qrWrapper = document.createElement('div');
+                qrWrapper.className = 'qr-code-wrapper';
+                const qrId = 'qr_' + qr.id;
+                qrWrapper.id = qrId;
+                card.appendChild(qrWrapper);
+
+                const iconsDiv = document.createElement('div');
+                iconsDiv.className = 'platform-icons';
+                iconsDiv.innerHTML = platformIconsHtml;
+                card.appendChild(iconsDiv);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'qr-actions';
+                actionsDiv.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary" onclick="openEditQRModal(${JSON.stringify(qr).replace(/"/g, '&quot;')})">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteQR('${qr.id}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            `;
+                card.appendChild(actionsDiv);
+
+                const linkDiv = document.createElement('div');
+                linkDiv.className = 'qr-link';
+                const qrUrl = `${window.location.origin}/multi-qr/—/${qr.id}`;
+                linkDiv.dataset.link = qrUrl;
+                linkDiv.innerHTML = `<i class="fas fa-link"></i> ${qrUrl}`;
+                linkDiv.onclick = function() {
+                    copyQrLink(this);
+                };
+                card.appendChild(linkDiv);
+
+                const statsDiv = document.createElement('div');
+                statsDiv.className = 'qr-stats';
+                statsDiv.innerHTML = `
+                <span><i class="fas fa-eye"></i> ${qr.qr_scans || 0} Scans</span>
+                <span><i class="fas fa-mouse-pointer"></i> ${qr.button_clicks || 0} Clicks</span>
+            `;
+                card.appendChild(statsDiv);
+
+                grid.appendChild(card);
+
+                setTimeout(function() {
+                    const qrElement = document.getElementById(qrId);
+                    if (qrElement) {
+                        new QRCode(qrElement, {
+                            text: qrUrl,
+                            width: 160,
+                            height: 160
+                        });
+                    }
+                }, 10);
+            });
+
+            container.appendChild(grid);
+        }
+
+
+
+        function openEditQRModal(qr) {
+            currentEditingQR = qr;
+            let container = document.getElementById('editQrLinksContainer');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (qr.links && qr.links.length > 0) {
+                qr.links.forEach(function(link) {
+                    addEditableRow(link.platform, link.url);
+                });
+            }
+
+            let modal = new bootstrap.Modal(document.getElementById('editQrModal'));
+            modal.show();
+        }
+
+        function addEditableRow(platform = '', url = '') {
+            let container = document.getElementById('editQrLinksContainer');
+            if (!container) return;
+
+            let platformIcon = getPlatformIcon(platform);
+
+            let rowDiv = document.createElement('div');
+            rowDiv.className = 'row g-2 mb-3 platform-row align-items-center';
+
+            rowDiv.innerHTML = `
+                <div class="col-md-4">
+                    <div class="platform-cell">
+                        <div class="platform-icon">
+                            ${platformIcon}
+                        </div>
+                        <input type="text"
+                               class="form-control edit-platform-name"
+                               value="${escapeHtml(platform)}"
+                               placeholder="Platform Name"
+                               style="margin-left: 10px;">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <input type="url"
+                        class="form-control edit-platform-url"
+                        value="${escapeHtml(url)}"
+                        placeholder="https://example.com">
+                </div>
+
+                <div class="col-md-1 col-6">
+                    <button type="button"
+                            class="btn-action btn-remove"
+                            onclick="removePlatformRow(this)">
+                        <i class="fas fa-trash me-1"></i>
+                    </button>
+                </div>
+
+                <div class="col-md-1 col-6">
+                    <button type="button"
+                            class="btn-action btn-copy"
+                            onclick="copyPlatformRow(this)">
+                        <i class="fas fa-copy me-1"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(rowDiv);
+        }
+
+        function getPlatformIcon(platform) {
+            platform = platform.toLowerCase();
+            const icons = {
+                whatsapp: '<i class="fab fa-whatsapp"></i>',
+                telegram: '<i class="fab fa-telegram"></i>',
+                instagram: '<i class="fab fa-instagram"></i>',
+                facebook: '<i class="fab fa-facebook"></i>',
+                youtube: '<i class="fab fa-youtube"></i>',
+                linkedin: '<i class="fab fa-linkedin"></i>',
+                twitter: '<i class="fab fa-twitter"></i>',
+                x: '<i class="fab fa-x-twitter"></i>',
+                tiktok: '<i class="fab fa-tiktok"></i>',
+                snapchat: '<i class="fab fa-snapchat"></i>',
+                reddit: '<i class="fab fa-reddit"></i>',
+                discord: '<i class="fab fa-discord"></i>',
+                pinterest: '<i class="fab fa-pinterest"></i>',
+                twitch: '<i class="fab fa-twitch"></i>',
+                quora: '<i class="fab fa-quora"></i>',
+                github: '<i class="fab fa-github"></i>',
+                spotify: '<i class="fab fa-spotify"></i>',
+                medium: '<i class="fab fa-medium"></i>',
+                stackoverflow: '<i class="fab fa-stack-overflow"></i>',
+                behance: '<i class="fab fa-behance"></i>',
+                dribbble: '<i class="fab fa-dribbble"></i>',
+                flickr: '<i class="fab fa-flickr"></i>',
+                soundcloud: '<i class="fab fa-soundcloud"></i>',
+                vimeo: '<i class="fab fa-vimeo"></i>',
+                vk: '<i class="fab fa-vk"></i>',
+                weibo: '<i class="fab fa-weibo"></i>',
+                tumblr: '<i class="fab fa-tumblr"></i>',
+                foursquare: '<i class="fab fa-foursquare"></i>',
+                slack: '<i class="fab fa-slack"></i>',
+                skype: '<i class="fab fa-skype"></i>',
+                viber: '<i class="fab fa-viber"></i>',
+                messenger: '<i class="fab fa-facebook-messenger"></i>',
+                threads: '<i class="fab fa-threads"></i>',
+                rumble: '<i class="fas fa-video"></i>',
+
+                // ===== ECOMMERCE =====
+                ebay: '<i class="fab fa-ebay"></i>',
+                amazon: '<i class="fab fa-amazon"></i>',
+                etsy: '<i class="fab fa-etsy"></i>',
+                shopify: '<i class="fab fa-shopify"></i>',
+                flipkart: '<i class="fas fa-store"></i>',
+                walmart: '<i class="fas fa-store"></i>',
+                aliexpress: '<i class="fas fa-globe"></i>',
+                meesho: '<i class="fas fa-shopping-bag"></i>',
+                nykaa: '<i class="fas fa-paint-brush"></i>',
+                myntra: '<i class="fas fa-shopping-bag"></i>',
+                snapdeal: '<i class="fas fa-shopping-cart"></i>',
+                ajio: '<i class="fas fa-tshirt"></i>',
+                alibaba: '<i class="fas fa-globe-asia"></i>',
+                indiamart: '<i class="fas fa-building"></i>',
+                tradeindia: '<i class="fas fa-handshake"></i>',
+
+                // ===== PAYMENT GATEWAYS =====
+                paypal: '<i class="fab fa-paypal"></i>',
+                stripe: '<i class="fab fa-stripe"></i>',
+                applepay: '<i class="fab fa-apple-pay"></i>',
+                amazonpay: '<i class="fab fa-amazon-pay"></i>',
+                googlepay: '<i class="fab fa-google-pay"></i>',
+                upi: '<i class="fas fa-mobile-alt"></i>',
+                zelle: '<i class="fas fa-exchange-alt"></i>',
+                venmo: '<i class="fas fa-hand-holding-usd"></i>',
+                cryptobtc: '<i class="fab fa-bitcoin"></i>',
+                crypto_eth: '<i class="fab fa-ethereum"></i>',
+                cryptousdt: '<i class="fas fa-coins"></i>',
+                bank: '<i class="fas fa-university"></i>',
+                razorpay: '<i class="fas fa-credit-card"></i>',
+                payoneer: '<i class="fas fa-globe"></i>',
+                wise: '<i class="fas fa-exchange-alt"></i>',
+                airwallex: '<i class="fas fa-plane-departure"></i>',
+                skydo: '<i class="fas fa-cloud-sun"></i>',
+                cashfree: '<i class="fas fa-coins"></i>',
+                instamojo: '<i class="fas fa-hand-holding-heart"></i>',
+                payu: '<i class="fas fa-university"></i>',
+                westernunion: '<i class="fas fa-hand-holding-usd"></i>',
+                samsungpay: '<i class="fas fa-mobile-alt"></i>',
+                phonepe: '<i class="fas fa-phone"></i>',
+                paytm: '<i class="fas fa-mobile-alt"></i>',
+            };
+            return icons[platform] || '<img src="/images/cm_logo.png" style="width:22px;height:22px;">';
+        }
+
+        function addNewPlatformRow() {
+            let dropdown = document.getElementById('platformDropdown').value;
+            let customName = document.getElementById('customPlatformName').value.trim();
+            let url = document.getElementById('platformUrl').value.trim();
+
+            let platform = dropdown || customName;
+
+            if (!platform) {
+                showToast('Please select or enter a platform name', 'error');
+                return;
+            }
+
+            if (!url) {
+                showToast('Please enter a platform URL', 'error');
+                return;
+            }
+
+            addEditableRow(platform, url);
+
+            document.getElementById('platformDropdown').value = '';
+            document.getElementById('customPlatformName').value = '';
+            document.getElementById('platformUrl').value = '';
+
+            showToast('Platform added to edit list', 'success');
+        }
+
+        function saveEditedQR() {
+            let platformNames = document.querySelectorAll('.edit-platform-name');
+            let urls = document.querySelectorAll('.edit-platform-url');
+            let updatedLinks = [];
+
+            for (let i = 0; i < platformNames.length; i++) {
+                let platform = platformNames[i].value.trim();
+                let url = urls[i].value.trim();
+
+                if (platform && url) {
+                    updatedLinks.push({
+                        platform: platform,
+                        url: url
+                    });
+                } else if (platform && !url) {
+                    showToast(`Please enter URL for ${platform}`, 'error');
+                    return;
+                }
+            }
+
+            if (updatedLinks.length === 0) {
+                showToast('Please add at least one valid link', 'error');
+                return;
+            }
+
+            let saveBtn = document.querySelector('#editQrModal .btn-save');
+            let originalHtml = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<div class="loading-spinner"></div> Saving...';
+            saveBtn.disabled = true;
+
+            fetch('#', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        qr_id: currentEditingQR.id,
+                        links: updatedLinks
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('QR Updated Successfully!');
+                        renderMultipleQRs(data.all_qrs);
+                        let modal = bootstrap.Modal.getInstance(document.getElementById('editQrModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                    } else {
+                        showToast(data.message || 'Error updating QR', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error updating QR code', 'error');
+                })
+                .finally(() => {
+                    saveBtn.innerHTML = originalHtml;
+                    saveBtn.disabled = false;
+                });
+        }
+
+
+         function copyQrLink(element) {
+            const link = element.dataset.link;
+            navigator.clipboard.writeText(link)
+                .then(() => {
+                    showToast('Link copied successfully');
+                    const original = element.innerHTML;
+                    element.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
+                    setTimeout(() => {
+                        element.innerHTML = original;
+                    }, 10);
+                })
+                .catch(() => {
+                    showToast('Failed to copy link', 'error');
+                });
+        }
+
+        function refreshAllQRs() {
+            $.ajax({
+                url: "#",
+                type: "GET",
+                success: function(response) {
+                    if (response.success) {
+                        renderMultipleQRs(response.qrs);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Failed to load QRs', xhr);
+                }
+            });
+        }
+
+        function deleteQR(qrId) {
+            Swal.fire({
+                title: 'Delete QR Code?',
+                text: "This QR code will be permanently deleted.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "#".replace(':id', qrId),
+                        type: 'DELETE',
+                        data: {
+                            _token: '—'
+                        },
+                        success: function(response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'QR Code deleted successfully.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                             refreshAllQRs();
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Unable to delete QR code.'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        function removePlatformRow(button) {
+            if (button && button.closest) {
+                let row = button.closest('.platform-row');
+                if (row) {
+                    row.remove();
+                    showToast('Platform removed', 'success');
+                }
+            }
+        }
+
+        function copyPlatformRow(button) {
+            if (button && button.closest) {
+                let row = button.closest('.platform-row');
+                if (row) {
+                    let urlInput = row.querySelector('.edit-platform-url');
+                    if (urlInput && urlInput.value) {
+                        navigator.clipboard.writeText(urlInput.value)
+                            .then(() => {
+                                showToast('URL copied to clipboard!');
+                            })
+                            .catch(() => {
+                                showToast('Failed to copy URL', 'error');
+                            });
+                    } else {
+                        showToast('No URL to copy', 'error');
+                    }
+                }
+            }
+        }
+
+        function updateQRTitle(qrId, title) {
+            fetch('#', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        qr_id: qrId,
+                        title: title
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('QR Title Saved');
+                        refreshAllQRs();
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+
+        function addNewLinkToContainer(link) {
+            const container = document.getElementById('customLinksContainer');
+            if (!container) {
+                showToast('Custom links container not found.', 'error');
+                return;
+            }
+
+            const trackingUrl = link.tracking_url || '';
+            const openCount = Number(link.open_count || 0);
+            const html = `
+                <div class="app-link quick-link-item"
+                     id="link-row-${link.id}">
+
+                    <input type="checkbox"
+                        class="qr-platform-checkbox"
+                        data-platform="${link.platform_name}"
+                        data-input="url_${link.id}">
+
+                    <div class="platform-icon">
+                        <img src="/images/cm_logo.png"
+                             style="width:24px;height:24px;">
+                    </div>
+
+                    <input type="text"
+                        id="platform_name_${link.id}"
+                        class="link-input platform-name-input"
+                        value="${link.platform_name}">
+
+                    <input type="url"
+                        id="url_${link.id}"
+                        class="link-input tracking-url-input"
+                        value="${escapeHtml(link.platform_url)}"
+                        data-tracking-url="${escapeHtml(trackingUrl)}"
+                        oncopy="copyTrackingUrlFromInput(event, this)">
+
+                    <button type="button" onclick="saveCustomLink(${link.id}, this)"
+                            class="save-btn-sm">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+
+                    <button type="button" onclick="copyTrackingLink(this)"
+                            class="copy-btn-sm tracking-copy-btn"
+                            data-tracking-url="${escapeHtml(trackingUrl)}">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+
+                    <button type="button" class="count-btn-sm" disabled>
+                        <i class="fas fa-chart-line"></i>
+                        <span class="open-count">${openCount}</span>
+                    </button>
+
+                    <button type="button" onclick="deleteCustomLink(${link.id})"
+                            class="save-btn-sm"
+                            style="background:#dc3545;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', html);
+
+            const newLinkRow = document.getElementById('link-row-' + link.id);
+            if (newLinkRow) {
+                bindTrackingCopyForRow(newLinkRow);
+            }
+        }
+
+        function saveCustomLink(linkId, btn) {
+            const platformElement = document.getElementById('platform_name_' + linkId);
+            const urlElement = document.getElementById('url_' + linkId);
+
+            if (!platformElement || !urlElement) {
+                showToast('Input field not found.', 'error');
+                return;
+            }
+
+            const platformName = platformElement.value.trim();
+            const platformUrl = urlElement.value.trim();
+
+            if (!platformName || !platformUrl) {
+                showToast('Please enter platform name and URL.', 'error');
+                return;
+            }
+
+            if (!btn) {
+                showToast('Save button not found.', 'error');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+            btn.disabled = true;
+
+            fetch('#', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: linkId,
+                    platform_name: platformName,
+                    platform_url: platformUrl
+                })
+            })
+            .then(async function(response) {
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to update link.');
+                }
+
+                return data;
+            })
+            .then(function(data) {
+                const linkRow = document.getElementById('link-row-' + linkId);
+
+                if (linkRow) {
+                    const checkbox = linkRow.querySelector('.qr-platform-checkbox');
+                    const trackingCopyButton = linkRow.querySelector('.tracking-copy-btn');
+                    const openCount = linkRow.querySelector('.open-count');
+
+                    if (checkbox) {
+                        checkbox.dataset.platform = platformName;
+                    }
+
+                    if (data.tracking_url) {
+                        urlElement.dataset.trackingUrl = data.tracking_url;
+
+                        if (trackingCopyButton) {
+                            trackingCopyButton.dataset.trackingUrl = data.tracking_url;
+                        }
+                    }
+
+                    if (openCount) {
+                        openCount.textContent = data.open_count ?? 0;
+                    }
+                }
+
+                showToast(data.message || 'Updated successfully!');
+            })
+            .catch(function(error) {
+                console.error('Custom link save error:', error);
+                showToast(error.message || 'Unable to update link.', 'error');
+            })
+            .finally(function() {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            });
+        }
+
+        function deleteCustomLink(linkId) {
+            Swal.fire({
+                title: 'Delete Link?',
+                text: "This link will be permanently deleted.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "#".replace(':id', linkId),
+                        type: 'DELETE',
+                        data: {
+                            _token: '—'
+                        },
+                        success: function(response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'Link deleted successfully.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            document.getElementById(`link-row-${linkId}`).remove();
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Unable to delete link.'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ===== BUSINESS CARD JAVASCRIPT =====
+        let selectedLinkIds = [];
+        let currentCardId = null;
+        let qrCodeInstance = null;
+
+        // ===== Helper: Toast messages =====
+        function showToast(message, type = 'success') {
+            toastr[type](message);
+        }
+
+        // ===== Helper: Escape HTML =====
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                if (m === '"') return '&quot;';
+                return m;
+            });
+        }
+
+        // ===== QR Code Generation =====
+        function generateQRCode(url) {
+            const container = document.getElementById('qrCodeContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!url) {
+                container.innerHTML = '<p style="font-size:12px; color:#999; padding:10px;">No URL</p>';
+                return;
+            }
+            qrCodeInstance = new QRCode(container, {
+                text: url,
+                width: 150,
+                height: 150,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // ===== Update Live Preview =====
+        function updatePreview() {
+            const fullName = $('[name="full_name"]').val() || 'Your Name';
+            const role = $('[name="role_name"]').val() || 'Role';
+            const company = $('[name="company_name"]').val() || 'Company';
+            const email = $('[name="email"]').val() || '';
+            const whatsapp = $('[name="whatsapp"]').val() || '';
+            const address = $('[name="address"]').val() || '';
+            const qrLink = $('#qr_links').val() || '';
+
+            const logoHtml = `<div class="monogram"><img src="/images/card-logo.png" alt="Company Logo"></div>`;
+
+            let html = `
+                <div class="business-card-preview">
+                    <div class="company gold-text">${escapeHtml(company)}</div>
+                    <div class="tagline">CRAFTING TIMELESS ELEGANCE</div>
+                    ${logoHtml}
+                    <div class="full-name">${escapeHtml(fullName)}</div>
+                    <div class="role">${escapeHtml(role)}</div>
+                    <div class="details-grid">
+                        <div class="contact-info">
+                            ${whatsapp ? `<div class="detail"><i class="fab fa-whatsapp"></i> ${escapeHtml(whatsapp)}</div>` : ''}
+                            ${email ? `<div class="detail"><i class="fas fa-envelope"></i> ${escapeHtml(email)}</div>` : ''}
+                            ${address ? `<div class="detail"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(address)}</div>` : ''}
+                        </div>
+                        <div class="qr-side">
+                            <div class="qr-wrapper">
+                                <div id="qrCodeContainer"></div>
+                            </div>
+                            <div class="scan-label">SCAN TO CONNECT</div>
+                        </div>
+                    </div>
+                    <div class="footer-thanks">THANK YOU FOR VISITING</div>
+                </div>
+            `;
+
+            $('#cardPreviewContent').html(html);
+
+            if (qrLink) {
+                generateQRCode(qrLink);
+            } else {
+                $('#qrCodeContainer').html(
+                    '<p style="font-size:12px; color:#999; padding:10px;">Enter a URL to generate QR</p>');
+            }
+        }
+
+        // ===== Load existing card data when modal opens =====
+        $('#businessCardModal').on('show.bs.modal', function() {
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "#",
+                type: 'GET',
+                success: function(response) {
+                    if (response.status && response.card) {
+                        const card = response.card;
+                        currentCardId = card.id;
+                        $('[name="full_name"]').val(card.full_name || '');
+                        $('[name="role_name"]').val(card.role_name);
+                        $('[name="company_name"]').val(card.company_name);
+                        $('[name="email"]').val(card.email);
+                        $('[name="whatsapp"]').val(card.whatsapp);
+                        $('[name="address"]').val(card.address);
+                        $('#qr_links').val(card.qr_links || '');
+                        updatePreview();
+                    } else {
+                        $('#businessCardForm')[0].reset();
+                        currentCardId = null;
+                        updatePreview();
+                    }
+                },
+                error: function() {
+                    $('#businessCardForm')[0].reset();
+                    currentCardId = null;
+                    updatePreview();
+                }
+            });
+        });
+
+        // ===== Events: form inputs & checkboxes =====
+        // Update preview on any change
+        $('#businessCardForm input, #businessCardForm textarea').on('input change', function() {
+            updatePreview();
+        });
+
+        // Also specifically on qr_link change
+        $('#qr_links').on('input', function() {
+            updatePreview();
+        });
+
+        // ===== Save Business Card =====
+        $('#generateBusinessCard').on('click', function() {
+            const qrLink = $('#qr_links').val().trim();
+            if (!qrLink) {
+                $('#qrLinkError').text('Please enter a valid URL.');
+                $('#qr_links').addClass('is-invalid');
+                toastr.error('Please enter a URL for the QR code.');
+                return;
+            }
+            $('#qr_links').removeClass('is-invalid');
+            $('#qrLinkError').text('');
+
+            let formData = new FormData(document.getElementById('businessCardForm'));
+
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "#",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                beforeSend: function() {
+                    $('#generateBusinessCard')
+                        .prop('disabled', true)
+                        .html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+                },
+                success: function(response) {
+                    $('#generateBusinessCard')
+                        .prop('disabled', false)
+                        .html('Generate Card');
+                    toastr.success(response.message);
+                    if (response.card && response.card.id) {
+                        currentCardId = response.card.id;
+                        // QR already updated via updatePreview()
+                    }
+                    $('#cardActions').html(`
+                        <div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">
+                            <button class="btn btn-outline-dark btn-sm" onclick="downloadPNG()">
+                                <i class="fas fa-image"></i> Download PNG
+                            </button>
+                            <button class="btn btn-outline-dark btn-sm" onclick="copyCardImage()">
+                                <i class="fas fa-copy"></i>
+                                Copy Card
+                            </button>
+                        </div>
+                    `);
+                },
+                error: function(xhr) {
+                    $('#generateBusinessCard')
+                        .prop('disabled', false)
+                        .html('Generate Card');
+                    if (xhr.status === 422) {
+                        $('.is-invalid').removeClass('is-invalid');
+                        $('.invalid-feedback').remove();
+                        $.each(xhr.responseJSON.errors, function(key, value) {
+                            $('[name="' + key + '"]')
+                                .addClass('is-invalid')
+                                .after('<div class="invalid-feedback">' + value[0] + '</div>');
+                        });
+                    } else {
+                        toastr.error('Something went wrong.');
+                    }
+                }
+            });
+        });
+
+        // ===== Download functions =====
+        function downloadPNG() {
+            const element = document.querySelector('#cardPreviewContent .business-card-preview');
+            if (!element) {
+                toastr.error('Card preview not found.');
+                return;
+            }
+            html2canvas(element, {
+                scale: 2,
+                backgroundColor: '#1a1a1a',
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'business-card.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                toastr.error('Error capturing card.');
+                console.error(err);
+            });
+        }
+
+        // ===== Open modal from button =====
+        function BusinessCardModalOpen() {
+            $('#businessCardModal').modal('show');
+        }
+
+        async function copyCardImage() {
+            const element = document.querySelector('.business-card-preview');
+            if (!element) {
+                toastr.error('Card not found');
+                return;
+            }
+            try {
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: null,
+                });
+                canvas.toBlob(async function(blob) {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({
+                                'image/png': blob
+                            })
+                        ]);
+                        toastr.success('Copied!');
+                    } catch (e) {
+                        // Fallback: create a temporary link and prompt the user to copy
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'business-card.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                        toastr.info('Image downloaded. You can also copy manually.');
+                    }
+                });
+            } catch (e) {
+                toastr.error('Could not capture card.');
+                console.error(e);
+            }
+        }
+
+        window.copyTrackingUrlFromInput = function(event, input) {
+            const trackingUrl = (input.dataset.trackingUrl || '').trim();
+
+            if (!trackingUrl) {
+                event.preventDefault();
+                showToast('Please save the link first to generate tracking URL.', 'error');
+                return false;
+            }
+
+            event.preventDefault();
+
+            if (event.clipboardData) {
+                event.clipboardData.setData('text/plain', trackingUrl);
+                showToast('Tracking URL copied successfully!');
+                return false;
+            }
+
+            navigator.clipboard.writeText(trackingUrl)
+                .then(function() {
+                    showToast('Tracking URL copied successfully!');
+                })
+                .catch(function() {
+                    fallbackCopyTrackingLink(trackingUrl);
+                });
+
+            return false;
+        };
+
+        function bindTrackingCopyForRow(linkRow) {
+            if (!linkRow || linkRow.dataset.trackingBound === '1') {
+                return;
+            }
+
+            const checkbox = linkRow.querySelector('.qr-platform-checkbox');
+            const trackingCopyButton = linkRow.querySelector('.tracking-copy-btn');
+
+            if (!checkbox || !trackingCopyButton) {
+                return;
+            }
+
+            const urlInput = document.getElementById(checkbox.dataset.input);
+
+            if (!urlInput) {
+                return;
+            }
+
+            if (!urlInput.hasAttribute('oncopy')) {
+                urlInput.addEventListener('copy', function(event) {
+                    const trackingUrl = (trackingCopyButton.dataset.trackingUrl || '').trim();
+
+                    if (!trackingUrl) {
+                        event.preventDefault();
+                        showToast('Please save the link first to generate tracking URL.', 'error');
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.clipboardData.setData('text/plain', trackingUrl);
+                    showToast('Tracking URL copied successfully!');
+                });
+            }
+
+            linkRow.dataset.trackingBound = '1';
+        }
+
+        window.copyTrackingLink = function(button) {
+            if (!button) {
+                showToast('Copy button not found.', 'error');
+                return;
+            }
+
+            const trackingUrl = (button.dataset.trackingUrl || '').trim();
+
+            if (!trackingUrl) {
+                showToast('Please save the link first to generate tracking URL.', 'error');
+                return;
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(trackingUrl)
+                    .then(function() {
+                        showToast('Tracking URL copied successfully!');
+                    })
+                    .catch(function() {
+                        fallbackCopyTrackingLink(trackingUrl);
+                    });
+                return;
+            }
+
+            fallbackCopyTrackingLink(trackingUrl);
+        };
+
+        window.fallbackCopyTrackingLink = function(trackingUrl) {
+            const temporaryInput = document.createElement('textarea');
+            temporaryInput.value = trackingUrl;
+            temporaryInput.setAttribute('readonly', '');
+            temporaryInput.style.position = 'fixed';
+            temporaryInput.style.left = '-9999px';
+            document.body.appendChild(temporaryInput);
+            temporaryInput.select();
+
+            const copied = document.execCommand('copy');
+            temporaryInput.remove();
+
+            showToast(
+                copied ? 'Tracking URL copied successfully!' : 'Unable to copy tracking URL.',
+                copied ? 'success' : 'error'
+            );
+        };
+
+
+    </script>
+
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        $(document).ready(function() {
+            // Logout functionality
+            $('#logoutBtn').click(function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        toastr.success("Logged out successfully");
+                        setTimeout(function() {
+                            window.location.href = "#";
+                        }, 1000);
+                    },
+                    error: function() {
+                        toastr.error("Logout failed");
+                    }
+                });
+            });
+        });
+
+        // ========== SIDEBAR TOGGLE (Custom JavaScript) ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleBtn = document.getElementById('sidebarToggle');
+
+            // Toggle sidebar on button click
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = sidebar.classList.contains('show');
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                    toggleBtn.setAttribute('aria-expanded', !isOpen);
+                    document.body.style.overflow = !isOpen ? 'hidden' : '';
+                });
+            }
+
+            // Close sidebar on overlay click
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                });
+            }
+
+            // Close sidebar on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  SUBMENU TOGGLE (Generic – works for any dropdown)
+            // =============================================================
+            window.toggleSubmenu = function(event) {
+                const parentLink = event.currentTarget;
+                const targetId = parentLink.getAttribute('data-target');
+                if (!targetId) return;
+                const submenu = document.getElementById(targetId);
+                if (!submenu) return;
+
+                const arrow = parentLink.querySelector('.arrow');
+                const isOpen = submenu.classList.contains('open');
+
+                // Toggle this submenu (open/close)
+                submenu.classList.toggle('open');
+                arrow.classList.toggle('open');
+                parentLink.setAttribute('aria-expanded', !isOpen);
+
+                // If we are opening, add active-indicator; if closing and no child active, remove it
+                if (!isOpen) {
+                    parentLink.classList.add('active-indicator');
+                } else {
+                    const hasActiveChild = submenu.querySelector('.nav-link.active') !== null;
+                    if (!hasActiveChild) {
+                        parentLink.classList.remove('active-indicator');
+                    }
+                }
+                event.preventDefault();
+            };
+
+            // =============================================================
+            //  ACTIVE MENU STATE (defensive – only updates indicators,
+            //  does NOT force-close any submenu)
+            // =============================================================
+            function setActiveMenu() {
+                const currentPath = window.location.pathname;
+
+                // 1) Find the best matching child link
+                let bestMatch = null;
+                let bestLength = 0;
+
+                document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href || href === '#') return;
+
+                    let linkPath;
+                    try {
+                        linkPath = new URL(href, window.location.origin).pathname;
+                    } catch {
+                        linkPath = href;
+                    }
+
+                    const cleanCurrent = currentPath.replace(/\/$/, '');
+                    const cleanLink = linkPath.replace(/\/$/, '');
+
+                    const isMatch = (cleanCurrent === cleanLink) ||
+                                    (cleanLink !== '/' && cleanCurrent.startsWith(cleanLink + '/'));
+
+                    if (isMatch && cleanLink.length > bestLength) {
+                        bestLength = cleanLink.length;
+                        bestMatch = link;
+                    }
+                });
+
+                // 2) Remove 'active' class from all links (but do NOT close submenus)
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                // 3) Remove 'active-indicator' from all parent buttons
+                document.querySelectorAll('[data-target]').forEach(parent => {
+                    parent.classList.remove('active-indicator');
+                });
+
+                // 4) If we found a match, activate it and set indicator on its parent
+                if (bestMatch) {
+                    bestMatch.classList.add('active');
+
+                    const parentSub = bestMatch.closest('.sub-menu');
+                    if (parentSub) {
+                        const parentBtn = document.querySelector(`[data-target="${parentSub.id}"]`);
+                        if (parentBtn) {
+                            parentBtn.classList.add('active-indicator');
+                            // Optionally, we can also ensure the parent is expanded
+                            // but we won't force it open here – user can toggle.
+                        }
+                    }
+                }
+            }
+
+            // Run on page load
+            setActiveMenu();
+
+            // Run every 1 second to keep indicators updated (does not close dropdowns)
+            setInterval(setActiveMenu, 1000);
+
+            // Also run after sidebar toggle (in case layout shift affects visibility)
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                setTimeout(setActiveMenu, 200);
+            });
+
+            // ========== KEYBOARD NAVIGATION ==========
+            document.querySelectorAll('.nav-link[role="button"]').forEach(link => {
+                link.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+
+            // Handle window resize - close sidebar on large screens
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 991.98 && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  THEME TOGGLE LOGIC (Sun/Moon) – handles click events
+            // =============================================================
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            const STORAGE_KEY = 'userThemePreference';
+
+            function applyTheme(theme) {
+                const isDark = (theme === 'dark');
+                document.body.classList.toggle('theme-dark', isDark);
+                if (isDark) {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            // Load saved preference (default 'light') – already set by inline script
+            const saved = localStorage.getItem(STORAGE_KEY) || 'light';
+            // applyTheme(saved); // already done by inline script
+
+            // Toggle on click
+            themeToggle.addEventListener('click', function() {
+                const current = localStorage.getItem(STORAGE_KEY) || 'light';
+                const newTheme = (current === 'light') ? 'dark' : 'light';
+                applyTheme(newTheme);
+            });
+
+        });
+    </script>
+<script src="/js/static-navigation.js"></script>
+<script src="/js/admin-own-workspace.js"></script>
+<script>
+    /* Keep the Admin Business Card preview live even when legacy template
+       handlers run. The renderer itself is supplied by admin-own-workspace.js. */
+    document.addEventListener('input', function (event) {
+        if (event.target.closest && event.target.closest('#businessCardForm')) {
+            window.renderAdminBusinessCardPreview && window.renderAdminBusinessCardPreview();
+        }
+    }, true);
+    document.addEventListener('shown.bs.modal', function (event) {
+        if (event.target && event.target.id === 'businessCardModal') {
+            window.renderAdminBusinessCardPreview && window.renderAdminBusinessCardPreview();
+        }
+    });
+    window.addEventListener('load', function () {
+        window.renderAdminBusinessCardPreview && window.renderAdminBusinessCardPreview();
+    });
+</script>
+</body>
+
+</html>

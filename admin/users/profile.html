@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="—">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/images/company-logo.png">
+    <title>High Custom Admin</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ============================================================= -->
+    <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
+    <!-- ============================================================= -->
+    <style>
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f5f7fb;
+            --bg-topbar: #ffffff;
+            --bg-main: #f5f7fb;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            --dropdown-toggle-color: #1e293b;
+        }
+
+        /* Dark theme */
+        body.theme-dark {
+            --bg-body: #0f172a;
+            --bg-topbar: #1e293b;
+            --bg-main: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --topbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+            --dropdown-toggle-color: #f1f5f9;
+        }
+
+        /* Apply variables to existing elements */
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .top-navbar {
+            background: var(--bg-topbar);
+            box-shadow: var(--topbar-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .main-content {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Fix dropdown toggle text color in dark mode */
+        .top-navbar .dropdown-toggle {
+            color: var(--dropdown-toggle-color) !important;
+        }
+
+        /* Theme toggle button style */
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .theme-toggle:hover {
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        /* Sidebar remains dark – no changes */
+    </style>
+
+    <!-- ⚡ Inline script to apply saved theme class to <body> immediately (no flicker) -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== ORIGINAL STYLES (unchanged) ========== -->
+    <style>
+        /* ---------- RESET & BASE ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ---------- SIDEBAR (dark theme) ---------- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            z-index: 1050;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1.2rem 0.8rem 2rem;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            padding: 0 0.75rem 1.8rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-brand i {
+            color: #3b82f6;
+            font-size: 1.8rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-link i {
+            width: 1.5rem;
+            font-size: 1.15rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link .menu-text {
+            flex: 1;
+        }
+
+        .nav-link .arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .nav-link .arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .nav-link.active .arrow {
+            color: #fff;
+        }
+
+        .nav-link.active-indicator {
+            border-left: 4px solid #0d6efd;
+            background: rgba(13, 110, 253, 0.08);
+            color: #f1f5f9;
+        }
+
+        .nav-link.active-indicator i {
+            color: #0d6efd;
+        }
+
+        .sub-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0.2rem 0 0.2rem 1.8rem;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+            opacity: 0;
+        }
+
+        .sub-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        .sub-menu .nav-link {
+            padding: 0.5rem 0.9rem 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        .sub-menu .nav-link i {
+            font-size: 0.9rem;
+            width: 1.3rem;
+        }
+
+        .sub-menu .nav-link.active {
+            background: #0d6efd !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0.8rem 0.5rem;
+        }
+
+        /* ---------- TOP NAVBAR ---------- */
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 260px;
+            height: 70px;
+            z-index: 1040;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 1.5rem;
+            transition: left 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9edf4;
+        }
+
+        .hc-user-code {
+            color: #fff;
+            border-radius: 18px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #6793d6 0%, #413b3b 40%, #0939a0 60%);
+            background-size: 400%;
+            font-weight: 600;
+            animation: Gradient 5s ease infinite;
+        }
+
+        @keyframes Gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* ---------- MAIN CONTENT ---------- */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ---------- SIDEBAR TOGGLE BUTTON (mobile) ---------- */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: #1e293b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.6rem;
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            color: #0d6efd;
+        }
+
+        /* ---------- OVERLAY (mobile) ---------- */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1045;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* ---------- RESPONSIVE DESIGN ---------- */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                height: 100%;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .top-navbar {
+                left: 0;
+                padding: 0 1.2rem;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 60px;
+                padding: 0.6rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .hc-user-code {
+                font-size: 0.75rem;
+                padding: 5px 12px;
+            }
+
+            .profile-img {
+                width: 32px;
+                height: 32px;
+            }
+
+            .main-content {
+                margin-top: 60px;
+                padding: 12px;
+            }
+
+            .dropdown-menu {
+                min-width: 200px !important;
+            }
+        }
+
+        /* ---------- ACCESSIBILITY ---------- */
+        .nav-link:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .sidebar-brand {
+            padding: 15px;
+        }
+
+        .sidebar-brand a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            margin-top: -13%;
+        }
+
+        /* .sidebar-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 40%;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            padding: 3px;
+        }
+
+        .sidebar-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        } */
+
+        .sidebar-logo {
+            width: 65%;
+            height: auto;
+            object-fit: contain;
+            align-self: center;
+            justify-self: center;
+            display: block;
+        }
+
+        .top-navbar span {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #282929;
+            margin-right: auto;
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- ========== Set body theme class immediately ========== -->
+    <script>
+        (function() {
+            const stored = localStorage.getItem('userThemePreference') || 'light';
+            if (stored === 'dark') {
+                document.body.classList.add('theme-dark');
+            }
+        })();
+    </script>
+
+    <!-- ========== OVERLAY (mobile) ========== -->
+    <div class="overlay" id="sidebarOverlay"></div>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main sidebar">
+        
+        
+
+
+        <div class="sidebar-brand">
+            <a href="—" class="d-flex align-items-center text-decoration-none">
+                <div>
+                    <img src="/images/company-logo-1.png" alt="Company Logo" class="sidebar-logo">
+                </div>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#"
+                    aria-current="false">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  ADMIN DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-admin"
+                   id="adminParentLink"
+                   data-target="submenu-admin"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-envelope"></i>
+                    <span class="menu-text">Admin</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-admin" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-link"></i> Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-database"></i> Link
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Leads
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-share-nodes"></i> Social Links
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-chart-line"></i> Tracking Report
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ============================================================= -->
+            <!--  USERS DROPDOWN (unique ID)                                    -->
+            <!-- ============================================================= -->
+            
+            <li class="nav-item">
+                <a class="nav-link"
+                   role="button"
+                   aria-expanded="—"
+                   aria-controls="submenu-users"
+                   id="usersParentLink"
+                   data-target="submenu-users"
+                   onclick="toggleSubmenu(event)">
+                    <i class="fas fa-user-group"></i>
+                    <span class="menu-text">Users</span>
+                    <i class="fas fa-chevron-down arrow"></i>
+                </a>
+                <ul class="sub-menu" id="submenu-users" role="menu">
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-pen"></i> Users Master
+                        </a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link"
+                           href="#" role="menuitem">
+                            <i class="fas fa-user-lock"></i> Users Rights
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- All Tracking -->
+            <li class="nav-item">
+                <a class="nav-link"
+                    href="#">
+                    <i class="fas fa-location-dot"></i>
+                    <span class="menu-text">All Tracking</span>
+                </a>
+            </li>
+        </ul>
+
+         <!-- User Dropdown -->
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
+                    id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/images/user-icon.jpg"
+                        class="profile-img me-2" alt="User avatar">
+                    <strong class="d-none d-sm-inline">— —</strong>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    <li>
+                        <a class="dropdown-item" href="#">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </li>
+
+                     
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Gmail Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="—"
+                                class="dropdown-item gmail-connect-btn text-danger">
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Gmail
+                            </a>
+                        </li>
+
+                    
+
+                    
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-success">
+
+                                <i class="fas fa-check-circle me-2"></i>
+                                Zoho Connected
+                            </a>
+                        </li>
+                    
+                        
+                        <li>
+                            <a href="#" class="dropdown-item zoho-connect-btn text-danger">
+
+                                <i class="fas fa-envelope me-2"></i>
+                                Connect Zoho
+                            </a>
+                        </li>
+                    
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+    </aside>
+
+    <!-- ========== TOP NAVBAR ========== -->
+    <nav class="top-navbar" id="topNavbar">
+         <span>ADMIN</span>
+        <!-- Mobile toggle button -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-left:auto;">
+
+            <!-- ============================================================= -->
+            <!--  SUN/MOON TOGGLE BUTTON                                        -->
+            <!-- ============================================================= -->
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                <i class="fas fa-sun"></i> <!-- default, will be overwritten immediately -->
+            </button>
+
+            <!-- ===== IMMEDIATE SCRIPT TO SET ICON (no flicker) ===== -->
+            <script>
+                (function() {
+                    const icon = document.querySelector('#themeToggle i');
+                    if (icon) {
+                        const stored = localStorage.getItem('userThemePreference') || 'light';
+                        if (stored === 'dark') {
+                            icon.classList.remove('fa-sun');
+                            icon.classList.add('fa-moon');
+                        } else {
+                            icon.classList.remove('fa-moon');
+                            icon.classList.add('fa-sun');
+                        }
+                    }
+                })();
+            </script>
+
+            <!-- User Code -->
+            <div class="hc-user-code">
+                <strong>—</strong>
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="main-content" id="mainContent">
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="—">
+    <title>High Custom Jewellers | Update Profile</title>
+    <!-- Google Fonts + Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- intl-tel-input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
+    <!-- Toastr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <!-- jQuery & other libs -->
+    <script src="/js/jquery.min.js"></script>
+    <!-- intl-tel-input JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"></script>
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- Cropper.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <style>
+        /* (previous styles remain the same) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(ellipse at 30% 40%, #0C0A0F 0%, #020202 100%);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" opacity="0.08"><path fill="none" d="M14 16L40 4l26 12v24L40 52 14 40V16z" stroke="%23D4AF37" stroke-width="0.8"/><circle cx="40" cy="28" r="3" fill="%23D4AF37" fill-opacity="0.2"/><path d="M20 32L40 20l20 12v16L40 60 20 48V32z" stroke="%23D4AF37" stroke-width="0.5" fill="none"/></svg>');
+            background-repeat: repeat;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .profile-card {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(10, 8, 15, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            padding: 2rem 2rem 2.2rem;
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.6);
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .profile-card:hover {
+            border-color: rgba(212, 175, 55, 0.7);
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .brand-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #F9E0A0 0%, #D4AF37 45%, #B88A1A 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .brand-symbol {
+            font-size: 0.9rem;
+            letter-spacing: 6px;
+            color: #D4AF37;
+            opacity: 0.7;
+        }
+
+        h2 {
+            text-align: center;
+            color: #F5E7D3;
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 500;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sub-text {
+            text-align: center;
+            color: #C1AE7A;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .current-image {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .current-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #D4AF37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+            background: #1A1722;
+        }
+
+        .form-group {
+            margin-bottom: 1.3rem;
+            position: relative;
+        }
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #CBB67C;
+            margin-bottom: 0.5rem;
+        }
+        label i {
+            margin-right: 6px;
+            color: #D4AF37;
+        }
+        .input-field, .file-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 16px;
+            padding: 0.85rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #FBF5E8;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .file-input {
+            padding: 0.7rem 1rem;
+            cursor: pointer;
+        }
+        .file-input::-webkit-file-upload-button {
+            background: #D4AF37;
+            border: none;
+            border-radius: 12px;
+            padding: 0.4rem 1rem;
+            margin-right: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .input-field:focus, .file-input:focus {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .iti {
+            width: 100%;
+        }
+        .iti__selected-flag {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 16px 0 0 16px;
+            padding: 0 8px 0 12px;
+        }
+        .iti__selected-dial-code {
+            color: #EBD698;
+        }
+        .iti__country-list {
+            background: #1A1722;
+            border-color: #D4AF37;
+        }
+        .iti__country {
+            color: #F5E7D3;
+        }
+        .iti__country.iti__highlight {
+            background-color: rgba(212, 175, 55, 0.3);
+        }
+        .error-text {
+            font-size: 0.7rem;
+            color: #F5A97F;
+            margin-top: 0.35rem;
+            display: block;
+        }
+        .has-error {
+            border-color: #E08E6D !important;
+        }
+        .btn-update {
+            width: 100%;
+            background: linear-gradient(105deg, #B3862D 0%, #D4AF37 55%, #F5DEB3 100%);
+            border: none;
+            padding: 1rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            color: #0E0C13;
+            margin: 0.5rem 0 1.2rem;
+            cursor: pointer;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .btn-update:hover {
+            background: linear-gradient(105deg, #D4AF37, #F3D572);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+        }
+        .btn-update:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .back-link {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #C1AE7A;
+            border-top: 1px solid rgba(212, 175, 55, 0.25);
+            padding-top: 1.2rem;
+        }
+        .back-link a {
+            color: #E9CD8A;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        /* Cropper modal styles */
+        .cropper-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .cropper-container-box {
+            background: #1e1b24;
+            border-radius: 24px;
+            padding: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            width: 600px;
+            box-shadow: 0 0 30px #D4AF37;
+        }
+        .cropper-image-container {
+            max-height: 60vh;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .cropper-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .cropper-btn {
+            background: #D4AF37;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .cropper-btn-cancel {
+            background: #3a2e2e;
+            color: white;
+        }
+        @media (max-width: 550px) {
+            .profile-card { padding: 1.5rem; }
+            .brand-name { font-size: 1.8rem; }
+            .current-img { width: 80px; height: 80px; }
+        }
+    </style>
+</head>
+<body>
+<div class="profile-card">
+    <div class="brand-header">
+        <div class="brand-name">HIGH CUSTOM JEWELLERS</div>
+        <div class="brand-symbol">✦ ✧ ✦</div>
+    </div>
+    <h2>Profile Settings</h2>
+    <div class="sub-text">Update your personal information & profile picture</div>
+
+    <form id="userProfile" method="post" enctype="multipart/form-data">
+        
+        <div class="current-image">
+            <img src="/images/user-icon.jpg" class="current-img" id="profilePreview">
+        </div>
+
+        <div class="form-group">
+            <label><i class="fas fa-user"></i> First Name</label>
+            <input type="text" class="input-field" id="first_name" name="first_name" placeholder="First Name" value="—">
+            <div class="error-text" id="first_name_error"></div>
+        </div>
+
+        <div class="form-group">
+            <label><i class="fas fa-user"></i> Last Name</label>
+            <input type="text" class="input-field" id="last_name" name="last_name" placeholder="Last Name" value="—">
+            <div class="error-text" id="last_name_error"></div>
+        </div>
+
+        <div class="form-group">
+            <label><i class="fas fa-envelope"></i> Email Address</label>
+            <input type="email" class="input-field" id="email" name="email" readonly placeholder="Email" value="—">
+            <div class="error-text" id="email_error"></div>
+        </div>
+
+        <div class="form-group">
+            <label><i class="fas fa-phone-alt"></i> Phone Number</label>
+            <input type="tel" id="phone" name="phone" class="input-field" value="—" placeholder="Phone Number">
+            <div class="error-text" id="phone_error"></div>
+        </div>
+
+        <!-- File input triggers cropper instead of direct preview -->
+        <div class="full">
+            <label><i class="fas fa-image"></i> Profile Image</label>
+            <input type="file" name="user_image" class="file-input" id="profile_image" accept="image/jpeg,image/png,image/jpg,image/webp">
+            <div class="error-text" id="image_error"></div>
+        </div>
+
+        <button type="submit" class="btn-update"><i class="fas fa-save"></i> Update Profile</button>
+
+        <div class="back-link">
+            <a href="#"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+    </form>
+</div>
+
+<!-- Cropper Modal -->
+<div id="cropperModal" class="cropper-modal-overlay">
+    <div class="cropper-container-box">
+        <div class="cropper-image-container">
+            <img id="cropperImage" src="" alt="Crop Image">
+        </div>
+        <div class="cropper-buttons">
+            <button class="cropper-btn cropper-btn-cancel" id="cancelCrop">Cancel</button>
+            <button class="cropper-btn" id="saveCrop">Crop & Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // -------- intl-tel-input initialization (unchanged) --------
+        var phoneInput = document.querySelector("#phone");
+        var iti = window.intlTelInput(phoneInput, {
+            initialCountry: "in",
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
+            preferredCountries: ['in', 'us', 'gb', 'ae', 'sg', 'ca', 'au']
+        });
+        var existingPhone = "—";
+        if (existingPhone) {
+            iti.setNumber(existingPhone);
+        }
+
+        function clearPhoneError() {
+            $('#phone').removeClass('has-error');
+            $('#phone_error').text('');
+        }
+        function validatePhone() {
+            if (!iti.isValidNumber()) {
+                $('#phone').addClass('has-error');
+                $('#phone_error').text('❌ Please enter a valid phone number for the selected country.');
+                return false;
+            } else {
+                clearPhoneError();
+                return true;
+            }
+        }
+        phoneInput.addEventListener('blur', validatePhone);
+        phoneInput.addEventListener('countrychange', validatePhone);
+        phoneInput.addEventListener('input', function() { clearPhoneError(); });
+
+        // Clear other field errors
+        $('#first_name, #last_name, #email, #profile_image').on('input change', function() {
+            $(this).removeClass('has-error');
+            $('#' + $(this).attr('id') + '_error').text('');
+        });
+
+        // ------------------- IMAGE CROPPER LOGIC -------------------
+        let cropper = null;
+        let selectedFile = null;        // store original file object
+        let croppedBlob = null;          // store final cropped blob to upload
+
+        // When user selects a file, show modal & initialize cropper
+        $('#profile_image').on('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                $('#image_error').text('Only JPEG, PNG, JPG, WEBP images are allowed.');
+                $('#profile_image').val(''); // clear input
+                return;
+            }
+            $('#image_error').text(''); // clear previous error
+            selectedFile = file;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imgUrl = event.target.result;
+                $('#cropperImage').attr('src', imgUrl);
+                // show modal
+                $('#cropperModal').css('display', 'flex');
+                // Initialize cropper after image loads
+                if (cropper) cropper.destroy();
+                const imageElement = document.getElementById('cropperImage');
+                cropper = new Cropper(imageElement, {
+                    aspectRatio: 1,          // 1:1 for profile picture
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    background: false,
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Cancel crop: close modal, clear file input and reset cropper
+        $('#cancelCrop').on('click', function() {
+            $('#cropperModal').css('display', 'none');
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            $('#profile_image').val('');  // clear file input
+            selectedFile = null;
+            croppedBlob = null;
+        });
+
+        // Save cropped image
+        $('#saveCrop').on('click', function() {
+            if (!cropper) return;
+            // Get cropped canvas
+            const canvas = cropper.getCroppedCanvas({
+                width: 300,          // desired output width (adjust as needed)
+                height: 300,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!canvas) {
+                toastr.error('Could not crop image. Please try again.', 'Error');
+                return;
+            }
+            // Convert canvas to blob
+            canvas.toBlob(function(blob) {
+                croppedBlob = blob;
+                // Update preview on main form
+                const previewUrl = URL.createObjectURL(blob);
+                $('#profilePreview').attr('src', previewUrl);
+                // close modal
+                $('#cropperModal').css('display', 'none');
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                toastr.success('Image cropped successfully!', 'Success');
+            }, 'image/jpeg', 0.9);  // output as JPEG 90% quality
+        });
+
+        // Override form submission: replace file input with cropped blob if available
+        $('#userProfile').submit(function(e) {
+            e.preventDefault();
+
+            // Phone validation first
+            if (!validatePhone()) {
+                toastr.error('Please correct the phone number: it must be valid for the selected country.', 'Validation Error');
+                return;
+            }
+            // Update phone value
+            $('#phone').val(iti.getNumber());
+
+            let formData = new FormData(this);
+            // If user cropped an image, replace the uploaded file with cropped blob
+            if (croppedBlob) {
+                // "user_image" is the field name expected by backend
+                formData.set('user_image', croppedBlob, 'cropped_profile.jpg');
+            } else if (selectedFile && !croppedBlob) {
+                // user selected a file but never cropped? still send original?
+                // We'll send original only if no crop happened but file exists (edge case)
+                // But our flow forces cropping, so this shouldn't happen. For safety:
+                if (selectedFile) {
+                    formData.set('user_image', selectedFile);
+                }
+            }
+
+            let btn = $(this).find('button');
+            let originalText = btn.html();
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-pulse"></i> Updating...');
+
+            $.ajax({
+                url: "#",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(response) {
+                    toastr.success(response.message, 'Success');
+                    if (response.profile_image_url) {
+                        $('#profilePreview').attr('src', response.profile_image_url);
+                    }
+                    // reset crop state
+                    $('#profile_image').val('');
+                    selectedFile = null;
+                    croppedBlob = null;
+                },
+                error: function(xhr) {
+                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                        let errors = xhr.responseJSON.errors;
+                        $('.error-text').text('');
+                        $('.input-field, .file-input, #phone').removeClass('has-error');
+                        $.each(errors, function(key, messages) {
+                            let errorDivId = key === 'image' ? 'image_error' : key + '_error';
+                            let inputField = (key === 'phone') ? $('#phone') : $('#' + key);
+                            let errorDiv = $('#' + errorDivId);
+                            if (inputField.length && errorDiv.length) {
+                                errorDiv.text(messages[0]);
+                                inputField.addClass('has-error');
+                            } else {
+                                toastr.error(messages[0]);
+                            }
+                        });
+                        toastr.error('Please correct the highlighted fields.', 'Validation Error');
+                    } else {
+                        toastr.error(xhr.responseJSON?.message || 'Something went wrong.', 'Error');
+                    }
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html(originalText);
+                }
+            });
+        });
+    });
+</script>
+<script src="/js/static-navigation.js"></script>
+</body>
+</html>
+
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        $(document).ready(function() {
+            // Logout functionality
+            $('#logoutBtn').click(function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "#",
+                    type: "POST",
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        toastr.success("Logged out successfully");
+                        setTimeout(function() {
+                            window.location.href = "#";
+                        }, 1000);
+                    },
+                    error: function() {
+                        toastr.error("Logout failed");
+                    }
+                });
+            });
+        });
+
+        // ========== SIDEBAR TOGGLE (Custom JavaScript) ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleBtn = document.getElementById('sidebarToggle');
+
+            // Toggle sidebar on button click
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = sidebar.classList.contains('show');
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                    toggleBtn.setAttribute('aria-expanded', !isOpen);
+                    document.body.style.overflow = !isOpen ? 'hidden' : '';
+                });
+            }
+
+            // Close sidebar on overlay click
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                });
+            }
+
+            // Close sidebar on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  SUBMENU TOGGLE (Generic – works for any dropdown)
+            // =============================================================
+            window.toggleSubmenu = function(event) {
+                const parentLink = event.currentTarget;
+                const targetId = parentLink.getAttribute('data-target');
+                if (!targetId) return;
+                const submenu = document.getElementById(targetId);
+                if (!submenu) return;
+
+                const arrow = parentLink.querySelector('.arrow');
+                const isOpen = submenu.classList.contains('open');
+
+                // Toggle this submenu (open/close)
+                submenu.classList.toggle('open');
+                arrow.classList.toggle('open');
+                parentLink.setAttribute('aria-expanded', !isOpen);
+
+                // If we are opening, add active-indicator; if closing and no child active, remove it
+                if (!isOpen) {
+                    parentLink.classList.add('active-indicator');
+                } else {
+                    const hasActiveChild = submenu.querySelector('.nav-link.active') !== null;
+                    if (!hasActiveChild) {
+                        parentLink.classList.remove('active-indicator');
+                    }
+                }
+                event.preventDefault();
+            };
+
+            // =============================================================
+            //  ACTIVE MENU STATE (defensive – only updates indicators,
+            //  does NOT force-close any submenu)
+            // =============================================================
+            function setActiveMenu() {
+                const currentPath = window.location.pathname;
+
+                // 1) Find the best matching child link
+                let bestMatch = null;
+                let bestLength = 0;
+
+                document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href || href === '#') return;
+
+                    let linkPath;
+                    try {
+                        linkPath = new URL(href, window.location.origin).pathname;
+                    } catch {
+                        linkPath = href;
+                    }
+
+                    const cleanCurrent = currentPath.replace(/\/$/, '');
+                    const cleanLink = linkPath.replace(/\/$/, '');
+
+                    const isMatch = (cleanCurrent === cleanLink) ||
+                                    (cleanLink !== '/' && cleanCurrent.startsWith(cleanLink + '/'));
+
+                    if (isMatch && cleanLink.length > bestLength) {
+                        bestLength = cleanLink.length;
+                        bestMatch = link;
+                    }
+                });
+
+                // 2) Remove 'active' class from all links (but do NOT close submenus)
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                // 3) Remove 'active-indicator' from all parent buttons
+                document.querySelectorAll('[data-target]').forEach(parent => {
+                    parent.classList.remove('active-indicator');
+                });
+
+                // 4) If we found a match, activate it and set indicator on its parent
+                if (bestMatch) {
+                    bestMatch.classList.add('active');
+
+                    const parentSub = bestMatch.closest('.sub-menu');
+                    if (parentSub) {
+                        const parentBtn = document.querySelector(`[data-target="${parentSub.id}"]`);
+                        if (parentBtn) {
+                            parentBtn.classList.add('active-indicator');
+                            // Optionally, we can also ensure the parent is expanded
+                            // but we won't force it open here – user can toggle.
+                        }
+                    }
+                }
+            }
+
+            // Run on page load
+            setActiveMenu();
+
+            // Run every 1 second to keep indicators updated (does not close dropdowns)
+            setInterval(setActiveMenu, 1000);
+
+            // Also run after sidebar toggle (in case layout shift affects visibility)
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                setTimeout(setActiveMenu, 200);
+            });
+
+            // ========== KEYBOARD NAVIGATION ==========
+            document.querySelectorAll('.nav-link[role="button"]').forEach(link => {
+                link.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+
+            // Handle window resize - close sidebar on large screens
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 991.98 && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // =============================================================
+            //  THEME TOGGLE LOGIC (Sun/Moon) – handles click events
+            // =============================================================
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            const STORAGE_KEY = 'userThemePreference';
+
+            function applyTheme(theme) {
+                const isDark = (theme === 'dark');
+                document.body.classList.toggle('theme-dark', isDark);
+                if (isDark) {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            // Load saved preference (default 'light') – already set by inline script
+            const saved = localStorage.getItem(STORAGE_KEY) || 'light';
+            // applyTheme(saved); // already done by inline script
+
+            // Toggle on click
+            themeToggle.addEventListener('click', function() {
+                const current = localStorage.getItem(STORAGE_KEY) || 'light';
+                const newTheme = (current === 'light') ? 'dark' : 'light';
+                applyTheme(newTheme);
+            });
+
+        });
+    </script>
+<script src="/js/static-navigation.js"></script>
+</body>
+
+</html>
