@@ -67,6 +67,19 @@ const authMiddleware = async (req, res, next) => {
       )
       .lean();
 
+    const configuredAdminEmails = String(process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    const effectiveRole = configuredAdminEmails.includes(
+      String(account.email || "")
+        .trim()
+        .toLowerCase(),
+    )
+      ? "Admin"
+      : account.role;
+    const rightsAccount = { ...account, role: effectiveRole };
+
     // ========================================================
     // VALIDATE ACCOUNT
     // ========================================================
@@ -84,7 +97,7 @@ const authMiddleware = async (req, res, next) => {
     // STORE USER
     // ========================================================
 
-    req.account = account;
+    req.account = rightsAccount;
 
     req.user = {
       ...decoded,
@@ -93,13 +106,13 @@ const authMiddleware = async (req, res, next) => {
 
       email: account.email,
 
-      role: account.role,
+      role: effectiveRole,
 
-      dataScope: getDataScope(account),
+      dataScope: getDataScope(rightsAccount),
 
-      appRights: getAppRights(account),
+      appRights: getAppRights(rightsAccount),
 
-      accessRights: getAccessRights(account),
+      accessRights: getAccessRights(rightsAccount),
     };
 
     next();

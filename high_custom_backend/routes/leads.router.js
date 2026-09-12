@@ -6,6 +6,10 @@ const router = express.Router();
 const leadsCtrl = require("../controller/leads.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
+const {
+  requireAppRight,
+  requireAccessRight,
+} = require("../middleware/user-access");
 
 // ============================================================
 // MULTER
@@ -37,13 +41,25 @@ const upload = multer({
 // GET LEADS
 // ============================================================
 
-router.get("/get-leads", authMiddleware, leadsCtrl.getLeads);
+router.get(
+  "/get-leads",
+  authMiddleware,
+  requireAppRight("leads"),
+  requireAccessRight("viewLeads"),
+  leadsCtrl.getLeads,
+);
 
 // ============================================================
 // CREATE LEAD
 // ============================================================
 
-router.post("/create-lead", authMiddleware, leadsCtrl.createLead);
+router.post(
+  "/create-lead",
+  authMiddleware,
+  requireAppRight("leads"),
+  requireAccessRight("createLead"),
+  leadsCtrl.createLead,
+);
 
 // ============================================================
 // IMPORT EXCEL
@@ -52,6 +68,8 @@ router.post("/create-lead", authMiddleware, leadsCtrl.createLead);
 router.post(
   "/import-excel",
   authMiddleware,
+  requireAppRight("leads"),
+  requireAccessRight("importLeads"),
   upload.single("file"),
   leadsCtrl.importLeadsFromExcel,
 );
@@ -60,18 +78,36 @@ router.post(
 // EXPORT EXCEL
 // ============================================================
 
-router.get("/export-excel", authMiddleware, leadsCtrl.exportLeadsToExcel);
+router.get(
+  "/export-excel",
+  authMiddleware,
+  requireAppRight("leads"),
+  requireAccessRight("exportLeads"),
+  leadsCtrl.exportLeadsToExcel,
+);
 
 // ============================================================
 // UPDATE LEAD
 // ============================================================
 
-router.put("/update-lead/:leadId", authMiddleware, leadsCtrl.editLead);
+router.put(
+  "/update-lead/:leadId",
+  authMiddleware,
+  requireAppRight("leads"),
+  requireAccessRight("editLead"),
+  leadsCtrl.editLead,
+);
 
 // ============================================================
 // DELETE LEAD
 // ============================================================
 
-router.delete("/delete-lead/:leadId", authMiddleware, leadsCtrl.deleteLead);
+router.delete(
+  "/delete-lead/:leadId",
+  authMiddleware,
+  requireAppRight("leads"),
+  requireAccessRight("deleteLead"),
+  leadsCtrl.deleteLead,
+);
 
 module.exports = router;

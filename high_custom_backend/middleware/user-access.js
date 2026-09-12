@@ -124,8 +124,8 @@ function denied(user) {
 function buildUserDataFilter(req, userIdField = "userId") {
   const scope = getDataScope(req.account);
 
-  // Admin / HR
-  if (scope === "all") {
+  // Admin / HR company workspace
+  if (scope === "all" || scope === "company") {
     return {};
   }
 
@@ -144,12 +144,13 @@ function canManageUser(currentUser, targetUser) {
     return false;
   }
 
-  const currentRole = currentUser.role;
-  const targetRole = targetUser.role;
+  const currentRole = currentUser.role === "User" ? "Employee" : currentUser.role;
+  const targetRole = targetUser.role === "User" ? "Employee" : targetUser.role;
 
-  // Admin can manage HR + Employee.
+  // Admin can manage every account. The controller separately protects
+  // administrator status and deletion.
   if (currentRole === "Admin") {
-    return targetRole !== "Admin";
+    return true;
   }
 
   // HR can manage Employees only.

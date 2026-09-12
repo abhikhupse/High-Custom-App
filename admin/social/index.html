@@ -1985,6 +1985,24 @@
             padding: 10px 20px;
         }
 
+        /* Flutter-synchronised QR list: each card uses the existing API QR image */
+        .qr-live-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; color:#526075; font-size:.92rem; }
+        .qr-modern-list { display:grid; grid-template-columns:1fr; gap:14px; }
+        .qr-modern-card { display:grid; grid-template-columns:150px minmax(0,1fr); gap:18px; align-items:center; background:#fff; border:1px solid #e3e8f0; border-radius:16px; padding:16px; box-shadow:0 5px 18px rgba(21,37,66,.06); }
+        .qr-modern-card.master { border-color:#c9a852; background:linear-gradient(120deg,#fffdf7,#fff); }
+        .qr-modern-image { width:140px; height:140px; padding:7px; border-radius:12px; background:#fff; border:1px solid #edf0f4; object-fit:contain; }
+        .qr-modern-main { min-width:0; }
+        .qr-modern-title { margin:0 0 5px; font-size:1.05rem; font-weight:750; color:#10213e; }
+        .qr-modern-note { margin:0 0 12px; color:#69778d; font-size:.84rem; }
+        .qr-modern-stats { display:flex; gap:10px; margin:0 0 12px; }
+        .qr-modern-stat { min-width:94px; padding:8px 10px; border-radius:10px; background:#f5f8fc; color:#526075; font-size:.76rem; }
+        .qr-modern-stat b { display:block; color:#152b4c; font-size:1rem; }
+        .qr-modern-url { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:9px; background:#f7f9fc; border:1px solid #ebeff5; color:#4f5d70; font-size:.76rem; min-width:0; }
+        .qr-modern-url code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
+        .qr-modern-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+        .qr-modern-actions .btn { border-radius:9px; font-size:.78rem; font-weight:650; }
+        @media (max-width:576px) { .qr-modern-card { grid-template-columns:1fr; text-align:center; } .qr-modern-image { margin:auto; } .qr-modern-stats { justify-content:center; } .qr-modern-url { text-align:left; } .qr-modern-actions { justify-content:center; } }
+
         /* =========================================================
                SCROLLBAR
                ========================================================= */
@@ -2890,10 +2908,10 @@
         <div class="modal-dialog modal-fullscreen-xl-down modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title" id="multipleQRModalLabel">
-                        <i class="fas fa-qrcode me-2"></i> All QR Codes
-                    </h5>
+                    <div><h5 class="modal-title" id="multipleQRModalLabel"><i class="fas fa-qrcode me-2"></i> All QR Codes</h5><small class="text-white-50" id="activeQrCount">Loading QR codes…</small></div>
+                    <div class="d-flex align-items-center gap-2"><button type="button" class="btn btn-sm btn-outline-light" id="refreshQrBtn" title="Refresh QR data"><i class="fas fa-rotate"></i> Refresh</button>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
                 </div>
                 <div class="modal-body">
                     <!-- Container for QR cards -->
@@ -3193,18 +3211,18 @@
                 return;
             }
 
-            const container = document.getElementById('modalQrContainer');
+            const container = document.getElementById('multipleQrContainer');
             if (container) {
                 container.innerHTML =
                     '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
             }
 
-            refreshAllQRs();
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+            window.refreshAllQRs?.();
+        });
 
-            setTimeout(function() {
-                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                modal.show();
-            }, 150);
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('#refreshQrBtn')) window.refreshAllQRs?.();
         });
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '—';
@@ -3379,8 +3397,6 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
-            renderMultipleQRs(@json($multiQrs));
-
             document.querySelectorAll('.quick-link-item').forEach(function(linkRow) {
                 bindTrackingCopyForRow(linkRow);
             });
@@ -3520,6 +3536,8 @@
             }
 
             container.innerHTML = '';
+            const count = document.getElementById('activeQrCount');
+            if (count) count.textContent = `${(qrs || []).length} active QR code${(qrs || []).length === 1 ? '' : 's'}`;
 
             if (!qrs || qrs.length === 0) {
                 container.innerHTML = `
@@ -3532,94 +3550,40 @@
                 return;
             }
 
-            const grid = document.createElement('div');
-            grid.className = 'qr-grid';
+            const list = document.createElement('div');
+            list.className = 'qr-modern-list';
+            const safe = (value) => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+            const download = (rawQr, title) => {
+                const link = document.createElement('a');
+                link.href = rawQr;
+                link.download = `${String(title || 'high-custom').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'high-custom'}-qr.png`;
+                document.body.appendChild(link); link.click(); link.remove();
+            };
+            const copy = async (value) => {
+                try { await navigator.clipboard.writeText(value); showToast('Link copied'); }
+                catch (_) { showToast('Could not copy the link', 'error'); }
+            };
 
             qrs.forEach(function(qr) {
-                let platformIconsHtml = '';
-                if (qr.links) {
-                    qr.links.forEach(function(link) {
-                        let platformName = link.platform.toLowerCase();
-                        let iconClass = qrPlatformIcons[platformName];
-                        if (iconClass) {
-                            platformIconsHtml +=
-                                `<i class="${iconClass}" title="${escapeHtml(link.platform)}"></i>`;
-                        } else {
-                            platformIconsHtml +=
-                                `<img src="${customPlatformLogo}" title="${escapeHtml(link.platform)}" style="width:24px;height:24px;object-fit:contain;">`;
-                        }
-                    });
-                }
-
-                const card = document.createElement('div');
-                card.className = 'qr-card';
-
-                const titleInput = document.createElement('input');
-                titleInput.type = 'text';
-                titleInput.className = 'qr-title-input';
-                titleInput.value = qr.title || '';
-                titleInput.placeholder = 'QR Name';
-                titleInput.onblur = function() {
-                    updateQRTitle(qr.id, this.value);
-                };
-                card.appendChild(titleInput);
-
-                const qrWrapper = document.createElement('div');
-                qrWrapper.className = 'qr-code-wrapper';
-                const qrId = 'qr_' + qr.id;
-                qrWrapper.id = qrId;
-                card.appendChild(qrWrapper);
-
-                const iconsDiv = document.createElement('div');
-                iconsDiv.className = 'platform-icons';
-                iconsDiv.innerHTML = platformIconsHtml;
-                card.appendChild(iconsDiv);
-
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'qr-actions';
-                actionsDiv.innerHTML = `
-                <button class="btn btn-sm btn-outline-primary" onclick="openEditQRModal(${JSON.stringify(qr).replace(/"/g, '&quot;')})">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteQR('${qr.id}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            `;
-                card.appendChild(actionsDiv);
-
-                const linkDiv = document.createElement('div');
-                linkDiv.className = 'qr-link';
-                const qrUrl = `${window.location.origin}/multi-qr/—/${qr.id}`;
-                linkDiv.dataset.link = qrUrl;
-                linkDiv.innerHTML = `<i class="fas fa-link"></i> ${qrUrl}`;
-                linkDiv.onclick = function() {
-                    copyQrLink(this);
-                };
-                card.appendChild(linkDiv);
-
-                const statsDiv = document.createElement('div');
-                statsDiv.className = 'qr-stats';
-                statsDiv.innerHTML = `
-                <span><i class="fas fa-eye"></i> ${qr.qr_scans || 0} Scans</span>
-                <span><i class="fas fa-mouse-pointer"></i> ${qr.button_clicks || 0} Clicks</span>
-            `;
-                card.appendChild(statsDiv);
-
-                grid.appendChild(card);
-
-                setTimeout(function() {
-                    const qrElement = document.getElementById(qrId);
-                    if (qrElement) {
-                        new QRCode(qrElement, {
-                            text: qrUrl,
-                            width: 160,
-                            height: 160
-                        });
-                    }
-                }, 10);
+                const fixed = qr.fixedCard === true;
+                const title = qr.qrTitle || qr.name || 'Untitled QR';
+                const target = qr.trackingTarget || qr.qrTarget || '';
+                const card = document.createElement('article');
+                card.className = `qr-modern-card${fixed ? ' master' : ''}`;
+                card.innerHTML = `
+                    <img class="qr-modern-image" src="${safe(qr.qrCode)}" alt="${safe(title)} QR code">
+                    <div class="qr-modern-main">
+                        <h6 class="qr-modern-title">${safe(title)}</h6>
+                        ${fixed ? '<p class="qr-modern-note">One QR for every saved link · Updates automatically</p>' : `<div class="qr-modern-stats"><span class="qr-modern-stat"><b>${Number(qr.qrScans || 0)}</b>Scans</span><span class="qr-modern-stat"><b>${Number(qr.linkClicks || 0)}</b>Clicks</span></div>`}
+                        <div class="qr-modern-url"><i class="fas fa-link text-primary"></i><code title="${safe(target)}">${safe(target)}</code><button type="button" class="btn btn-sm btn-light qr-copy-btn" title="Copy Link"><i class="fas fa-copy"></i></button></div>
+                        <div class="qr-modern-actions"><button type="button" class="btn btn-outline-primary qr-download-btn"><i class="fas fa-download me-1"></i>Download QR</button>${fixed ? '' : '<button type="button" class="btn btn-outline-danger qr-delete-btn"><i class="fas fa-trash me-1"></i>Delete QR</button>'}</div>
+                    </div>`;
+                card.querySelector('.qr-copy-btn').addEventListener('click', () => copy(target));
+                card.querySelector('.qr-download-btn').addEventListener('click', () => download(qr.qrCode, fixed ? 'all-links' : title));
+                card.querySelector('.qr-delete-btn')?.addEventListener('click', () => window.deleteQR(qr._id));
+                list.appendChild(card);
             });
-
-            container.appendChild(grid);
+            container.appendChild(list);
         }
 
 

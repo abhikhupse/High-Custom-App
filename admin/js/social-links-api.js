@@ -62,7 +62,7 @@
     return request("/social-links/qr")
       .then((payload) => {
         if (typeof window.renderMultipleQRs === "function")
-          window.renderMultipleQRs(payload.data || [], "#modalQrContainer");
+          window.renderMultipleQRs(payload.data || [], "#multipleQrContainer");
         return payload.data || [];
       })
       .catch((error) => {
@@ -119,7 +119,7 @@
   window.deleteQR = function (qrId) {
     if (qrId === "all-links")
       return notify("The All Links QR code cannot be deleted.", true);
-    if (!window.confirm("Delete this QR code?")) return;
+    if (!window.confirm("Are you sure you want to delete this QR code?\n\nThe saved Social Link will remain.")) return;
     request(`/social-links/${encodeURIComponent(qrId)}/qr`, {
       method: "DELETE",
     })

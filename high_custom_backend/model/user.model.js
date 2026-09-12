@@ -203,6 +203,11 @@ const accessRightsSchema = new mongoose.Schema(
       default: true,
     },
 
+    deleteInterestedLead: {
+      type: Boolean,
+      default: false,
+    },
+
     exportInterestedLeads: {
       type: Boolean,
       default: false,
@@ -447,7 +452,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["Admin", "HR", "Employee"],
+      // Custom company roles such as Sales are managed by the Administrator.
       default: "Employee",
     },
 
@@ -457,7 +462,7 @@ const userSchema = new mongoose.Schema(
 
     dataScope: {
       type: String,
-      enum: ["all", "own", "assigned"],
+      enum: ["all", "company", "own", "assigned"],
       default: "own",
     },
 

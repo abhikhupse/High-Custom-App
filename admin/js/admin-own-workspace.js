@@ -1,11 +1,9 @@
 (function () {
   "use strict";
   const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
-  const apiBase =
-    localStorage.getItem("highCustomApiBase") ||
-    (isLocal
-      ? "http://localhost:3000/api"
-      : "https://high-custom-app.onrender.com/api");
+  const apiBase = isLocal
+    ? "http://localhost:3000/api"
+    : (localStorage.getItem("highCustomApiBase") || "https://high-custom-app.onrender.com/api");
   const token = localStorage.getItem("highCustomAdminToken");
   const path = location.pathname.toLowerCase();
   const escapeHtml = (value) =>
@@ -21,6 +19,19 @@
           timeStyle: "short",
         })
       : "—";
+  const trackingStatus = (value) => {
+    const raw = String(value || "pending").trim();
+    const normalized = raw
+      .replace(/([a-z])([A-Z])/g, "$1-$2")
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    const allowed = new Set([
+      "sent", "opened", "replied", "interested", "not-interested", "failed", "pending",
+    ]);
+    const style = allowed.has(normalized) ? normalized : "default";
+    const label = normalized === "not-interested" ? "Not Interested" : raw;
+    return `<span class="tracking-status tracking-status--${style}">${escapeHtml(label)}</span>`;
+  };
   const find = (selector, root = document) => root.querySelector(selector);
   if (!token) {
     location.replace("/admin-login.html");
@@ -217,6 +228,17 @@
     };
     const render = async () => {
       rows = (await request("/leads/get-leads")).leads || [];
+      // The Master Interested Leads entry reuses the personal leads screen.
+      // The source is still the signed-in user's personal endpoint; this only
+      // narrows that already-authorized result to interested records.
+      const interestedOnly = new URLSearchParams(location.search).get("status") === "interested";
+      if (interestedOnly) {
+        rows = rows.filter(
+          (item) => String(item.trackingStatus || item.responseStatus || "").toLowerCase() === "interested",
+        );
+        const heading = document.querySelector(".main-content h1, .page-title");
+        if (heading) heading.textContent = "Interested Leads";
+      }
       find("thead tr", table).innerHTML =
         '<th>Email</th><th>Name</th><th>Company</th><th>Business type</th><th>Channel</th><th>Tracking</th><th>Added</th><th class="text-end">Actions</th>';
       body.innerHTML = rows.length
@@ -279,27 +301,8 @@
         true,
       );
     }
-    addCreateButton(
-      find(".main-content") || find(".container-fluid"),
-      "Create Lead",
-      () =>
-        openModal(
-          "adminLeadModal",
-          "Create lead",
-          leadForm(),
-          async (form) => {
-            const data = Object.fromEntries(form);
-            data.tracking = form.get("tracking") === "on";
-            await request("/leads/create-lead", {
-              method: "POST",
-              body: JSON.stringify(data),
-            });
-            notify("Lead created.");
-            await render();
-          },
-          "Create lead",
-        ),
-    );
+    // The page already has the gold New Lead Entry form. Avoid a second
+    // blue Create Lead action in the Master workspace.
     table.addEventListener("click", async (event) => {
       const button = event.target.closest("[data-admin-action]");
       if (!button) return;
@@ -445,17 +448,26 @@
   async function tracking() {
     const table = find("#campaignTable");
     if (!table) return;
-    const rows =
-      (await request("/email-tracking/report?limit=100")).deliveries || [];
+    const body = find("tbody", table);
+    body.innerHTML =
+      '<tr><td colspan="9" class="text-center py-5">Loading your tracking report…</td></tr>';
+    let payload;
+    try {
+      payload = await request("/email-tracking/report?limit=100");
+    } catch (error) {
+      body.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-danger">Unable to load your tracking report: ${escapeHtml(error.message)}</td></tr>`;
+      throw error;
+    }
+    const rows = Array.isArray(payload.deliveries) ? payload.deliveries : [];
     if (window.jQuery?.fn.DataTable?.isDataTable(table))
       window.jQuery(table).DataTable().destroy();
     find("thead tr", table).innerHTML =
       "<th>#</th><th>Lead</th><th>Email</th><th>Step</th><th>Subject</th><th>Status</th><th>Sent</th><th>Opened</th><th>Replied</th>";
-    find("tbody", table).innerHTML = rows.length
+    body.innerHTML = rows.length
       ? rows
           .map(
             (item, index) =>
-              `<tr><td>${index + 1}</td><td>${escapeHtml(`${item.leadId?.firstName || ""} ${item.leadId?.lastName || ""}`.trim() || "—")}</td><td>${escapeHtml(item.leadId?.email || item.email)}</td><td>${escapeHtml(item.step)}</td><td>${escapeHtml(item.sequenceId?.subject)}</td><td>${escapeHtml(item.responseStatus || (item.openedAt ? "Opened" : item.status))}</td><td>${date(item.sentAt)}</td><td>${date(item.openedAt)}</td><td>${date(item.repliedAt)}</td></tr>`,
+              `<tr><td>${index + 1}</td><td>${escapeHtml(`${item.leadId?.firstName || ""} ${item.leadId?.lastName || ""}`.trim() || "—")}</td><td>${escapeHtml(item.leadId?.email || item.email)}</td><td>${escapeHtml(item.step)}</td><td>${escapeHtml(item.sequenceId?.subject)}</td><td>${trackingStatus(item.responseStatus || (item.repliedAt ? "Replied" : item.openedAt ? "Opened" : item.status))}</td><td>${date(item.sentAt)}</td><td>${date(item.openedAt)}</td><td>${date(item.repliedAt)}</td></tr>`,
           )
           .join("")
       : '<tr><td colspan="9" class="text-center py-5">No email tracking records yet.</td></tr>';
@@ -727,30 +739,11 @@
     const renderQrList = async () => {
       const qrs = (await request("/social-links/qr")).data || [];
       const host = find("#multipleQrContainer");
-      if (host)
-        host.innerHTML = qrs.length
-          ? qrs
-              .map(
-                (item) =>
-                  `<div class="card mb-3"><div class="card-body d-flex align-items-center gap-3 flex-wrap"><img src="${escapeHtml(item.qrCode)}" alt="${escapeHtml(item.name)} QR" style="width:120px;height:120px;object-fit:contain"><div class="flex-grow-1"><h6 class="mb-1">${escapeHtml(item.qrTitle || item.name)}</h6><small class="text-muted d-block text-break">${escapeHtml(item.qrTarget || "")}</small></div>${item.fixedCard ? "" : `<button class="btn btn-outline-danger btn-sm" type="button" data-admin-delete-qr="${escapeHtml(item._id)}">Delete QR</button>`}</div></div>`,
-              )
-              .join("")
-          : '<p class="text-muted mb-0">No QR codes generated yet.</p>';
-      host?.querySelectorAll("[data-admin-delete-qr]").forEach((button) =>
-        button.addEventListener("click", async () => {
-          if (!confirm("Delete this QR code?")) return;
-          try {
-            await request(
-              "/social-links/" + button.dataset.adminDeleteQr + "/qr",
-              { method: "DELETE" },
-            );
-            notify("QR code deleted.");
-            await renderQrList();
-          } catch (error) {
-            notify(error.message, true);
-          }
-        }),
-      );
+      // The Social Links page owns the shared Flutter/Web QR renderer.  Do
+      // not replace it with an older, simplified list here.
+      if (host && typeof window.renderMultipleQRs === "function") {
+        window.renderMultipleQRs(qrs, "#multipleQrContainer");
+      }
     };
     window.refreshAllQRs = renderQrList;
     window.deleteQR = async (id) => {
@@ -769,7 +762,9 @@
       viewAllQrButton.replaceWith(cleanViewAllQrButton);
     cleanViewAllQrButton?.addEventListener("click", async () => {
       try {
-        await renderQrList();
+        // social-links-api.js replaces this function with the shared QR API
+        // refresh once page scripts are loaded.
+        await window.refreshAllQRs();
         bootstrap.Modal.getOrCreateInstance(find("#multipleQRModal")).show();
       } catch (error) {
         notify(error.message, true);

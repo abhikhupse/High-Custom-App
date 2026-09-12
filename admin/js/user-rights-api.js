@@ -7,11 +7,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const $ = (id) => document.getElementById(id);
 
-  const api =
-    localStorage.getItem("highCustomApiBase") ||
-    (["localhost", "127.0.0.1"].includes(location.hostname)
-      ? "http://localhost:3000/api"
-      : "https://high-custom-app.onrender.com/api");
+  const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const api = isLocal
+    ? "http://localhost:3000/api"
+    : localStorage.getItem("highCustomApiBase") ||
+      "https://high-custom-app.onrender.com/api";
 
   const token = localStorage.getItem("highCustomAdminToken");
 
@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentUserRole = "Admin";
 
   let users = [];
+
+  let availableRoles = ["Employee", "HR", "Admin"];
 
   let inactiveOnly = false;
 
@@ -166,8 +168,20 @@ document.addEventListener("DOMContentLoaded", () => {
     return user?.role === "Admin" || user?.isAdministrator === true;
   }
 
+  function isPrimaryAdmin(user) {
+    return user?.isPrimaryAdministrator === true;
+  }
+
+  function isCurrentUserPrimaryAdmin() {
+    return isPrimaryAdmin(users.find((user) => isSelf(user)));
+  }
+
   function isHR(user) {
     return user?.role === "HR";
+  }
+
+  function normalizeRole(role) {
+    return role === "User" ? "Employee" : role || "Admin";
   }
 
   function canCurrentUserManage(user) {
@@ -177,7 +191,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ADMIN
     if (currentUserRole === "Admin") {
-      return user.role !== "Admin";
+      // A main Admin can manage every created account, including another
+      // Admin. Only the configured primary Admin is protected.
+      return !isPrimaryAdmin(user);
     }
 
     // HR
@@ -192,13 +208,54 @@ document.addEventListener("DOMContentLoaded", () => {
     return currentUserRole === "Admin" && !isSelf(user) && !isAdmin(user);
   }
 
+  function canManageAppRights(user) {
+    return (
+      currentUserRole === "Admin" &&
+      Boolean(user) &&
+      (!isPrimaryAdmin(user) || isCurrentUserPrimaryAdmin())
+    );
+  }
+
+  function canManageAccessRights(user) {
+    if (currentUserRole === "Admin") {
+      return (
+        Boolean(user) && (!isPrimaryAdmin(user) || isCurrentUserPrimaryAdmin())
+      );
+    }
+    return canCurrentUserManage(user);
+  }
+
+  function canEditProfile(user) {
+    if (!user) {
+      return false;
+    }
+
+    // An Administrator can edit an administrator's basic profile, including
+    // their own profile. Role, account status and permission controls remain
+    // separately protected by the backend.
+    if (currentUserRole === "Admin" && isAdmin(user)) {
+      return !isPrimaryAdmin(user) || isCurrentUserPrimaryAdmin();
+    }
+
+    if (isSelf(user)) return false;
+
+    return (
+      currentUserRole === "Admin" ||
+      (currentUserRole === "HR" && user.role === "Employee")
+    );
+  }
+
   // ============================================================
   // ROLE CLASS
   // ============================================================
 
   function roleClass(user) {
+    if (isPrimaryAdmin(user)) {
+      return "role-administrator";
+    }
+
     if (isAdmin(user)) {
-      return "role-admin";
+      return "role-sub-admin";
     }
 
     if (isHR(user)) {
@@ -208,6 +265,59 @@ document.addEventListener("DOMContentLoaded", () => {
     return "role-employee";
   }
 
+  function roleLabel(user) {
+    if (isPrimaryAdmin(user)) return "Administrator";
+    if (isAdmin(user)) return "Sub Admin";
+    return user?.role || "Employee";
+  }
+
+  function populateRoleSelect(selectedRole = "Employee") {
+    const select = $("role");
+    if (!select) return;
+    const roles = [...new Set(availableRoles)];
+    select.innerHTML = roles
+      .map(
+        (role) =>
+          `<option value="${escapeHtml(role)}">${escapeHtml(role === "Admin" ? "Sub Admin" : role)}</option>`,
+      )
+      .join("");
+    select.value = roles.includes(selectedRole) ? selectedRole : "Employee";
+  }
+
+  async function createCustomRole(name) {
+    const roleName = String(name || "")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (!roleName) return;
+
+    try {
+      const result = await request("/admin/users/roles", {
+        method: "POST",
+        body: JSON.stringify({ name: roleName }),
+      });
+      const createdRole = result.data?.name || roleName;
+      availableRoles = [...new Set([...availableRoles, createdRole])];
+      populateRoleSelect(createdRole);
+      $("customRoleName").value = "";
+      $("customRoleControls").classList.add("d-none");
+      successAlert(result.message || "New role added.");
+    } catch (error) {
+      errorAlert(error.message);
+    }
+  }
+
+  function addCustomRole() {
+    if (!isCurrentUserPrimaryAdmin()) {
+      errorAlert("Only the main Administrator can add roles.");
+      return;
+    }
+
+    const controls = $("customRoleControls");
+    const input = $("customRoleName");
+    controls?.classList.remove("d-none");
+    input?.focus();
+  }
+
   // ============================================================
   // DATA SCOPE LABEL
   // ============================================================
@@ -215,7 +325,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function scopeLabel(scope) {
     switch (scope) {
       case "all":
-        return "All Company Data";
+        return "All System Data";
+
+      case "company":
+        return "Company Data";
 
       case "assigned":
         return "Own + Assigned";
@@ -233,10 +346,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchElement = $("globalSearch");
 
     const query = searchElement ? searchElement.value.trim().toLowerCase() : "";
+    const selectedRole = $("roleFilter")?.value || "";
+    const selectedStatus = $("statusFilter")?.value || "";
+    const selectedDate = $("dateFilter")?.value || "";
+    const now = new Date();
 
     return users.filter((user) => {
       if (inactiveOnly && user.isActive !== false) {
         return false;
+      }
+      if (selectedRole && user.role !== selectedRole) return false;
+      if (selectedStatus === "active" && user.isActive === false) return false;
+      if (selectedStatus === "inactive" && user.isActive !== false)
+        return false;
+      if (selectedDate) {
+        const createdAt = user.createdAt ? new Date(user.createdAt) : null;
+        const days =
+          selectedDate === "today" ? 1 : selectedDate === "week" ? 7 : 30;
+        if (!createdAt || now - createdAt > days * 86400000) return false;
       }
 
       const searchable = [
@@ -291,6 +418,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rows = sortUsers(filteredUsers());
 
+    const setSummary = (id, value) => {
+      const element = $(id);
+      if (element) element.textContent = value;
+    };
+    const activeUsers = users.filter((user) => user.isActive !== false);
+    const administrators = users.filter((user) => user.isPrimaryAdministrator);
+    const subAdmins = users.filter(
+      (user) => isAdmin(user) && !user.isPrimaryAdministrator,
+    );
+    setSummary("summaryTotalUsers", users.length);
+    setSummary("summaryActiveUsers", activeUsers.length);
+    setSummary("summaryInactiveUsers", users.length - activeUsers.length);
+    setSummary("summaryAdministrators", administrators.length);
+    setSummary("summarySubAdmins", subAdmins.length);
+    setSummary(
+      "summaryEmployees",
+      users.filter((user) => !isAdmin(user) && !isHR(user)).length,
+    );
+
     const totalElement = $("totalUsersCount");
 
     if (totalElement) {
@@ -312,8 +458,12 @@ document.addEventListener("DOMContentLoaded", () => {
     tbody.innerHTML = rows
       .map((user) => {
         const manageable = canCurrentUserManage(user);
+        const appRightsManageable = canManageAppRights(user);
+        const accessRightsManageable = canManageAccessRights(user);
 
         const deletable = canDelete(user);
+
+        const editable = canEditProfile(user);
 
         const self = isSelf(user);
 
@@ -330,11 +480,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 type="button"
                 class="edit-user-btn"
                 data-action="edit"
-                ${!manageable ? "disabled" : ""}
+                ${!editable ? "disabled" : ""}
                 title="${
                   self
                     ? "You cannot edit yourself here"
-                    : !manageable
+                    : !editable
                       ? "You cannot manage this user"
                       : "Edit User"
                 }"
@@ -348,8 +498,9 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
 
             <td>
-              ${escapeHtml(user.firstName)}
-              ${escapeHtml(user.lastName)}
+              <div class="user-name-cell">
+                <span class="user-row-avatar">${escapeHtml(`${user.firstName || ""}`.trim().slice(0, 1) || "U")}</span>
+                <span>${escapeHtml(user.firstName)} ${escapeHtml(user.lastName)}
 
               ${
                 self
@@ -360,14 +511,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   `
                   : ""
               }
+                </span>
+              </div>
             </td>
 
             <td>
-              ${escapeHtml(user.phone)}
+              <span class="user-contact"><i class="fas fa-phone"></i>${escapeHtml(user.phone)}</span>
             </td>
 
             <td>
-              ${escapeHtml(user.email)}
+              <span class="user-contact"><i class="far fa-envelope"></i>${escapeHtml(user.email)}</span>
             </td>
 
             <td>
@@ -382,44 +535,38 @@ document.addEventListener("DOMContentLoaded", () => {
                     : ""
                 }
 
-                ${escapeHtml(user.role)}
+                ${escapeHtml(roleLabel(user))}
               </span>
             </td>
 
             <td class="text-center">
               <button
                 type="button"
-                class="rights-edit-btn"
+                class="rights-edit-btn rights-view-btn"
                 data-action="app"
-                ${!manageable ? "disabled" : ""}
+                ${!appRightsManageable ? "disabled" : ""}
                 title="Edit App Rights"
               >
-                <i class="fas fa-pen"></i>
+                <i class="fas fa-border-all"></i>View
               </button>
             </td>
 
             <td class="text-center">
               <button
                 type="button"
-                class="rights-edit-btn"
+                class="rights-edit-btn rights-view-btn"
                 data-action="access"
-                ${!manageable ? "disabled" : ""}
+                ${!accessRightsManageable ? "disabled" : ""}
                 title="Edit Access Rights"
               >
-                <i class="fas fa-pen"></i>
+                <i class="fas fa-shield-halved"></i>View
               </button>
             </td>
 
             <td class="text-center">
-              <div
-                class="
-                  form-check
-                  form-switch
-                  d-flex
-                  justify-content-center
-                  m-0
-                "
-              >
+              <div class="status-control ${user.isActive ? "status-active" : "status-inactive"}">
+                <span class="status-label">${user.isActive ? "Active" : "Inactive"}</span>
+                <div class="form-check form-switch m-0">
                 <input
                   type="checkbox"
                   class="form-check-input"
@@ -427,6 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${user.isActive ? "checked" : ""}
                   ${!manageable ? "disabled" : ""}
                 >
+                </div>
               </div>
             </td>
 
@@ -591,12 +739,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // HR cannot give employee company-wide scope.
       if (scope) {
         Array.from(scope.options).forEach((option) => {
-          if (option.value === "all") {
+          if (option.value === "all" || option.value === "company") {
             option.disabled = true;
           }
         });
 
-        if (scope.value === "all") {
+        if (scope.value === "all" || scope.value === "company") {
           scope.value = "own";
         }
       }
@@ -646,7 +794,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (roleBadge) {
       roleBadge.className = `role-badge ${roleClass(user)}`;
 
-      roleBadge.textContent = user.role;
+      roleBadge.textContent = roleLabel(user);
     }
 
     const appEditor = $("appRightsEditor");
@@ -697,6 +845,122 @@ document.addEventListener("DOMContentLoaded", () => {
 
     bootstrap.Modal.getOrCreateInstance(modalElement).show();
   }
+
+  // ============================================================
+  // COPY RIGHTS
+  // ============================================================
+
+  function populateCopyRightsChoices() {
+    if (!selectedUser) return;
+
+    const sourceText = $("copyRightsSource");
+    if (sourceText) {
+      sourceText.textContent =
+        `Source: ${(selectedUser.firstName || "").trim()} ${(selectedUser.lastName || "").trim()}`.trim();
+    }
+
+    const userSelect = $("copyRightsTargetUser");
+    if (userSelect) {
+      const targets = users.filter(
+        (user) =>
+          String(user._id) !== String(selectedUser._id) &&
+          !isPrimaryAdmin(user),
+      );
+      userSelect.innerHTML = targets.length
+        ? targets
+            .map(
+              (user) =>
+                `<option value="${escapeHtml(user._id)}">${escapeHtml(`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email)} — ${escapeHtml(roleLabel(user))}</option>`,
+            )
+            .join("")
+        : '<option value="">No editable users available</option>';
+    }
+
+    const roleSelect = $("copyRightsTargetRole");
+    if (roleSelect) {
+      const roles = [...new Set(availableRoles)];
+      roleSelect.innerHTML = roles.length
+        ? roles
+            .map(
+              (role) =>
+                `<option value="${escapeHtml(role)}">All ${escapeHtml(role === "Admin" ? "Sub Admin" : role)} users</option>`,
+            )
+            .join("")
+        : '<option value="">No roles available</option>';
+    }
+  }
+
+  function syncCopyRightsTarget() {
+    const isRole = $("copyRightsTargetType")?.value === "role";
+    $("copyRightsUserWrap")?.classList.toggle("d-none", isRole);
+    $("copyRightsRoleWrap")?.classList.toggle("d-none", !isRole);
+  }
+
+  $("openCopyRightsBtn")?.addEventListener("click", () => {
+    if (!selectedUser) {
+      errorAlert("Open the rights of a user first.");
+      return;
+    }
+    populateCopyRightsChoices();
+    syncCopyRightsTarget();
+    bootstrap.Modal.getOrCreateInstance($("copyRightsModal")).show();
+  });
+
+  $("copyRightsTargetType")?.addEventListener("change", syncCopyRightsTarget);
+
+  $("addRoleBtn")?.addEventListener("click", addCustomRole);
+  $("cancelRoleBtn")?.addEventListener("click", () => {
+    $("customRoleName").value = "";
+    $("customRoleControls").classList.add("d-none");
+  });
+  $("saveRoleBtn")?.addEventListener("click", () => {
+    const input = $("customRoleName");
+    const value = String(input?.value || "").trim();
+    if (!/^[A-Za-z0-9 &_-]{2,49}$/.test(value)) {
+      errorAlert("Use 2-49 letters, numbers, spaces, &, _ or -.");
+      input?.focus();
+      return;
+    }
+    createCustomRole(value);
+  });
+  $("customRoleName")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      $("saveRoleBtn")?.click();
+    }
+  });
+
+  $("confirmCopyRightsBtn")?.addEventListener("click", async () => {
+    if (!selectedUser) return;
+
+    const targetType = $("copyRightsTargetType")?.value || "user";
+    const payload = {
+      sourceUserId: selectedUser._id,
+      targetType,
+      targetUserId:
+        targetType === "user" ? $("copyRightsTargetUser")?.value : undefined,
+      targetRole:
+        targetType === "role" ? $("copyRightsTargetRole")?.value : undefined,
+      copyAppRights: Boolean($("copyAppRights")?.checked),
+      copyAccessRights: Boolean($("copyAccessRights")?.checked),
+    };
+
+    const button = $("confirmCopyRightsBtn");
+    if (button) button.disabled = true;
+    try {
+      const result = await request("/admin/users/copy-rights", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      bootstrap.Modal.getOrCreateInstance($("copyRightsModal")).hide();
+      successAlert(result.message || "Rights copied successfully.");
+      await loadUsers();
+    } catch (error) {
+      errorAlert(error.message);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
 
   // ============================================================
   // COLLECT APP RIGHTS
@@ -769,7 +1033,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if ($("role")) {
       $("role").value = user.role || "Employee";
 
-      $("role").disabled = currentUserRole === "HR";
+      // A created Admin can be returned to HR or Employee. The configured
+      // primary Admin is the only account whose role stays locked.
+      $("role").disabled = currentUserRole === "HR" || isPrimaryAdmin(user);
     }
 
     if ($("password")) {
@@ -810,6 +1076,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     bootstrap.Modal.getOrCreateInstance(modal).show();
+  }
+
+  function openCreateUserModal() {
+    selectedUser = null;
+    const form = $("userForm");
+    if (!form) return;
+    form.reset();
+    $("userId").value = "";
+    if ($("role")) {
+      $("role").value = "Employee";
+      $("role").disabled = currentUserRole !== "Admin";
+    }
+    const preview = $("imagePreview");
+    if (preview) preview.src = "../images/default-avatar.png";
+    bootstrap.Modal.getOrCreateInstance($("addEditUserModal")).show();
   }
 
   // ============================================================
@@ -1047,12 +1328,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const userId = $("userId")?.value;
 
-    if (!userId) {
-      errorAlert("User ID is missing.");
-
-      return;
-    }
-
     if (button) {
       button.disabled = true;
     }
@@ -1087,7 +1362,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ROLE
     // ======================================================
 
-    if (currentUserRole === "Admin" && $("role")) {
+    if (currentUserRole === "Admin" && $("role") && !$("role").disabled) {
       data.append("role", $("role").value);
     }
 
@@ -1114,7 +1389,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      await updateUser(userId, data);
+      if (userId) {
+        await updateUser(userId, data);
+      } else {
+        const passwordValue = $("password")?.value || "";
+        if (passwordValue.trim().length < 8) {
+          throw new Error(
+            "New users need a password of at least 8 characters.",
+          );
+        }
+        const result = await request("/admin/users", {
+          method: "POST",
+          body: data,
+        });
+        users.unshift(result.data);
+        render();
+      }
 
       const modal = $("addEditUserModal");
 
@@ -1122,7 +1412,9 @@ document.addEventListener("DOMContentLoaded", () => {
         bootstrap.Modal.getOrCreateInstance(modal).hide();
       }
 
-      successAlert("User updated successfully.");
+      successAlert(
+        userId ? "User updated successfully." : "User created successfully.",
+      );
     } catch (error) {
       errorAlert(error.message);
     } finally {
@@ -1158,11 +1450,22 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.readAsDataURL(file);
   });
 
+  $("addUserBtn")?.addEventListener("click", openCreateUserModal);
+  document
+    .querySelector("[data-users-add-trigger]")
+    ?.addEventListener("click", openCreateUserModal);
+
   // ============================================================
   // SEARCH
   // ============================================================
 
   $("globalSearch")?.addEventListener("input", render);
+  ["roleFilter", "statusFilter", "dateFilter"].forEach((id) =>
+    $(id)?.addEventListener("change", () => {
+      inactiveOnly = false;
+      render();
+    }),
+  );
 
   // ============================================================
   // DEACTIVE USERS
@@ -1394,9 +1697,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       currentUserId = String(result.currentUserId || "");
 
-      currentUserRole = result.currentUserRole || "Admin";
-
       users = Array.isArray(result.data) ? result.data : [];
+      availableRoles =
+        Array.isArray(result.roles) && result.roles.length
+          ? result.roles
+          : ["Employee", "HR", "Admin"];
 
       // ======================================================
       // FIND CURRENT USER
@@ -1405,6 +1710,29 @@ document.addEventListener("DOMContentLoaded", () => {
       const current = users.find(
         (user) => String(user._id) === String(currentUserId),
       );
+
+      currentUserRole = current?.isAdministrator
+        ? "Admin"
+        : normalizeRole(result.currentUserRole || current?.role);
+
+      populateRoleSelect();
+      const roleFilter = $("roleFilter");
+      if (roleFilter) {
+        const selected = roleFilter.value;
+        roleFilter.innerHTML =
+          '<option value="">All Roles</option>' +
+          availableRoles
+            .map(
+              (role) =>
+                `<option value="${escapeHtml(role)}">${escapeHtml(role === "Admin" ? "Sub Admin" : role)}</option>`,
+            )
+            .join("");
+        roleFilter.value = availableRoles.includes(selected) ? selected : "";
+      }
+      const addRoleButton = $("addRoleBtn");
+      if (addRoleButton) {
+        addRoleButton.classList.toggle("d-none", !isCurrentUserPrimaryAdmin());
+      }
 
       if (current) {
         const sidebarName = $("sidebarUserName");

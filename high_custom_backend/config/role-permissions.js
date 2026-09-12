@@ -34,8 +34,8 @@ const HR_APP_RIGHTS = {
   notifications: true,
   profile: true,
 
-  // HR may manage employee rights.
-  appRightsManagement: true,
+  // HR can manage employee access actions, not app/module availability.
+  appRightsManagement: false,
   accessRightsManagement: true,
 };
 
@@ -87,6 +87,7 @@ const ADMIN_ACCESS_RIGHTS = {
   viewInterestedLeads: true,
   viewAllInterestedLeads: true,
   editInterestedLead: true,
+  deleteInterestedLead: true,
   exportInterestedLeads: true,
 
   viewSequences: true,
@@ -121,7 +122,7 @@ const ADMIN_ACCESS_RIGHTS = {
   viewProfile: true,
   editProfile: true,
 
-  manageEmployeeAppRights: true,
+  manageEmployeeAppRights: false,
   manageEmployeeAccessRights: true,
   manageHRAppRights: true,
   manageHRAccessRights: true,
@@ -176,6 +177,7 @@ const HR_ACCESS_RIGHTS = {
   viewInterestedLeads: true,
   viewAllInterestedLeads: true,
   editInterestedLead: true,
+  deleteInterestedLead: false,
   exportInterestedLeads: true,
 
   // ========================================================
@@ -296,6 +298,7 @@ const EMPLOYEE_ACCESS_RIGHTS = {
   viewInterestedLeads: true,
   viewAllInterestedLeads: false,
   editInterestedLead: true,
+  deleteInterestedLead: false,
   exportInterestedLeads: false,
 
   // ========================================================
@@ -382,7 +385,9 @@ const ROLE_CONFIG = {
   },
 
   HR: {
-    dataScope: "all",
+    // HR works with employees across the company, without receiving the
+    // unrestricted system-wide Admin scope.
+    dataScope: "company",
     appRights: HR_APP_RIGHTS,
     accessRights: HR_ACCESS_RIGHTS,
   },

@@ -737,8 +737,16 @@ exports.getTrackingReport = async (req, res) => {
     // BUILD QUERY
     // ==========================================================
 
+    // A delivery must belong to the signed-in user *and* be for one of that
+    // user's leads.  The second check protects the personal report from old
+    // cross-user delivery records that may exist after an admin imported or
+    // reassigned leads.  The separate admin report intentionally does not
+    // apply this restriction because it is the company-wide view.
+    const ownedLeadRows = await LEAD.find({ userId }).select("_id").lean();
+    const ownedLeadIds = ownedLeadRows.map((lead) => lead._id);
     const deliveryQuery = {
       userId,
+      leadId: { $in: ownedLeadIds },
     };
 
     if (sequenceId && String(sequenceId).trim()) {
@@ -771,7 +779,14 @@ exports.getTrackingReport = async (req, res) => {
           { email: regex },
         ],
       }).select("_id").lean();
-      deliveryQuery.leadId = { $in: matchingLeads.map((lead) => lead._id) };
+      const matchingLeadIds = new Set(
+        matchingLeads.map((lead) => String(lead._id)),
+      );
+      deliveryQuery.leadId = {
+        $in: ownedLeadIds.filter((leadId) =>
+          matchingLeadIds.has(String(leadId)),
+        ),
+      };
     }
 
     if (status && status !== "All Status") {
@@ -1010,6 +1025,9 @@ exports.getAdminTrackingReport = async (req, res) => {
       status,
       startDate,
       endDate,
+      search,
+      businessType,
+      step,
     } = req.query;
     const query = {};
     if (userId && mongoose.isValidObjectId(userId)) query.userId = userId;
@@ -1029,14 +1047,49 @@ exports.getAdminTrackingReport = async (req, res) => {
         ...(startDate && { $gte: new Date(startDate) }),
         ...(endDate && { $lte: new Date(`${endDate}T23:59:59.999Z`) }),
       };
-    if (status && status !== "All Status")
-      query.status = String(status).toLowerCase();
-    const deliveries = await SEQUENCE_DELIVERY.find(query)
-      .populate("userId", "firstName lastName email")
-      .populate("sequenceId", "step subject")
-      .populate("leadId", "firstName lastName name email")
-      .sort({ createdAt: -1 })
-      .lean();
+    const normalizedStatus = String(status || "").trim().toLowerCase();
+    if (normalizedStatus && normalizedStatus !== "all status") {
+      if (normalizedStatus === "interested") query.response = "interested";
+      else if (normalizedStatus === "not-interested") query.response = "notInterested";
+      else if (normalizedStatus === "replied") query.repliedAt = { $ne: null };
+      else if (normalizedStatus === "opened" || normalizedStatus === "seen") query.openedAt = { $ne: null };
+      else query.status = normalizedStatus;
+    }
+    if (step !== undefined && step !== "" && Number.isFinite(Number(step))) query.step = Number(step);
+    if (businessType) {
+      const matchingSequences = await SEQUENCE.find({ businessType: String(businessType).trim() }).select("_id").lean();
+      query.sequenceId = { $in: matchingSequences.map((sequence) => sequence._id) };
+    }
+    if (search && String(search).trim()) {
+      const expression = new RegExp(String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      const [matchingLeads, matchingSequences] = await Promise.all([
+        LEAD.find({ $or: [{ firstName: expression }, { lastName: expression }, { name: expression }, { email: expression }, { company: expression }] }).select("_id").lean(),
+        SEQUENCE.find({ $or: [{ subject: expression }, { content: expression }, { businessType: expression }] }).select("_id").lean(),
+      ]);
+      query.$or = [
+        { email: expression },
+        { leadId: { $in: matchingLeads.map((lead) => lead._id) } },
+        { sequenceId: { $in: matchingSequences.map((sequence) => sequence._id) } },
+      ];
+    }
+    const defaultLimit = Number.parseInt(req.query.length, 10) || 10;
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || defaultLimit, 1), 100);
+    const page = Math.max(Number.parseInt(req.query.page, 10) || (Math.floor((Number.parseInt(req.query.start, 10) || 0) / limit) + 1), 1);
+    const skip = (page - 1) * limit;
+    const [recordsTotal, recordsFiltered, businessTypes, steps, deliveries] = await Promise.all([
+      SEQUENCE_DELIVERY.countDocuments({}),
+      SEQUENCE_DELIVERY.countDocuments(query),
+      SEQUENCE.distinct("businessType", { businessType: { $nin: [null, ""] } }),
+      SEQUENCE_DELIVERY.distinct("step"),
+      SEQUENCE_DELIVERY.find(query)
+        .populate("userId", "firstName lastName email")
+        .populate("sequenceId", "step subject businessType")
+        .populate("leadId", "firstName lastName name email company businessType")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
     const data = deliveries.map((delivery) => {
       const lead = delivery.leadId || {};
       const owner = delivery.userId || {};
@@ -1050,13 +1103,24 @@ exports.getAdminTrackingReport = async (req, res) => {
         owner.email ||
         "—";
       const clicks = delivery.clickedAt ? 1 : 0;
+      // A delivery may keep its original transport status (for example "sent")
+      // after it has been opened, replied to, or marked interested.  Report the
+      // most meaningful current state instead of displaying that stale value.
+      const response = String(delivery.response || "").trim().toLowerCase();
+      let reportStatus = delivery.status || "Pending";
+      if (["interested", "positive"].includes(response)) reportStatus = "Interested";
+      else if (["notinterested", "not-interested", "not interested", "negative"].includes(response)) reportStatus = "Not Interested";
+      else if (delivery.repliedAt) reportStatus = "Replied";
+      else if (delivery.openedAt) reportStatus = "Opened";
+      else if (String(reportStatus).toLowerCase() === "success") reportStatus = "Sent";
       return {
         lead_name: leadName,
         lead_email: lead.email || delivery.email || "—",
+        business_type: sequence.businessType || lead.businessType || "",
         step: sequence.step || delivery.step || "—",
         subject: sequence.subject || "—",
         scheduled_at: delivery.scheduledAt,
-        status_badge: delivery.response || delivery.status || "—",
+        status_badge: reportStatus,
         sent_at: delivery.sentAt,
         seen_at: delivery.openedAt,
         whatsapp_clicks: 0,
@@ -1071,14 +1135,17 @@ exports.getAdminTrackingReport = async (req, res) => {
         total_clicks: clicks,
         full_name: ownerName,
         email: owner.email || "—",
+        owner_id: owner._id ? String(owner._id) : "",
       };
     });
     return res.json({
       success: true,
       draw: Number(req.query.draw) || 0,
-      recordsTotal: data.length,
-      recordsFiltered: data.length,
+      recordsTotal,
+      recordsFiltered,
       data,
+      pagination: { page, limit, total: recordsFiltered, totalPages: Math.ceil(recordsFiltered / limit) },
+      filterOptions: { businessTypes: businessTypes.sort(), steps: steps.sort((a, b) => Number(a) - Number(b)) },
     });
   } catch (error) {
     console.error("GET ADMIN TRACKING REPORT ERROR:", error);

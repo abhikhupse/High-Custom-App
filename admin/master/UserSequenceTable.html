@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="../css/admin-all-tracking-report.css">
 
     <!-- ============================================================= -->
     <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
@@ -641,6 +642,26 @@
         color:#fff !important;
         cursor: pointer;
     }
+
+    /* All tracking report polish */
+    .tracking-report-ui { padding:12px 16px 34px; }
+    .tracking-report-ui .page-title { display:flex; align-items:center; gap:12px; margin:4px 0 20px; color:var(--text-primary); font-weight:800; letter-spacing:-.4px; }
+    .tracking-report-ui .page-title::before { content:"\f201"; font-family:"Font Awesome 6 Free"; font-weight:900; width:46px; height:46px; display:grid; place-items:center; color:#fff; font-size:18px; border-radius:14px; background:linear-gradient(135deg,#2563eb,#7c3aed); box-shadow:0 10px 24px rgba(37,99,235,.22); }
+    .tracking-report-ui .filter-bar { background:var(--bg-topbar); padding:15px 17px; border-radius:16px; border:1px solid rgba(148,163,184,.28); box-shadow:0 8px 22px rgba(15,23,42,.05); }
+    .tracking-report-ui .filter-group label { color:var(--text-secondary); font-size:.76rem; text-transform:uppercase; letter-spacing:.035em; }
+    .tracking-report-ui .filter-group .form-select { border-radius:10px; border-color:#cbd5e1; }
+    .tracking-report-ui .report-card { border:1px solid rgba(148,163,184,.28); border-radius:18px; overflow:hidden; box-shadow:0 12px 30px rgba(15,23,42,.07); background:var(--bg-topbar); }
+    .tracking-report-ui .report-card .card-body { padding:16px; }
+    .tracking-report-ui #UserSequenceTable { margin:0; }
+    .tracking-report-ui #UserSequenceTable thead tr:first-child th { background:#172033; color:#fff; border-color:#2a3850; padding:14px 10px; white-space:nowrap; font-size:.75rem; letter-spacing:.035em; text-transform:uppercase; }
+    .tracking-report-ui #UserSequenceTable tbody td { padding:12px 10px; color:var(--text-primary); border-color:#e7edf5; vertical-align:middle; }
+    .tracking-report-ui #UserSequenceTable tbody tr:hover { background:#f5f8ff; }
+    .tracking-status { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:.76rem; font-weight:800; text-transform:capitalize; white-space:nowrap; }
+    .tracking-status::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+    .tracking-status--sent { color:#047857; background:#d1fae5; }.tracking-status--opened { color:#1d4ed8; background:#dbeafe; }.tracking-status--replied,.tracking-status--interested { color:#6d28d9; background:#ede9fe; }.tracking-status--failed,.tracking-status--not-interested { color:#b91c1c; background:#fee2e2; }.tracking-status--pending { color:#a16207; background:#fef3c7; }.tracking-status--default { color:#475569; background:#e2e8f0; }
+    body.theme-dark .tracking-report-ui .filter-bar, body.theme-dark .tracking-report-ui .report-card { background:#172033; border-color:#334155; }
+    body.theme-dark .tracking-report-ui #UserSequenceTable tbody td { color:#e2e8f0; border-color:#2c3a50; } body.theme-dark .tracking-report-ui #UserSequenceTable tbody tr:hover { background:#1e293b; }
+    @media (max-width:768px) { .tracking-report-ui { padding:10px 4px 24px; }.tracking-report-ui .page-title { font-size:1.35rem; }.tracking-report-ui .filter-bar { width:100%; margin-left:0; }.tracking-report-ui .report-card { border-radius:14px; }.tracking-report-ui .report-card .card-body { padding:10px; } }
 </style>
 </head>
 
@@ -890,63 +911,24 @@
     <!-- ========== MAIN CONTENT ========== -->
     <div class="main-content" id="mainContent">
         
-    <div class="container-fluid">
-        <div class="row mb-4">
-            <div class="col-12">
-                <h2 class="page-title">
-                    📊 All Tracking Report
-                </h2>
-            </div>
-        </div>
-
-        <div class="filter-bar">
+    <section id="adminTrackingReportPage">
+        <div class="admin-tracking-heading"><div class="admin-tracking-title"><span class="admin-tracking-title__icon"><i class="fas fa-chart-column"></i></span><div><h1>All Tracking Report</h1><p>View email tracking details for all users across the platform.</p></div></div><div class="admin-tracking-today"><i class="far fa-calendar-alt"></i><span>Today<small id="adminTrackingToday">—</small></span></div></div>
+        <div class="tracking-filter-bar" aria-label="All tracking report filters">
             <!-- User Name Filter -->
-            <div class="filter-group">
-                <label for="user_name_filter">
-                    👤 Filter by User Name
-                </label>
-                <select id="user_name_filter" class="form-select">
-                    <option value="">All Users</option>
-                    
-                        <option value="—">
-                            — —
-                        </option>
-                    
-                </select>
-            </div>
-
-            <!-- User Email Filter -->
-            <div class="filter-group">
-                <label for="user_email_filter">
-                    📧 Filter by User Email
-                </label>
-                <select id="user_email_filter" class="form-select">
-                    <option value="">All Emails</option>
-                    
-                        <option value="—">
-                            —
-                        </option>
-                    
-                </select>
-            </div>
-
-            <!-- Clear Button -->
-            <div class="filter-buttons">
-                <button class="btn btn-secondary" id="clear_filters">
-                    <i class="fas fa-times"></i> Clear
-                </button>
-            </div>
+            <div class="tracking-filter-group"><input id="adminTrackingSearch" class="form-control" type="search" placeholder="Search lead name, email, subject..."></div>
+            <div class="tracking-filter-group"><select id="adminTrackingUser" class="form-select"><option value="">All Users</option></select></div>
+            <div class="tracking-filter-group"><select id="adminTrackingBusinessType" class="form-select"><option value="">All Business Types</option></select></div>
+            <div class="tracking-filter-group"><select id="adminTrackingStep" class="form-select"><option value="">All Steps</option></select></div>
+            <div class="tracking-filter-group"><select id="adminTrackingStatus" class="form-select"><option value="">All Status</option><option value="pending">Pending</option><option value="sent">Sent</option><option value="opened">Opened</option><option value="replied">Replied</option><option value="interested">Interested</option><option value="not-interested">Not Interested</option><option value="failed">Failed</option></select></div>
+            <div class="tracking-filter-group"><select id="adminTrackingDateRange" class="form-select"><option value="">Select Date Range</option><option value="today">Today</option><option value="7days">Last 7 Days</option><option value="30days">Last 30 Days</option></select></div>
         </div>
-
-        <div class="report-card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="UserSequenceTable" class="table table-bordered table-hover align-middle">
+        <div class="tracking-report-card"><div class="tracking-table-toolbar"><label>Show <select id="adminTrackingPageSize"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select> entries</label><div class="tracking-toolbar-actions"><button id="adminTrackingRefresh" type="button" title="Refresh"><i class="fas fa-rotate-right"></i></button><button id="adminTrackingExportCsv" type="button"><i class="fas fa-download me-2"></i>Export CSV</button><button class="tracking-export-excel" id="adminTrackingExportExcel" type="button"><i class="fas fa-file-excel me-2"></i>Export Excel</button></div></div><div class="tracking-table-wrap"><table id="UserSequenceTable" class="table tracking-all-table align-middle">
                         <thead class="table-dark">
                             <tr>
                                 <th>#</th>
                                 <th>Lead Name</th>
                                 <th>Lead Email</th>
+                                <th>Business Type</th>
                                 <th>Step</th>
                                 <th>Subject</th>
                                 <th>Scheduled At</th>
@@ -957,52 +939,27 @@
                                 <th>Instagram</th>
                                 <th>Facebook Messenger</th>
                                 <th>Threads</th>
-                                <th>Telegram</th>
-                                <th>Youtube</th>
-                                <th>X</th>
-                                <th>LinkedIn</th>
-                                <th>Other</th>
-                                <th>Total</th>
-                                <th>Full Name</th>
-                                <th>User Email</th>
-                            </tr>
-                            <!-- Individual Column Search Row -->
-                            <tr class="search-header">
-                                <th></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Lead" data-column="1"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Email" data-column="2"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Step" data-column="3"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Subject" data-column="4"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Date" data-column="5"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Status" data-column="6"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Date" data-column="7"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Date" data-column="8"></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Name" data-column="19"></th>
-                                <th><input type="text" class="column-search-input" placeholder="Search Email" data-column="20"></th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+                    </table></div><div class="tracking-pagination" id="adminTrackingPagination" aria-live="polite"></div></div>
+    </section>
 
     <link rel="stylesheet" href="../css/colReorder.dataTables.min.css">
     <script src="../js/dataTables.colReorder.min.js"></script>
 
     <script>
         $(document).ready(function() {
+            if (document.getElementById('adminTrackingReportPage')) return;
+            function trackingStatus(value) {
+                var raw = String(value || 'pending').trim();
+                var normalized = raw.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase().replace(/\s+/g, '-');
+                var valid = ['sent', 'opened', 'replied', 'interested', 'not-interested', 'failed', 'pending'];
+                var style = valid.includes(normalized) ? normalized : 'default';
+                var label = normalized === 'not-interested' ? 'Not Interested' : raw;
+                return '<span class="tracking-status tracking-status--' + style + '">' + $('<div>').text(label).html() + '</span>';
+            }
             var table = $('#UserSequenceTable').DataTable({
                 processing: true,
                 serverSide: true,
@@ -1014,21 +971,18 @@
                     [10, 25, 50, 100]
                 ],
                 ajax: {
-                    url: "#",
-                    type: "POST",
+                    // Use the real Admin endpoint directly. The converted
+                    // template previously posted to "#", which produced a
+                    // server error instead of loading tracking data.
+                    url: (['localhost', '127.0.0.1'].includes(window.location.hostname)
+                        ? 'http://localhost:3000/api'
+                        : 'https://high-custom-app.onrender.com/api') + '/admin/tracking-report',
+                    type: "GET",
                     headers: {
-                        'X-CSRF-TOKEN': '—'
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + (localStorage.getItem('highCustomAdminToken') || '')
                     },
                     data: function(d) {
-                        d._token = "—";
-                        d.from = "—";
-                        d.status = "—";
-                        d.user_id = "—";
-                        d.filter = "—";
-                        d.start_date = "—";
-                        d.end_date = "—";
-                        d._ = Date.now();
-
                         $('.column-search-input').each(function() {
                             var column = $(this).data('column');
                             var value = $(this).val();
@@ -1038,7 +992,10 @@
                         });
 
                         // Add user name and email filters
-                        d['user_name'] = $('#user_name_filter').val();
+                        // The user dropdown stores an authenticated user id;
+                        // this keeps the company report exact even when two
+                        // employees have the same display name.
+                        d['userId'] = $('#user_name_filter').val();
                         d['user_email'] = $('#user_email_filter').val();
                     }
                 },
@@ -1057,7 +1014,7 @@
                     { data: 'step', orderable: false, searchable: false },
                     { data: 'subject', orderable: false, searchable: false },
                     { data: 'scheduled_at', orderable: false, searchable: false },
-                    { data: 'status_badge', orderable: false, searchable: false},
+                    { data: 'status_badge', orderable: false, searchable: false, render: function(data) { return trackingStatus(data); } },
                     { data: 'sent_at',orderable: false, searchable: false},
                     { data: 'seen_at', orderable: false, searchable: false },
                     { data: 'whatsapp_clicks', orderable: false, searchable: false },
@@ -1357,6 +1314,7 @@
     </script>
 <script src="../js/static-navigation.js"></script>
 <script src="../js/admin-tracking-report.js"></script>
+<script src="../js/admin-all-tracking-report.js"></script>
 </body>
 
 </html>

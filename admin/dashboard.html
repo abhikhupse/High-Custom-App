@@ -1301,6 +1301,7 @@
     }
 </style>
 <link rel="stylesheet" href="css/static-dashboard-overrides.css">
+<link rel="stylesheet" href="css/admin-dashboard-premium.css">
 </head>
 
 <body>
@@ -1324,10 +1325,8 @@
 
 
         <div class="sidebar-brand">
-            <a href="—" class="d-flex align-items-center text-decoration-none">
-                <div>
-                    <img src="images/company-logo-1.png" alt="Company Logo" class="sidebar-logo">
-                </div>
+            <a href="dashboard.html" class="d-flex align-items-center text-decoration-none" aria-label="High Custom Admin Panel">
+                <img src="images/high-custom-admin-panel-logo.png" alt="High Custom Admin Panel" class="sidebar-logo">
             </a>
         </div>
 
@@ -1434,6 +1433,8 @@
             </li>
         </ul>
 
+        <div class="sidebar-premium-footer"><strong>High Custom</strong><span>Build Relationships</span><span>Create Opportunities</span></div>
+
          <!-- User Dropdown -->
             <div class="dropdown">
                 <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
@@ -1504,14 +1505,18 @@
     </aside>
 
     <!-- ========== TOP NAVBAR ========== -->
-    <nav class="top-navbar" id="topNavbar">
-         <span>ADMIN</span>
+    <nav class="top-navbar premium-topbar" id="topNavbar">
+        <div class="premium-topbar-title">
+            <span>Admin</span>
+            <small>Manage and monitor your High Custom platform</small>
+        </div>
         <!-- Mobile toggle button -->
         <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
             <i class="fas fa-bars"></i>
         </button>
 
-        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-left:auto;">
+        <div class="premium-topbar-actions">
+            <div id="dashboardHeaderFilters"></div>
 
             <!-- ============================================================= -->
             <!--  SUN/MOON TOGGLE BUTTON                                        -->
@@ -1537,9 +1542,22 @@
                 })();
             </script>
 
-            <!-- User Code -->
-            <div class="hc-user-code">
-                <strong>—</strong>
+            <div class="dropdown premium-profile-menu">
+                <button class="premium-profile-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="premium-profile-avatar">
+                        <img data-admin-profile-image alt="" hidden>
+                        <span data-admin-profile-initials>…</span>
+                    </span>
+                    <span class="premium-profile-copy"><strong data-admin-profile-name>Loading profile…</strong><small data-admin-profile-role>—</small></span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow premium-profile-dropdown">
+                    <li><a class="dropdown-item" href="users/profile.html"><i class="fas fa-user"></i> Profile</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-plug"></i> Integrations</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-gear"></i> Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</a></li>
+                </ul>
             </div>
 
 
@@ -1554,11 +1572,13 @@
         <!-- ============================================
         HEADER + FILTERS – FULLY RESPONSIVE
         ============================================ -->
+        <div class="dashboard-intro">
+            <div><h1>Dashboard</h1><p>Welcome back! Here’s what’s happening across your High Custom platform.</p></div>
+            <em>“More Connections. More Opportunities.”</em>
+        </div>
         <div class="filter-bar mb-4">
             <!-- Left: Title -->
-            <div class="filter-left">
-                <h2 class="mb-0" style="font-size: clamp(1.25rem, 3vw, 2rem);">Dashboard</h2>
-            </div>
+            <div class="filter-left"><span class="filter-context"><i class="fas fa-users"></i> Company-wide view</span></div>
 
             <!-- Right: Mail Credits + User Filter + Date Filter -->
             <div class="filter-right">
@@ -1615,6 +1635,8 @@
                 </div>
             </div>
         </div>
+
+        <div id="dashboardDataState" class="dashboard-data-state" hidden></div>
 
         <div class="modal fade" id="mailCreditsModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -1849,6 +1871,20 @@
                     </div>
                 </a>
 
+                <!-- Total Clicked -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="clicked">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body"><div class="card-info"><div><h6 class="text-purple">Total Clicked</h6><h2 id="clicked">—</h2><small>Total tracked link clicks</small></div><div class="dashboard-icon bg-leads"><i class="fas fa-link"></i></div></div></div>
+                    </div>
+                </a>
+
+                <!-- Total Replied -->
+                <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="replied">
+                    <div class="card dashboard-card border-0 shadow-sm">
+                        <div class="card-body"><div class="card-info"><div><h6 class="text-success">Total Replied</h6><h2 id="replied">—</h2><small>Total email replies</small></div><div class="dashboard-icon bg-interest"><i class="fas fa-reply"></i></div></div></div>
+                    </div>
+                </a>
+
                 <!-- Total Failed -->
                 <a href="javascript:void(0)" class="text-decoration-none text-dark" data-status="failed">
                     <div class="card dashboard-card border-0 shadow-sm">
@@ -1879,25 +1915,6 @@
                                 </div>
                                 <div class="dashboard-icon bg-interest">
                                     <i class="fas fa-thumbs-up"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Total Not Interested – FIXED: no fixed width -->
-                <a href="javascript:void(0)" class="text-decoration-none text-dark card-not-interested"
-                    data-status="not_interested">
-                    <div class="card dashboard-card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="card-info">
-                                <div>
-                                    <h6 class="text-danger">Total Not Interested</h6>
-                                    <h2 id="notInterested">—</h2>
-                                    <small>Total not interested</small>
-                                </div>
-                                <div class="dashboard-icon bg-not-interest">
-                                    <i class="fas fa-thumbs-down"></i>
                                 </div>
                             </div>
                         </div>
@@ -2038,6 +2055,13 @@
                 const labels = ['Pending', 'Sent', 'Seen', 'Fail', 'Interested', 'Not Interested'];
                 const colors = ['#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4', '#6b7280'];
                 const totalMail = data.total_mail || series.reduce((a, b) => a + b, 0);
+                const holder = document.querySelector('#campaignStatusChart');
+                if (!totalMail) {
+                    if (campaignChart) { campaignChart.destroy(); campaignChart = null; }
+                    holder.innerHTML = '<div class="chart-empty-state"><i class="fas fa-chart-pie"></i><span>No email activity found</span></div>';
+                    return;
+                }
+                if (holder.querySelector('.chart-empty-state')) holder.innerHTML = '';
 
                 if (campaignChart) {
                     campaignChart.updateOptions({
@@ -2114,6 +2138,13 @@
                 const series = data.series || [];
                 const labels = data.labels || [];
                 const totalClicks = data.total || series.reduce((a, b) => a + b, 0);
+                const holder = document.querySelector('#platformClickChart');
+                if (!labels.length || !totalClicks) {
+                    if (platformChart) { platformChart.destroy(); platformChart = null; }
+                    holder.innerHTML = '<div class="chart-empty-state"><i class="fas fa-link"></i><span>No platform click data available</span></div>';
+                    return;
+                }
+                if (holder.querySelector('.chart-empty-state')) holder.innerHTML = '';
 
                 if (platformChart) {
                     platformChart.updateOptions({
@@ -2193,6 +2224,14 @@
 
                 const labels = data.labels || [];
                 const series = data.series || [];
+                const holder = document.querySelector('#buttonClickBarChart');
+
+                if (!labels.length || !total) {
+                    if (buttonClickBarChart) { buttonClickBarChart.destroy(); buttonClickBarChart = null; }
+                    holder.innerHTML = '<div class="chart-empty-state"><i class="fas fa-qrcode"></i><span>No QR button analytics available</span></div>';
+                    return;
+                }
+                if (holder.querySelector('.chart-empty-state')) holder.innerHTML = '';
 
                 if (buttonClickBarChart) {
                     buttonClickBarChart.destroy();
@@ -2281,6 +2320,11 @@
 
             // ---------- Fetch all charts ----------
             function fetchAllCharts() {
+                // Dashboard data is loaded once through static-dashboard.js
+                // from the authenticated /api/admin/dashboard endpoint.
+                // Keep these legacy helpers inert so this template never
+                // performs duplicate placeholder (#) requests.
+                return;
                 const filters = getFilters();
 
                 $.ajax({
@@ -2310,6 +2354,9 @@
 
             // ---------- Refresh dashboard ----------
             function refreshDashboard() {
+                // See fetchAllCharts(): real dashboard refreshes are handled
+                // by static-dashboard.js and retain the auth/user/date scope.
+                return;
                 const filters = getFilters();
 
                 // Stats
@@ -2523,7 +2570,7 @@
                 });
 
                 // 2) Remove 'active' class from all links (but do NOT close submenus)
-                document.querySelectorAll('.nav-link').forEach(link => {
+                document.querySelectorAll('.nav-link:not([href="dashboard.html"])').forEach(link => {
                     link.classList.remove('active');
                 });
 
@@ -2614,6 +2661,7 @@
     </script>
 <script src="js/static-dashboard.js"></script>
 <script src="js/static-navigation.js"></script>
+<script src="js/dashboard-shell.js"></script>
 </body>
 
 </html>

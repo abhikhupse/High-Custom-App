@@ -63,7 +63,9 @@
   </main>
   <script>
     const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const apiBase = localStorage.getItem('highCustomApiBase') || (isLocal ? 'http://localhost:3000/api' : 'https://high-custom-app.onrender.com/api');
+      // Local Admin preview must always use the local backend. A previously
+      // saved Render URL can otherwise cause misleading server errors.
+      const apiBase = isLocal ? 'http://localhost:3000/api' : (localStorage.getItem('highCustomApiBase') || 'https://high-custom-app.onrender.com/api');
     if (new URLSearchParams(window.location.search).get('reason') === 'access') {
       document.getElementById('error').textContent = 'Your session expired or this account does not have administrator access. Please sign in with an authorized admin account.';
     }

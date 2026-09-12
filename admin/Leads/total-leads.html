@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="../css/admin-leads-all-users.css">
 
     <!-- ============================================================= -->
     <!--  THEME CSS VARIABLES (Light default, Dark override)            -->
@@ -935,28 +936,24 @@ table.dataTable thead .sorting_desc {
     <div class="main-content" id="mainContent">
         
 
-<h1 class="h3 mb-4 text-gray-800">Total Leads</h1>
-    <div class="container-fluid mt-4">
-        <div class="card shadow">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="totalLeadsTable" class="table table-bordered table-striped w-100">
-                        <thead class="table-dark">
-                        <tr>
-                            <th>Email</th>
-                            <th>Name</th>
-                            <th>Last Name</th>
-                            <th>Company</th>
-                            <th>Type</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
-                        </tr>
-                        </thead>
-                    </table>
-                </div>
-            </div>
-        </div>
+<section id="adminLeadsPage">
+    <div class="leads-header">
+        <h1 class="main-title">Leads — All Users</h1>
+        <p class="sub-title">View and manage leads across all users in the platform.</p>
     </div>
+    <div class="filter-bar" aria-label="Lead filters">
+        <div class="filter-group"><label for="adminLeadSearch">Search</label><input id="adminLeadSearch" class="form-control" type="search" placeholder="Search by email, name, company..."></div>
+        <div class="filter-group"><label for="adminLeadOwner">User</label><select id="adminLeadOwner" class="form-select"><option value="">All Users</option></select></div>
+        <div class="filter-group"><label for="adminLeadBusinessType">Business Type</label><select id="adminLeadBusinessType" class="form-select"><option value="">All Business Types</option></select></div>
+        <div class="filter-group"><label for="adminLeadTrackingStatus">Tracking Status</label><select id="adminLeadTrackingStatus" class="form-select"><option value="">All Tracking Status</option><option value="pending">Pending</option><option value="interested">Interested</option><option value="not-interested">Not Interested</option><option value="skip">Skip</option></select></div>
+        <div class="filter-group"><label for="adminLeadDateRange">Date Range</label><select id="adminLeadDateRange" class="form-select"><option value="">Date Range</option><option value="today">Today</option><option value="7days">Last 7 Days</option><option value="30days">Last 30 Days</option></select></div>
+        <div class="filter-buttons"><button id="adminLeadReset" type="button" class="btn"><i class="fas fa-rotate-right me-2"></i>Reset</button></div>
+    </div>
+    <div class="leads-card">
+        <div class="table-responsive"><table id="totalLeadsTable" class="table leads-table w-100"><thead><tr><th>#</th><th>Email</th><th>Business Type</th><th>Owner</th><th>Tracking</th><th>First Name</th><th>Last Name</th><th>Company</th><th>Created At</th></tr></thead><tbody></tbody></table></div>
+        <div id="adminLeadPagination" class="leads-pagination" aria-live="polite"></div>
+    </div>
+</section>
 
     </div>
 
@@ -1178,6 +1175,7 @@ table.dataTable thead .sorting_desc {
         });
     </script>
 <script src="../js/static-navigation.js"></script>
+<script src="../js/admin-company-workspace.js"></script>
 </body>
 
 </html>

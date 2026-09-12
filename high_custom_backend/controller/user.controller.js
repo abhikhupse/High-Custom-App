@@ -627,7 +627,15 @@ exports.login = async (req, res) => {
       }
     }
 
-    await user.save();
+    // Recording the active session/device is helpful, but it must never stop
+    // an otherwise valid login. Older user records can fail full Mongoose
+    // validation when saved, which previously turned a valid password into a
+    // misleading "Internal Server Error".
+    try {
+      await user.save();
+    } catch (auditError) {
+      console.warn("LOGIN AUDIT SAVE FAILED:", auditError.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -667,6 +675,8 @@ exports.getUserDetails = async (req, res) => {
         employerCode: user.employerCode,
         email: user.email,
         phone: user.phone,
+        role: user.role,
+        profileImage: user.profileImage,
         isEmailVerified: user.isEmailVerified,
         isLogIn: user.isLogIn,
         createdAt: user.createdAt,

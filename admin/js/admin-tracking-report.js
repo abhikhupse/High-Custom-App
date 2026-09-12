@@ -1,11 +1,10 @@
 (function () {
   "use strict";
 
-  const apiBase =
-    localStorage.getItem("highCustomApiBase") ||
-    (["localhost", "127.0.0.1"].includes(window.location.hostname)
-      ? "http://localhost:3000/api"
-      : "https://high-custom-app.onrender.com/api");
+  const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const apiBase = isLocal
+    ? "http://localhost:3000/api"
+    : (localStorage.getItem("highCustomApiBase") || "https://high-custom-app.onrender.com/api");
   const token = localStorage.getItem("highCustomAdminToken");
 
   function request(path, options = {}) {
@@ -57,7 +56,10 @@
           const name =
             `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
             user.email;
-          if (nameFilter) nameFilter.add(new Option(name, name));
+          // Use the real id as the option value. A display name is not unique
+          // and a full name cannot reliably be matched against first/last name
+          // fields on the server.
+          if (nameFilter) nameFilter.add(new Option(name, user._id));
           if (emailFilter && user.email)
             emailFilter.add(new Option(user.email, user.email));
         });

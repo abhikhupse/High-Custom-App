@@ -217,7 +217,8 @@ exports.createSequence = async (req, res) => {
     if (existingSequence) {
       return res.status(409).json({
         success: false,
-        message: "A sequence with this business type, step and variant already exists",
+        message:
+          "A sequence with this business type, step and variant already exists",
       });
     }
 
@@ -231,10 +232,15 @@ exports.createSequence = async (req, res) => {
     // BRAND / LOGO
     // ==========================================================
 
-    const businessSettings = await BusinessLinkSettings.findOne({
-      userId,
-      businessType: formattedBusinessType,
-    }).lean() || await BusinessLinkSettings.findOne({ userId, businessType: "__all__" }).lean();
+    const businessSettings =
+      (await BusinessLinkSettings.findOne({
+        userId,
+        businessType: formattedBusinessType,
+      }).lean()) ||
+      (await BusinessLinkSettings.findOne({
+        userId,
+        businessType: "__all__",
+      }).lean());
 
     let logoUrl = null;
 
@@ -373,7 +379,9 @@ exports.createSequence = async (req, res) => {
 
     if (!ctaData.enabled) {
       const selectedLink = Array.isArray(businessSettings?.actionLinks)
-        ? businessSettings.actionLinks.find((link) => /^https?:\/\//i.test(link?.url || ""))
+        ? businessSettings.actionLinks.find((link) =>
+            /^https?:\/\//i.test(link?.url || ""),
+          )
         : null;
       if (selectedLink) {
         ctaData = {

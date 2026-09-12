@@ -1,0 +1,265 @@
+.universal-dashboard-header ~ .main-content {
+  margin-left: 250px !important;
+  margin-top: 82px !important;
+  padding-top: 0 !important;
+}
+@media (max-width: 991px) {
+  .universal-dashboard-header ~ .main-content {
+    margin-left: 0 !important;
+    margin-top: 82px !important;
+  }
+}
+/* Shared dashboard-style header for every Admin workspace page. */
+.top.top-navbar {
+  position: fixed !important;
+  top: 0;
+  left: 250px;
+  right: 0;
+  height: 82px !important;
+  padding: 10px 27px !important;
+  background: #fff !important;
+  border-bottom: 1px solid #e8edf4;
+  box-shadow: 0 3px 14px rgba(22, 41, 75, 0.045);
+  z-index: 1040;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  font-size: 0 !important;
+}
+.top.top-navbar::before {
+  content: "Admin";
+  color: #172137;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.top.top-navbar::after {
+  content: "Manage and monitor your High Custom platform";
+  margin-left: 10px;
+  color: #70809e;
+  font-size: 0.83rem;
+}
+.top.top-navbar .code {
+  display: none;
+}
+@media (max-width: 991px) {
+  .top.top-navbar {
+    left: 0;
+    padding-left: 72px !important;
+  }
+  .top.top-navbar::after {
+    display: none;
+  }
+}
+.top-navbar.universal-dashboard-header {
+  position: fixed !important;
+  top: 0;
+  left: 250px;
+  right: 0;
+  height: 82px;
+  min-height: 82px;
+  padding: 10px 27px !important;
+  background: #fff !important;
+  border-bottom: 1px solid #e8edf4;
+  box-shadow: 0 3px 14px rgba(22, 41, 75, 0.045);
+  z-index: 1040;
+  display: flex !important;
+  align-items: center !important;
+}
+.universal-dashboard-header > span {
+  display: none !important;
+}
+.universal-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: auto;
+}
+.universal-header-copy strong {
+  color: #172137;
+  font-size: 1.25rem;
+  line-height: 1.1;
+  font-weight: 800;
+}
+.universal-header-copy small {
+  color: #70809e;
+  font-size: 0.83rem;
+}
+.universal-dashboard-header .sidebar-toggle {
+  order: -1;
+  margin-right: 13px;
+}
+.universal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-left: auto;
+}
+.universal-notification {
+  position: relative;
+  border: 0;
+  background: transparent;
+  color: #1b2638;
+  font-size: 1.1rem;
+  padding: 9px;
+  cursor: pointer;
+}
+.universal-notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #ed2638;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+.universal-profile-menu {
+  padding-left: 10px;
+  border-left: 1px solid #e8edf4;
+}
+.universal-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 4px 6px 4px 10px;
+  border-radius: 14px;
+  color: #18233a;
+}
+.universal-profile-trigger:hover {
+  background: #f8fafc;
+}
+.universal-profile-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #071225, #243b60);
+  color: #fff;
+  font-weight: 800;
+  border: 2px solid #ecd18a;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  flex: 0 0 46px;
+}
+.universal-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.universal-profile-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  max-width: 165px;
+}
+.universal-profile-copy strong {
+  font-size: 0.91rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.universal-profile-copy small {
+  color: #9a7029;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+.universal-profile-trigger > .fa-chevron-down {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #9a7029;
+  background: #fbf3e2;
+  font-size: 0.63rem;
+}
+.universal-profile-dropdown {
+  min-width: 200px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.16);
+}
+.universal-profile-dropdown .dropdown-item {
+  border-radius: 7px;
+  padding: 9px 10px;
+  font-size: 0.88rem;
+}
+.universal-profile-dropdown i {
+  width: 20px;
+}
+.universal-dashboard-header .theme-toggle,
+.universal-dashboard-header .hc-user-code {
+  display: none !important;
+}
+.universal-dashboard-header #adminGlobalLogout {
+  margin-left: 0 !important;
+}
+/* Keep selected sidebar items consistent with the gold Dashboard theme. */
+.sidebar .nav-link.active {
+  color: #fff !important;
+  border-color: rgba(245, 200, 89, 0.76) !important;
+  background: linear-gradient(100deg, #8b6428, #bd8b36 55%, #715121) !important;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.25) !important;
+}
+.sidebar .nav-link.active-indicator {
+  border-left: 3px solid #d4a72c !important;
+  background: rgba(212, 167, 44, 0.12) !important;
+  color: #fff !important;
+}
+.sidebar .nav-link.active-indicator i { color: #f6d57e !important; }
+/* Use the same High Custom gold selection state on every Admin page. */
+.sidebar .nav-link.active {
+  color: #fff !important;
+  border-color: rgba(245, 200, 89, 0.76) !important;
+  background: linear-gradient(100deg, #8b6428, #bd8b36 55%, #715121) !important;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.25) !important;
+}
+.sidebar .nav-link.active-indicator {
+  border-left: 3px solid #d4a72c !important;
+  background: rgba(212, 167, 44, 0.12) !important;
+  color: #fff !important;
+}
+.sidebar .nav-link.active-indicator i { color: #f6d57e !important; }
+@media (max-width: 991px) {
+  .top-navbar.universal-dashboard-header {
+    left: 0;
+    padding: 10px 18px 10px 72px !important;
+  }
+  .universal-header-copy small {
+    display: none;
+  }
+  .universal-profile-copy {
+    display: none;
+  }
+  .universal-profile {
+    padding-left: 8px;
+  }
+  .universal-dashboard-header .main-content {
+    margin-top: 82px !important;
+  }
+}
+@media (max-width: 560px) {
+  .universal-header-copy strong {
+    font-size: 1.05rem;
+  }
+  .universal-profile {
+    display: none;
+  }
+  .top-navbar.universal-dashboard-header {
+    padding-right: 12px !important;
+  }
+  .universal-dashboard-header #adminGlobalLogout span {
+    display: none;
+  }
+}

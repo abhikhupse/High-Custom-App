@@ -39,6 +39,7 @@ exports.getDashboard = async (req, res) => {
           sent: { $sum: { $cond: [{ $eq: ["$status", "sent"] }, 1, 0] } },
           failed: { $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] } },
           opened: { $sum: { $cond: [{ $ne: ["$openedAt", null] }, 1, 0] } },
+          replied: { $sum: { $cond: [{ $ne: ["$repliedAt", null] }, 1, 0] } },
           interested: { $sum: { $cond: [{ $eq: ["$response", "interested"] }, 1, 0] } },
           notInterested: { $sum: { $cond: [{ $eq: ["$response", "notInterested"] }, 1, 0] } },
         } },
@@ -82,6 +83,8 @@ exports.getDashboard = async (req, res) => {
         failed: summary.failed || 0,
         interested: summary.interested || 0,
         notInterested: summary.notInterested || 0,
+        replied: summary.replied || 0,
+        clicked: links.linkClicks || 0,
         qrScans: links.qrScans || 0,
       },
       charts: {
