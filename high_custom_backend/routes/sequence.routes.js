@@ -65,6 +65,7 @@ router.post(
 router.delete(
   "/:sequenceId",
   authMiddleware,
+  requireAppRight("sequences"),
   requireAccessRight("deleteSequence"),
   sequencrCtrl.deleteSequence,
 );

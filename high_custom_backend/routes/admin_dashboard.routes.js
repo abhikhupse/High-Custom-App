@@ -72,8 +72,7 @@ router.delete(
   "/sequences/:sequenceId",
   auth,
   requireAdmin,
-  requireAppRight("interestedLeads"),
-  requireAccessRight("deleteInterestedLead"),
+  requireAppRight("sequences"),
   requireAccessRight("deleteSequence"),
   adminWorkspaceController.deleteSequence,
 );
@@ -89,6 +88,8 @@ router.delete(
   "/interested-leads/:interestId",
   auth,
   requireAdmin,
+  requireAppRight("interestedLeads"),
+  requireAccessRight("deleteInterestedLead"),
   adminWorkspaceController.deleteInterestedLead,
 );
 

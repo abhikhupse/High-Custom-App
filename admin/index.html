@@ -1214,7 +1214,6 @@
                   />
                 </div>
               </div>
-            </div>
 
             <div class="modal-footer">
               <button
@@ -1542,7 +1541,16 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="addUsers"
+                        value="viewUserDetails"
+                      />
+                      View User Details
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="createEmployee"
                       />
 
                       Add Users
@@ -1552,7 +1560,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="editUsers"
+                        value="editEmployee"
                       />
 
                       Edit Users
@@ -1562,7 +1570,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="activateUsers"
+                        value="activateDeactivateEmployee"
                       />
 
                       Activate / Deactivate Users
@@ -1572,7 +1580,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="deleteUsers"
+                        value="deleteEmployee"
                       />
 
                       Delete Users
@@ -1690,7 +1698,16 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="addLeads"
+                        value="viewAllUsersLeads"
+                      />
+                      View All Users' Leads
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="createLead"
                       />
 
                       Add Leads
@@ -1700,7 +1717,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="editLeads"
+                        value="editLead"
                       />
 
                       Edit Leads
@@ -1710,7 +1727,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="deleteLeads"
+                        value="deleteLead"
                       />
 
                       Delete Leads
@@ -1725,6 +1742,58 @@
 
                       Export Leads
                     </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SEQUENCES -->
+
+              <div class="access-section">
+                <div class="access-section-header">
+                  <i class="fas fa-bullseye me-2"></i>Interested Leads
+                </div>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewInterestedLeads"
+                      />
+                      View Interested Leads</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewAllInterestedLeads"
+                      />
+                      View All Interested Leads</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="editInterestedLead"
+                      />
+                      Edit Interested Leads</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="deleteInterestedLead"
+                      />
+                      Delete Interested Leads</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="exportInterestedLeads"
+                      />
+                      Export Interested Leads</label
+                    >
                   </div>
                 </div>
               </div>
@@ -1754,7 +1823,16 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="createSequences"
+                        value="viewAllUsersSequences"
+                      />
+                      View All Users' Sequences
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="createSequence"
                       />
 
                       Create Sequences
@@ -1764,7 +1842,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="editSequences"
+                        value="editSequence"
                       />
 
                       Edit Sequences
@@ -1774,10 +1852,19 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="runSequences"
+                        value="runSequence"
                       />
 
                       Run Sequences
+                    </label>
+
+                    <label class="access-item">
+                      <input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="deleteSequence"
+                      />
+                      Delete Sequences
                     </label>
                   </div>
                 </div>
@@ -1808,7 +1895,7 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="connectIntegrations"
+                        value="connectIntegration"
                       />
 
                       Connect Integrations
@@ -1818,11 +1905,148 @@
                       <input
                         type="checkbox"
                         class="form-check-input access-right-check"
-                        value="disconnectIntegrations"
+                        value="disconnectIntegration"
                       />
 
                       Disconnect Integrations
                     </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="access-section">
+                <div class="access-section-header">
+                  <i class="fas fa-chart-line me-2"></i>
+                  Dashboard and Reports
+                </div>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewDashboard"
+                      />
+                      View Dashboard</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewCompanyDashboard"
+                      />
+                      View Company Dashboard</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewTrackingReport"
+                      />
+                      View Tracking Report</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewAllUsersTracking"
+                      />
+                      View All Users' Tracking</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="exportTrackingReport"
+                      />
+                      Export Tracking Report</label
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div class="access-section">
+                <div class="access-section-header">
+                  <i class="fas fa-share-nodes me-2"></i>Social and Profile
+                </div>
+                <div class="access-section-body">
+                  <div class="access-grid">
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewSocialLinks"
+                      />
+                      View Social Links</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="createSocialLink"
+                      />
+                      Create Social Link</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="editSocialLink"
+                      />
+                      Edit Social Link</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="deleteSocialLink"
+                      />
+                      Delete Social Link</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewNotifications"
+                      />
+                      View Notifications</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="markNotificationRead"
+                      />
+                      Mark Notification Read</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="deleteNotification"
+                      />
+                      Delete Notification</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="viewProfile"
+                      />
+                      View Profile</label
+                    >
+                    <label class="access-item"
+                      ><input
+                        type="checkbox"
+                        class="form-check-input access-right-check"
+                        value="editProfile"
+                      />
+                      Edit Profile</label
+                    >
+                    <label class="access-item"><input type="checkbox" class="form-check-input access-right-check" value="viewBusinessLink" /> View Business Link</label>
+                    <label class="access-item"><input type="checkbox" class="form-check-input access-right-check" value="createBusinessLink" /> Create Business Link</label>
+                    <label class="access-item"><input type="checkbox" class="form-check-input access-right-check" value="editBusinessLink" /> Edit Business Link</label>
+                    <label class="access-item"><input type="checkbox" class="form-check-input access-right-check" value="deleteBusinessLink" /> Delete Business Link</label>
                   </div>
                 </div>
               </div>

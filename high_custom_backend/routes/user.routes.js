@@ -5,11 +5,21 @@ const userCtrl = require("../controller/user.controller");
 const { validateRegister } = require("../middleware/validation");
 const authMiddleware = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
+const {
+  requireAppRight,
+  requireAccessRight,
+} = require("../middleware/user-access");
 
 router.post("/register", validateRegister, userCtrl.register);
 router.post("/verify-otp", userCtrl.verifyOtp);
 router.post("/login", userCtrl.login);
-router.get("/profile", authMiddleware, userCtrl.getUserDetails);
+router.get(
+  "/profile",
+  authMiddleware,
+  requireAppRight("profile"),
+  requireAccessRight("viewProfile"),
+  userCtrl.getUserDetails,
+);
 router.post("/logout", authMiddleware, userCtrl.logout);
 router.put(
   "/edit-profile",
@@ -26,6 +36,8 @@ router.put(
       next();
     });
   },
+  requireAppRight("profile"),
+  requireAccessRight("editProfile"),
   userCtrl.editProfile,
 );
 module.exports = router;
