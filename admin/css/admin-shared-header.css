@@ -198,6 +198,78 @@
 .universal-profile-dropdown i {
   width: 20px;
 }
+
+/* Premium signed-in profile control shared by every non-dashboard page. */
+.universal-profile-menu {
+  padding: 4px 6px 4px 12px;
+  border: 1px solid #edf0f5;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(14, 28, 57, 0.06);
+}
+.universal-profile-trigger {
+  gap: 10px;
+  padding: 2px 3px 2px 0;
+}
+.universal-profile-trigger:hover {
+  background: transparent;
+}
+.universal-profile-avatar {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-basis: 52px;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  background: radial-gradient(circle at 32% 24%, #263d66, #071225 68%);
+  border: 2px solid #e9c66d;
+  overflow: visible;
+}
+.universal-profile-avatar::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 1px 4px rgba(17, 101, 52, 0.25);
+}
+.universal-profile-copy {
+  gap: 4px;
+  max-width: 148px;
+}
+.universal-profile-copy strong {
+  color: #0c1934;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.universal-profile-copy small {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(100deg, #fff7df, #f9e7b4);
+  color: #a66c0c;
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+.universal-profile-copy small::before {
+  content: "\f521";
+  margin-right: 5px;
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+.universal-profile-trigger > .fa-chevron-down {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #8d650d;
+  background: #fff7e7;
+}
 .universal-dashboard-header .theme-toggle,
 .universal-dashboard-header .hc-user-code {
   display: none !important;

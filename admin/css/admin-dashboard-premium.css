@@ -1331,3 +1331,64 @@ body.theme-dark .premium-topbar {
   #currentFilterLabel {
   vertical-align: middle;
 }
+
+/* Signed-in profile presentation in the dashboard header. */
+.premium-profile-menu {
+  padding: 4px 6px 4px 12px;
+  border: 1px solid #edf0f5;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(14, 28, 57, 0.06);
+}
+.premium-profile-trigger {
+  gap: 10px !important;
+  padding: 2px 3px 2px 0 !important;
+}
+.premium-profile-trigger:hover { background: transparent; box-shadow: none; }
+.premium-profile-avatar {
+  position: relative;
+  width: 52px !important;
+  height: 52px !important;
+  background: radial-gradient(circle at 32% 24%, #263d66, #071225 68%) !important;
+  border: 2px solid #e9c66d !important;
+  overflow: visible !important;
+}
+.premium-profile-avatar::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 1px 4px rgba(17, 101, 52, 0.25);
+}
+.premium-profile-avatar img { border-radius: 50%; }
+.premium-profile-copy { gap: 4px; max-width: 148px; }
+.premium-profile-copy strong { color: #0c1934; font-size: .9rem !important; font-weight: 800; }
+.premium-profile-copy small {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(100deg, #fff7df, #f9e7b4);
+  color: #a66c0c !important;
+  font-size: .67rem !important;
+  font-weight: 800;
+}
+.premium-profile-copy small::before {
+  content: "\f521";
+  margin-right: 5px;
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+.premium-profile-trigger > .fa-chevron-down {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #8d650d;
+  background: #fff7e7;
+}

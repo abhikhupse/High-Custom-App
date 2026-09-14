@@ -66,16 +66,8 @@
     document
       .querySelectorAll("[data-admin-profile-initials]")
       .forEach((element) => (element.textContent = initials));
-    const image = document.querySelector("[data-admin-profile-image]");
-    if (image && user.profileImage) {
-      image.src = /^https?:\/\//i.test(user.profileImage)
-        ? user.profileImage
-        : `${apiBase.replace("/api", "")}${user.profileImage}`;
-      image.hidden = false;
-      image.onerror = () => {
-        image.hidden = true;
-      };
-    }
+    // The Admin header intentionally uses the user's initials (AK, HC, etc.)
+    // so the compact gold avatar remains readable on every page.
   }
 
   function dateParameters() {

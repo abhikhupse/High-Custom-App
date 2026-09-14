@@ -282,6 +282,35 @@ document.addEventListener("DOMContentLoaded", () => {
       )
       .join("");
     select.value = roles.includes(selectedRole) ? selectedRole : "Employee";
+    renderRolePicker();
+  }
+
+  function roleDisplayName(role) {
+    return role === "Admin" ? "Sub Admin" : role;
+  }
+
+  function rolePickerIcon(role) {
+    if (role === "Admin") return "fa-crown";
+    if (role === "HR") return "fa-user-tie";
+    if (role === "Employee") return "fa-user";
+    return "fa-user-tag";
+  }
+
+  function renderRolePicker() {
+    const select = $("role");
+    const picker = $("rolePicker");
+    const value = $("rolePickerValue");
+    const menu = $("rolePickerMenu");
+    const trigger = $("rolePickerToggle");
+    if (!select || !picker || !value || !menu || !trigger) return;
+
+    const roles = [...select.options].map((option) => option.value);
+    value.textContent = roleDisplayName(select.value || "Employee");
+    trigger.disabled = select.disabled;
+    picker.classList.toggle("is-disabled", select.disabled);
+    menu.innerHTML = roles
+      .map((role) => `<button type="button" class="user-role-option${role === select.value ? " is-selected" : ""}" data-role="${escapeHtml(role)}"><i class="fas ${rolePickerIcon(role)}"></i>${escapeHtml(roleDisplayName(role))}</button>`)
+      .join("");
   }
 
   async function createCustomRole(name) {
@@ -639,7 +668,135 @@ document.addEventListener("DOMContentLoaded", () => {
       checkbox.checked = rights[checkbox.value] === true;
     });
 
+    enhanceAppRightsEditor();
+
     applyAppRestrictions(user);
+  }
+
+  // Keep the existing inputs and save behaviour, but give App Rights the
+  // richer module-directory presentation used by the new Admin design.
+  function enhanceAppRightsEditor() {
+    const meta = {
+      dashboard: ["Dashboard", "View key metrics, analytics and overview.", "fa-house", ""],
+      users: ["Users", "View and manage all users.", "fa-users", "purple"],
+      leads: ["Leads", "Manage and track all leads.", "fa-users-viewfinder", "green"],
+      interestedLeads: ["Interested Leads", "View and manage interested leads.", "fa-star", "gold"],
+      sequences: ["Sequences", "Create and manage email sequences.", "fa-rectangle-list", "purple"],
+      trackingReport: ["Tracking Report", "View email tracking and campaign reports.", "fa-chart-column", ""],
+      socialLinks: ["Social Links", "Manage social media links.", "fa-share-nodes", "pink"],
+      businessLink: ["Business Link", "Manage business and custom links.", "fa-link", ""],
+      integrations: ["Integrations", "Connect and manage email services.", "fa-plug", "green"],
+      notifications: ["Notifications", "View account notifications.", "fa-bell", "gold"],
+      profile: ["Own Profile", "View and manage the personal profile.", "fa-user", "purple"],
+      appRightsManagement: ["Manage App Rights", "Manage module visibility for users.", "fa-grip", "red"],
+      accessRightsManagement: ["Manage Access Rights", "Manage actions allowed inside modules.", "fa-shield-halved", "red"],
+      allSequences: ["All Sequences", "View and manage all users' sequences.", "fa-rectangle-list", ""],
+      allLeads: ["All Leads", "View and manage all users' leads.", "fa-users-viewfinder", "green"],
+      allTrackingReport: ["All Tracking Report", "View tracking reports for all users.", "fa-chart-column", ""],
+      allInterestedLeads: ["All Interested Leads", "View and manage all users' interested leads.", "fa-star", "gold"],
+    };
+    const checks = [...document.querySelectorAll(".app-right-check")];
+    checks.forEach((input) => {
+      const label = input.closest("label.rights-option");
+      const detail = meta[input.value];
+      if (!label || !detail) return;
+      if (!label.dataset.premiumReady) {
+        label.dataset.premiumReady = "true";
+        const icon = document.createElement("span");
+        icon.className = `app-right-icon ${detail[3]}`;
+        icon.innerHTML = `<i class="fas ${detail[2]}"></i>`;
+        const copy = document.createElement("span");
+        copy.className = "app-right-copy";
+        copy.innerHTML = `<strong>${detail[0]}</strong><small>${detail[1]}</small>`;
+        label.replaceChildren(input, icon, copy);
+        input.addEventListener("change", () => updateAppRightsPresentation());
+      }
+    });
+    buildAppRightsHierarchy();
+    const search = $("appRightsSearch");
+    if (search && !search.dataset.bound) {
+      search.dataset.bound = "true";
+      search.addEventListener("input", () => {
+        const term = search.value.trim().toLowerCase();
+        document.querySelectorAll("#appRightsEditor .rights-option").forEach((card) => {
+          card.hidden = term && !card.textContent.toLowerCase().includes(term);
+        });
+      });
+      $("expandAppRights")?.addEventListener("click", () => {
+        search.value = "";
+        document.querySelectorAll("#appRightsEditor .rights-option").forEach((card) => (card.hidden = false));
+      });
+      $("collapseAppRights")?.addEventListener("click", () => {
+        document.querySelectorAll("#appRightsEditor .rights-option").forEach((card) => {
+          card.hidden = !card.querySelector(".app-right-check")?.checked;
+        });
+      });
+    }
+    updateAppRightsPresentation();
+  }
+
+  function buildAppRightsHierarchy() {
+    const editor = $("appRightsEditor");
+    const grid = editor?.querySelector(".rights-option-grid");
+    if (!editor || !grid || editor.dataset.hierarchyReady) return;
+    editor.dataset.hierarchyReady = "true";
+    const card = (key) => grid.querySelector(`.app-right-check[value="${key}"]`)?.closest(".rights-option");
+    const take = (key) => card(key);
+    const group = (title, description, icon, keys, tone) => {
+      const host = document.createElement("section");
+      host.className = "rights-module-group";
+      host.innerHTML = `<label class="rights-group-head"><input class="form-check-input rights-group-check" type="checkbox"><span class="app-right-icon ${tone}"><i class="fas ${icon}"></i></span><span class="app-right-copy"><strong>${title}</strong><small>${description}</small></span><i class="fas fa-chevron-up rights-group-arrow"></i></label><div class="rights-group-items"></div>`;
+      const toggle = host.querySelector(".rights-group-check");
+      const items = host.querySelector(".rights-group-items");
+      keys.forEach((key) => { const item = take(key); if (item) items.append(item); });
+      toggle.addEventListener("change", () => {
+        items.querySelectorAll(".app-right-check:not(:disabled)").forEach((input) => {
+          input.checked = toggle.checked;
+          input.dispatchEvent(new Event("change"));
+        });
+      });
+      host.querySelector(".rights-group-head").addEventListener("click", (event) => {
+        if (event.target.closest("input")) return;
+        host.classList.toggle("is-collapsed");
+      });
+      return host;
+    };
+    const layout = document.createElement("div");
+    layout.className = "rights-app-layout";
+    const left = document.createElement("div");
+    const right = document.createElement("div");
+    left.className = right.className = "rights-app-column";
+    const dashboard = take("dashboard");
+    if (dashboard) left.append(dashboard);
+    left.append(group("Master", "Manage master data and resources.", "fa-layer-group", ["socialLinks", "businessLink", "sequences", "trackingReport"], "purple"));
+    const leads = take("leads"); const interested = take("interestedLeads");
+    if (leads) right.append(leads);
+    if (interested) right.append(interested);
+    right.append(group("Admin", "Manage users, data and system settings.", "fa-gear", ["users", "allSequences", "allLeads", "allTrackingReport", "allInterestedLeads"], "pink"));
+    const other = ["integrations", "notifications", "profile", "appRightsManagement", "accessRightsManagement"].map(take).filter(Boolean);
+    if (other.length) {
+      const more = document.createElement("section");
+      more.className = "rights-more-modules";
+      more.innerHTML = '<h6>Additional Modules</h6><div class="rights-group-items"></div>';
+      other.forEach((item) => more.querySelector(".rights-group-items").append(item));
+      right.append(more);
+    }
+    layout.append(left, right);
+    grid.replaceWith(layout);
+  }
+
+  function updateAppRightsPresentation() {
+    const checks = [...document.querySelectorAll(".app-right-check")];
+    checks.forEach((input) => input.closest(".rights-option")?.classList.toggle("is-checked", input.checked));
+    document.querySelectorAll(".rights-module-group").forEach((group) => {
+      const inputs = [...group.querySelectorAll(".rights-group-items .app-right-check")];
+      const toggle = group.querySelector(".rights-group-check");
+      if (!toggle || !inputs.length) return;
+      toggle.checked = inputs.every((input) => input.checked);
+      toggle.indeterminate = !toggle.checked && inputs.some((input) => input.checked);
+    });
+    const count = $("rightsSelectedCount");
+    if (count) count.textContent = `${checks.filter((input) => input.checked).length} / ${checks.length}`;
   }
 
   // ============================================================
@@ -687,19 +844,116 @@ document.addEventListener("DOMContentLoaded", () => {
       checkbox.checked = rights[checkbox.value] === true;
     });
 
-    const scope = $("modalDataScope");
-
-    if (scope) {
-      scope.value = user.dataScope || "own";
-
-      scope.disabled = false;
-
-      Array.from(scope.options).forEach((option) => {
-        option.disabled = false;
-      });
-    }
+    enhanceAccessRightsEditor();
 
     applyAccessRestrictions(user);
+  }
+
+  function enhanceAccessRightsEditor() {
+    const editor = $("accessRightsEditor");
+    const grid = editor?.querySelector(".rights-option-grid");
+    if (!editor) return;
+    if (editor.dataset.premiumReady) {
+      updateAccessRightsPresentation();
+      return;
+    }
+    if (grid) {
+      editor.dataset.premiumReady = "true";
+      const take = (key) => grid.querySelector(`.access-right-check[value="${key}"]`)?.closest(".rights-option");
+      const module = (title, description, icon, tone, keys) => {
+        const card = document.createElement("section");
+        card.className = "access-module-card is-collapsed";
+        card.innerHTML = `<button type="button" class="access-module-head" aria-expanded="false"><span class="app-right-icon ${tone}"><i class="fas ${icon}"></i></span><span><strong>${title}</strong><small>${description}</small></span><i class="fas fa-chevron-down access-module-arrow"></i></button><div class="access-permissions"></div>`;
+        const list = card.querySelector(".access-permissions");
+        keys.forEach((key) => {
+          const item = take(key);
+          if (!item) return;
+          // Screen/page visibility is controlled in Application Rights, so
+          // View permissions are intentionally not shown in Access Rights.
+          if (key.startsWith("view")) item.dataset.viewRight = "true";
+          list.append(item);
+        });
+        if (!list.children.length) card.classList.add("is-empty");
+        card.querySelector(".access-module-head").addEventListener("click", () => {
+          const opening = card.classList.contains("is-collapsed");
+          editor.querySelectorAll(".access-module-card:not(.is-collapsed)").forEach((other) => {
+            other.classList.add("is-collapsed");
+            other.querySelector(".access-module-head")?.setAttribute("aria-expanded", "false");
+          });
+          card.classList.toggle("is-collapsed", !opening);
+          card.querySelector(".access-module-head").setAttribute("aria-expanded", String(opening));
+        });
+        return card;
+      };
+      const layout = document.createElement("div");
+      layout.className = "rights-access-layout";
+      const leftColumn = document.createElement("div");
+      const rightColumn = document.createElement("div");
+      leftColumn.className = rightColumn.className = "rights-access-column";
+      leftColumn.append(
+        module("Leads", "Manage and track all leads.", "fa-users", "green", ["viewLeads", "viewAllUsersLeads", "createLead", "editLead", "deleteLead", "importLeads", "exportLeads"]),
+        module("Business Link", "Manage business and custom links.", "fa-id-card", "purple", ["viewBusinessLink", "createBusinessLink", "editBusinessLink", "deleteBusinessLink"]),
+        module("Tracking Report", "Manage tracking reports.", "fa-chart-column", "green", ["viewTrackingReport", "viewAllUsersTracking", "exportTrackingReport"]),
+        module("Users", "Manage employees and user settings.", "fa-user-shield", "gold", ["viewUsers", "viewUserDetails", "createEmployee", "editEmployee", "deleteEmployee", "activateDeactivateEmployee", "changeEmployeeRole", "manageHR", "manageAdmin"]),
+      );
+      rightColumn.append(
+        module("Social Links", "Manage social media links.", "fa-share-nodes", "pink", ["viewSocialLinks", "createSocialLink", "editSocialLink", "deleteSocialLink"]),
+        module("Sequences", "Manage email sequences.", "fa-layer-group", "purple", ["viewSequences", "viewAllUsersSequences", "createSequence", "editSequence", "deleteSequence", "runSequence"]),
+        module("Integration", "Manage integrations such as Gmail and Zoho.", "fa-link", "", ["viewIntegrations", "connectIntegration", "disconnectIntegration"]),
+        module("Other Actions", "Profile, notifications and permission controls.", "fa-shield-halved", "", ["viewDashboard", "viewCompanyDashboard", "viewInterestedLeads", "viewAllInterestedLeads", "editInterestedLead", "deleteInterestedLead", "exportInterestedLeads", "viewNotifications", "markNotificationRead", "deleteNotification", "viewProfile", "editProfile", "manageEmployeeAppRights", "manageEmployeeAccessRights", "manageHRAppRights", "manageHRAccessRights"]),
+      );
+      layout.append(leftColumn, rightColumn);
+      // Preserve any current or future backend permission that is not in a
+      // named group above; it must remain editable and saveable.
+      const remaining = [...grid.querySelectorAll(".rights-option")];
+      if (remaining.length) {
+        const extra = document.createElement("section");
+        extra.className = "access-module-card is-collapsed";
+        extra.innerHTML = '<button type="button" class="access-module-head" aria-expanded="false"><span class="app-right-icon blue"><i class="fas fa-sliders"></i></span><span><strong>Additional Permissions</strong><small>Other available actions for this user.</small></span><i class="fas fa-chevron-down access-module-arrow"></i></button><div class="access-permissions"></div>';
+        const list = extra.querySelector(".access-permissions");
+        remaining.forEach((item) => {
+          if (item.querySelector(".access-right-check")?.value.startsWith("view")) item.dataset.viewRight = "true";
+          list.append(item);
+        });
+        extra.querySelector(".access-module-head").addEventListener("click", () => {
+          const opening = extra.classList.contains("is-collapsed");
+          editor.querySelectorAll(".access-module-card:not(.is-collapsed)").forEach((other) => {
+            other.classList.add("is-collapsed");
+            other.querySelector(".access-module-head")?.setAttribute("aria-expanded", "false");
+          });
+          extra.classList.toggle("is-collapsed", !opening);
+          extra.querySelector(".access-module-head").setAttribute("aria-expanded", String(opening));
+        });
+        rightColumn.append(extra);
+      }
+      grid.replaceWith(layout);
+      const search = $("accessRightsSearch");
+      search?.addEventListener("input", () => {
+        const term = search.value.trim().toLowerCase();
+        editor.querySelectorAll(".access-module-card").forEach((card) => {
+          const show = !term || card.textContent.toLowerCase().includes(term);
+          card.hidden = !show;
+          if (show && term) {
+            card.classList.remove("is-collapsed");
+            card.querySelector(".access-module-head")?.setAttribute("aria-expanded", "true");
+          }
+        });
+      });
+      $("selectAllAccessRights")?.addEventListener("click", () => {
+        editor.querySelectorAll(".rights-option:not([data-view-right]) .access-right-check:not(:disabled)").forEach((input) => { input.checked = true; input.dispatchEvent(new Event("change")); });
+      });
+      $("deselectAllAccessRights")?.addEventListener("click", () => {
+        editor.querySelectorAll(".rights-option:not([data-view-right]) .access-right-check:not(:disabled)").forEach((input) => { input.checked = false; input.dispatchEvent(new Event("change")); });
+      });
+      editor.querySelectorAll(".access-right-check").forEach((input) => input.addEventListener("change", updateAccessRightsPresentation));
+    }
+    updateAccessRightsPresentation();
+  }
+
+  function updateAccessRightsPresentation() {
+    const checks = [...document.querySelectorAll(".rights-option:not([data-view-right]) .access-right-check")];
+    const count = $("rightsSelectedCount");
+    if (count) count.textContent = `${checks.filter((input) => input.checked).length} / ${checks.length}`;
   }
 
   // ============================================================
@@ -708,8 +962,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyAccessRestrictions(user) {
     const checkboxes = document.querySelectorAll(".access-right-check");
-
-    const scope = $("modalDataScope");
 
     if (currentUserRole === "Admin") {
       return;
@@ -736,19 +988,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // HR cannot give employee company-wide scope.
-      if (scope) {
-        Array.from(scope.options).forEach((option) => {
-          if (option.value === "all" || option.value === "company") {
-            option.disabled = true;
-          }
-        });
-
-        if (scope.value === "all" || scope.value === "company") {
-          scope.value = "own";
-        }
-      }
-
       return;
     }
 
@@ -757,9 +996,6 @@ document.addEventListener("DOMContentLoaded", () => {
       checkbox.disabled = true;
     });
 
-    if (scope) {
-      scope.disabled = true;
-    }
   }
 
   // ============================================================
@@ -811,6 +1047,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (title) {
         title.textContent = "Application Rights";
       }
+      const titleIcon = document.querySelector(".rights-title-icon i");
+      if (titleIcon) titleIcon.className = "fas fa-grip";
+      const selectionLabel = document.querySelector(".rights-selection-count span");
+      if (selectionLabel) selectionLabel.textContent = "Modules Selected";
+
+      const description = $("rightsHeaderDescription");
+      if (description) {
+        description.textContent = "Choose which app modules this person can access. Selected modules will be visible in the sidebar and accessible to the user.";
+      }
+      const noteTitle = document.querySelector("#appRightsNote strong");
+      const noteText = document.querySelector("#appRightsNote small");
+      if (noteTitle) noteTitle.textContent = "Application Rights control which modules and pages are visible to the user.";
+      if (noteText) noteText.textContent = "Use Access Rights to decide which actions they can perform inside those modules.";
 
       appEditor?.classList.remove("d-none");
 
@@ -828,6 +1077,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (title) {
         title.textContent = "Access Rights";
       }
+      const titleIcon = document.querySelector(".rights-title-icon i");
+      if (titleIcon) titleIcon.className = "fas fa-shield-halved";
+      const selectionLabel = document.querySelector(".rights-selection-count span");
+      if (selectionLabel) selectionLabel.textContent = "Rights Selected";
+
+      const description = $("rightsHeaderDescription");
+      if (description) {
+        description.textContent = "Choose which actions this person can perform inside the permitted modules.";
+      }
+      const noteTitle = document.querySelector("#appRightsNote strong");
+      const noteText = document.querySelector("#appRightsNote small");
+      if (noteTitle) noteTitle.textContent = "Access Rights control which actions the user can perform inside each module.";
+      if (noteText) noteText.textContent = "Page and sidebar visibility is managed separately through Application Rights.";
 
       accessEditor?.classList.remove("d-none");
 
@@ -909,6 +1171,29 @@ document.addEventListener("DOMContentLoaded", () => {
   $("copyRightsTargetType")?.addEventListener("change", syncCopyRightsTarget);
 
   $("addRoleBtn")?.addEventListener("click", addCustomRole);
+  $("rolePickerToggle")?.addEventListener("click", () => {
+    const picker = $("rolePicker");
+    if (!picker || $("role")?.disabled) return;
+    const open = picker.classList.toggle("is-open");
+    $("rolePickerToggle")?.setAttribute("aria-expanded", String(open));
+  });
+  $("rolePickerMenu")?.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-role]");
+    const select = $("role");
+    if (!option || !select || select.disabled) return;
+    select.value = option.dataset.role;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    $("rolePicker")?.classList.remove("is-open");
+    $("rolePickerToggle")?.setAttribute("aria-expanded", "false");
+    renderRolePicker();
+  });
+  document.addEventListener("click", (event) => {
+    const picker = $("rolePicker");
+    if (picker && !picker.contains(event.target)) {
+      picker.classList.remove("is-open");
+      $("rolePickerToggle")?.setAttribute("aria-expanded", "false");
+    }
+  });
   $("cancelRoleBtn")?.addEventListener("click", () => {
     $("customRoleName").value = "";
     $("customRoleControls").classList.add("d-none");
@@ -997,6 +1282,19 @@ document.addEventListener("DOMContentLoaded", () => {
   function openEditUserModal(user) {
     selectedUser = user;
 
+    const title = $("userModalTitle");
+    const subtitle = $("userModalSubtitle");
+    const footerTitle = $("userFooterTitle");
+    const saveText = $("userSaveButtonText");
+    const password = $("password");
+    const passwordNote = $("passwordNote");
+    if (title) title.textContent = "Edit Member";
+    if (subtitle) subtitle.textContent = "Update member details, role and access";
+    if (footerTitle) footerTitle.textContent = "Update Member";
+    if (saveText) saveText.textContent = "Save Changes";
+    if (password) password.placeholder = "Leave blank to keep unchanged";
+    if (passwordNote) passwordNote.textContent = "If you leave the password blank, the current password will remain unchanged.";
+
     const form = $("userForm");
 
     if (!form) {
@@ -1036,6 +1334,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // A created Admin can be returned to HR or Employee. The configured
       // primary Admin is the only account whose role stays locked.
       $("role").disabled = currentUserRole === "HR" || isPrimaryAdmin(user);
+      renderRolePicker();
     }
 
     if ($("password")) {
@@ -1055,16 +1354,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
           preview.src = new URL(user.profileImage, `${backend}/`).href;
         } catch {
-          preview.src = "/images/company-logo.png";
+          preview.src = "../images/user-icon.jpg";
         }
       } else {
-        preview.src = "/images/company-logo.png";
+        preview.src = "../images/user-icon.jpg";
       }
 
       preview.onerror = function () {
         this.onerror = null;
 
-        this.src = "/images/company-logo.png";
+        this.src = "../images/user-icon.jpg";
       };
     }
 
@@ -1080,6 +1379,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openCreateUserModal() {
     selectedUser = null;
+    const title = $("userModalTitle");
+    const subtitle = $("userModalSubtitle");
+    const footerTitle = $("userFooterTitle");
+    const saveText = $("userSaveButtonText");
+    const password = $("password");
+    const passwordNote = $("passwordNote");
+    if (title) title.textContent = "Add New Member";
+    if (subtitle) subtitle.textContent = "Create a new team member and assign a role";
+    if (footerTitle) footerTitle.textContent = "Add Member";
+    if (saveText) saveText.textContent = "Save Member";
+    if (password) password.placeholder = "Set a password (minimum 8 characters)";
+    if (passwordNote) passwordNote.textContent = "Set a secure password of at least 8 characters for the new member.";
     const form = $("userForm");
     if (!form) return;
     form.reset();
@@ -1087,9 +1398,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if ($("role")) {
       $("role").value = "Employee";
       $("role").disabled = currentUserRole !== "Admin";
+      renderRolePicker();
     }
     const preview = $("imagePreview");
-    if (preview) preview.src = "../images/default-avatar.png";
+    if (preview) preview.src = "../images/user-icon.jpg";
     bootstrap.Modal.getOrCreateInstance($("addEditUserModal")).show();
   }
 
@@ -1260,12 +1572,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // ACCESS RIGHTS
       // ======================================================
       else {
-        const scope = $("modalDataScope");
-
         payload = {
           accessRights: collectAccessRights(),
-
-          dataScope: scope ? scope.value : selectedUser.dataScope || "own",
         };
       }
 

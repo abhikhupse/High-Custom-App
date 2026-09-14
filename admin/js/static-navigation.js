@@ -28,7 +28,7 @@
     sidebarCss.id = "adminSharedSidebarCss";
     sidebarCss.rel = "stylesheet";
     // Versioned so every legacy static page receives the current shared shell.
-    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260912-2`;
+    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260914-3`;
     document.head.append(sidebarCss);
   }
 
@@ -128,7 +128,7 @@
   // every other Admin page so the header never falls back to a stale role/name.
   const hydrateHeaderProfile = async () => {
     const token = localStorage.getItem("highCustomAdminToken");
-    const profile = document.querySelector(".universal-profile");
+    const profile = document.querySelector(".universal-profile-menu");
     if (!token || !profile) return;
 
     const isLocal = ["localhost", "127.0.0.1"].includes(
@@ -168,19 +168,7 @@
       if (roleElement)
         roleElement.textContent =
           user.role === "User" ? "Admin" : user.role || "Admin";
-      if (avatar) {
-        avatar.textContent = initials;
-        if (user.profileImage) {
-          const image = document.createElement("img");
-          image.alt = "";
-          image.src = /^https?:\/\//i.test(user.profileImage)
-            ? user.profileImage
-            : `${apiBase.replace(/\/api$/, "")}${user.profileImage}`;
-          image.addEventListener("load", () => avatar.replaceChildren(image), {
-            once: true,
-          });
-        }
-      }
+      if (avatar) avatar.textContent = initials;
       localStorage.setItem("highCustomAdminUser", JSON.stringify(user));
     } catch (_) {
       // Keep the cached profile visible if the API is temporarily unavailable.
@@ -272,9 +260,9 @@
     const interested = url.searchParams.get("status") === "interested";
     if (path.endsWith("/dashboard.html")) return ["dashboard", "viewDashboard"];
     if (path.includes("/users/")) return ["users", "viewUsers"];
-    if (path.endsWith("/master/usermasterlist.html")) return ["sequences", "viewAllUsersSequences"];
-    if (path.endsWith("/master/usersequencetable.html")) return ["trackingReport", "viewAllUsersTracking"];
-    if (path.endsWith("/leads/total-leads.html")) return interested ? ["interestedLeads", "viewAllInterestedLeads"] : ["leads", "viewAllUsersLeads"];
+    if (path.endsWith("/master/usermasterlist.html")) return ["allSequences", "viewAllUsersSequences"];
+    if (path.endsWith("/master/usersequencetable.html")) return ["allTrackingReport", "viewAllUsersTracking"];
+    if (path.endsWith("/leads/total-leads.html")) return interested ? ["allInterestedLeads", "viewAllInterestedLeads"] : ["allLeads", "viewAllUsersLeads"];
     if (path.endsWith("/leads/index.html")) return interested ? ["interestedLeads", "viewInterestedLeads"] : ["leads", "viewLeads"];
     if (path.endsWith("/master/master-list.html")) return ["sequences", "viewSequences"];
     if (path.endsWith("/reports/campaign.html")) return ["trackingReport", "viewTrackingReport"];

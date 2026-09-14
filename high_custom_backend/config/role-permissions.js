@@ -16,6 +16,10 @@ const ADMIN_APP_RIGHTS = {
   profile: true,
   appRightsManagement: true,
   accessRightsManagement: true,
+  allSequences: true,
+  allLeads: true,
+  allTrackingReport: true,
+  allInterestedLeads: true,
 };
 
 const HR_APP_RIGHTS = {
@@ -37,6 +41,10 @@ const HR_APP_RIGHTS = {
   // HR can manage employee access actions, not app/module availability.
   appRightsManagement: false,
   accessRightsManagement: true,
+  allSequences: true,
+  allLeads: true,
+  allTrackingReport: true,
+  allInterestedLeads: true,
 };
 
 const EMPLOYEE_APP_RIGHTS = {
@@ -56,6 +64,10 @@ const EMPLOYEE_APP_RIGHTS = {
 
   appRightsManagement: false,
   accessRightsManagement: false,
+  allSequences: false,
+  allLeads: false,
+  allTrackingReport: false,
+  allInterestedLeads: false,
 };
 
 // ============================================================

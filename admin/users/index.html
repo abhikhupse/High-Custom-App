@@ -1062,10 +1062,42 @@
           background: #f8fafc;
         }
 
+        /* Application Rights premium modal */
+        .rights-premium-dialog { max-width: 1240px; }
+        .rights-premium-dialog .modal-content { border: 0; border-radius: 18px; overflow: hidden; background: #fbfcff; box-shadow: 0 28px 70px rgba(8, 20, 48, .26); }
+        .rights-premium-header { min-height: 138px; padding: 28px 34px; border-bottom: 1px solid #dce5f5; gap: 18px; align-items: flex-start; background: linear-gradient(130deg,#fff 0%,#f5f8ff 100%); }
+        .rights-title-icon { width: 70px; height: 70px; display:grid; place-items:center; border-radius:18px; color:#fff; font-size:29px; background:linear-gradient(135deg,#2654fb,#663cff); box-shadow:0 12px 24px rgba(72,61,255,.24); flex:0 0 auto; }
+        .rights-title-copy { display:flex; flex-direction:column; min-width:0; padding-top:1px; }
+        .rights-title-copy .modal-title { color:#101a4e; font-size:30px; font-weight:800; line-height:1.05; }
+        .rights-title-copy strong { color:#172052; font-size:18px; margin-top:5px; }
+        .rights-title-copy small { color:#6878ad!important; font-size:14px; margin-top:6px; }
+        .rights-premium-header .btn-close { margin:0 0 0 auto; padding:10px; opacity:.7; }
+        .rights-selection-count { margin:2px 32px 0 auto; min-width:154px; padding:11px 14px; display:grid; grid-template-columns:30px 1fr; column-gap:6px; align-items:center; border-radius:12px; color:#20336d; background:#edf1ff; }
+        .rights-selection-count i { grid-row:span 2; color:#2d48ff; font-size:22px; }.rights-selection-count strong{font-size:16px}.rights-selection-count span{font-size:11px;color:#6b7aab}
+        #appRightsEditor { padding: 0 0 6px; }.rights-app-toolbar { display:grid; grid-template-columns:1fr 156px 166px; gap:12px; margin:18px 0; }
+        .rights-search { height:50px; display:flex; align-items:center; gap:13px; padding:0 17px; background:#fff; border:1px solid #cbd8ef; border-radius:11px; color:#5d70a5; }.rights-search input{border:0;outline:0;width:100%;background:transparent;color:#182557;font-size:14px}.rights-search input::placeholder{color:#7787b4}
+        .rights-toolbar-btn { border:1px solid #bdcdf1; border-radius:11px; color:#2149e8; background:#fff; font-weight:700; font-size:13px; }.rights-toolbar-btn i{margin-right:8px}.rights-toolbar-btn.danger{color:#ef245e;border-color:#ff9cba}
+        #appRightsEditor .rights-option-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        #appRightsEditor .rights-option { min-height:88px; display:flex; align-items:center; gap:14px; padding:13px 16px; border:1px solid #d5def1; border-radius:13px; background:linear-gradient(110deg,#fff,#f9fbff); color:#131d52; cursor:pointer; transition:.18s ease; }
+        #appRightsEditor .rights-option:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(39,73,163,.10); border-color:#9cb3f8; }
+        #appRightsEditor .rights-option.is-checked { border-color:#9faefa; background:linear-gradient(105deg,#f8f9ff,#f0f5ff); }
+        #appRightsEditor .rights-option .form-check-input { width:25px; height:25px; margin:0!important; flex:0 0 auto; border-color:#9ab0e2; cursor:pointer; }
+        #appRightsEditor .rights-option .form-check-input:checked { background-color:#2452f4; border-color:#2452f4; }
+        .app-right-icon { width:54px; height:54px; display:grid; place-items:center; border-radius:12px; color:#2154f7; background:#e6efff; font-size:23px; flex:0 0 auto; }.app-right-icon.green{color:#078c4a;background:#dff9ec}.app-right-icon.gold{color:#f29a0a;background:#fff2d8}.app-right-icon.purple{color:#6e3cf4;background:#eee7ff}.app-right-icon.pink{color:#d81683;background:#ffe5f4}.app-right-icon.red{color:#e43e5d;background:#ffe6ed}
+        .app-right-copy { display:flex; flex-direction:column; min-width:0; }.app-right-copy strong{font-size:16px;color:#10194b}.app-right-copy small{color:#687ab1;font-size:13px;margin-top:4px;line-height:1.25}
+        .rights-app-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}.rights-app-column{display:flex;flex-direction:column;gap:16px}.rights-module-group{border:1px solid #d5def1;border-radius:13px;background:#fff;overflow:hidden}.rights-group-head{min-height:88px;display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;background:linear-gradient(110deg,#fff,#f9fbff)}.rights-group-head .rights-group-check{width:25px;height:25px;margin:0;flex:0 0 auto;accent-color:#2452f4}.rights-group-arrow{margin-left:auto;color:#263967}.rights-group-items{position:relative;display:flex;flex-direction:column;gap:7px;padding:0 12px 12px 44px}.rights-group-items:before{content:"";position:absolute;left:27px;top:0;bottom:26px;width:1px;background:#cbd6ec}.rights-group-items .rights-option{position:relative;min-height:70px!important;border:0!important;background:linear-gradient(105deg,#fbfcff,#f4f7ff)!important;border-radius:11px!important;box-shadow:none!important}.rights-group-items .rights-option:before{content:"";position:absolute;left:-30px;top:34px;width:18px;height:1px;background:#cbd6ec}.rights-group-items .app-right-icon{width:44px;height:44px;font-size:19px}.rights-group-items .app-right-copy strong{font-size:14px}.rights-group-items .app-right-copy small{font-size:12px}.rights-module-group.is-collapsed .rights-group-items{display:none}.rights-module-group.is-collapsed .rights-group-arrow{transform:rotate(180deg)}.rights-more-modules{padding:15px;border:1px dashed #bdcdf1;border-radius:13px;background:#fafcff}.rights-more-modules h6{margin:0 0 10px;color:#5569a0;font-size:12px;text-transform:uppercase;letter-spacing:.08em}.rights-more-modules .rights-group-items{padding:0;display:grid;grid-template-columns:1fr 1fr}.rights-more-modules .rights-group-items:before,.rights-more-modules .rights-option:before{display:none}.rights-more-modules .rights-option{min-height:66px!important;padding:10px!important}
+        .rights-access-toolbar{display:grid;grid-template-columns:1fr 148px 160px;gap:12px;margin:18px 0}.rights-access-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px}.rights-access-column{display:flex;flex-direction:column;gap:12px;min-width:0}.access-module-card{border:1px solid #d6e0f1;border-radius:13px;background:linear-gradient(135deg,#fff,#fafcff);overflow:hidden}.access-module-card:not(.is-collapsed){border-color:#9fb6ff;box-shadow:0 8px 22px rgba(39,79,196,.10)}.access-module-head{width:100%;display:flex;gap:11px;align-items:center;padding:14px;border:0;background:transparent;text-align:left}.access-module-head:hover{background:#f5f8ff}.access-module-head .app-right-icon{width:52px;height:52px;font-size:21px}.access-module-head strong{display:block;color:#10194b;font-size:16px}.access-module-head small{display:block;margin-top:3px;color:#7383b0;font-size:12px;line-height:1.25}.access-module-arrow{margin-left:auto;color:#55699c;transition:transform .18s ease}.access-module-card:not(.is-collapsed) .access-module-arrow{transform:rotate(180deg);color:#2452f4}.access-permissions{display:flex;flex-direction:column;gap:6px;padding:0 14px 14px}.access-module-card.is-collapsed .access-permissions{display:none}.access-permissions .rights-option{display:flex;align-items:center;min-height:40px;padding:8px 10px!important;border:1px solid #e0e7f3!important;border-radius:8px!important;background:#fbfcff!important;color:#1a2859;font-size:13px}.access-permissions .rights-option[data-view-right]{display:none!important}.access-permissions .form-check-input{width:21px;height:21px;margin:0 12px 0 0!important;flex:0 0 auto;border-color:#b9c8e5}.access-permissions .form-check-input:checked{background-color:#2452f4;border-color:#2452f4}.access-module-card.is-empty{display:none}
+        .rights-app-note { display:flex; gap:15px; align-items:center; margin:18px 0 0; padding:15px 17px; color:#1542e9; border:1px solid #d7e2ff; border-radius:12px; background:linear-gradient(90deg,#edf3ff,#f5f8ff); }.rights-app-note i{font-size:25px}.rights-app-note span{display:flex;flex-direction:column}.rights-app-note strong{font-size:13px}.rights-app-note small{color:#697db2;font-size:12px;margin-top:3px}
+        .rights-premium-footer{padding:14px 34px 18px;border-top:1px solid #dce5f5;background:#fff}.rights-premium-footer .btn{min-width:108px;border-radius:9px;font-weight:700}.rights-premium-footer #saveRightsBtn{min-width:150px;background:linear-gradient(135deg,#2456f5,#673df0);border:0;box-shadow:0 8px 18px rgba(53,71,239,.23)}
+        .user-form-dialog{max-width:1180px}.user-form-modal{border:0;border-radius:18px;overflow:hidden;box-shadow:0 28px 80px rgba(9,20,48,.28)}.user-form-header{gap:18px;padding:24px 32px;border-bottom:1px solid #dce5f5}.user-form-header-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:14px;color:#3448f5;background:linear-gradient(135deg,#e6e9ff,#d7d8ff);font-size:26px}.user-form-header h5{margin:0;color:#0d173b;font-size:27px;font-weight:800}.user-form-header p{margin:4px 0 0;color:#6878a5;font-size:16px}.user-form-header .btn-close{margin-left:auto;font-size:21px}.user-form-body{display:grid;grid-template-columns:310px minmax(0,1fr);gap:36px;padding:24px 32px}.user-photo-panel{padding:26px 22px;text-align:center;border-radius:15px;background:linear-gradient(145deg,#f4f5ff,#fafbff)}.user-photo-panel h6{margin:0;color:#0d173b;font-size:20px;font-weight:800}.user-photo-panel>p{margin:4px 0 18px;color:#60719f}.user-photo-orb{position:relative;width:190px;height:190px;display:block;margin:0 auto 18px;border:1px dashed #9aa8ff;border-radius:50%;background:#eff1fb;cursor:pointer;overflow:visible}.user-photo-orb img{width:100%;height:100%;border-radius:inherit;object-fit:cover}.user-photo-orb span{position:absolute;right:2px;bottom:9px;width:50px;height:50px;display:grid;place-items:center;border:4px solid #fff;border-radius:50%;color:#fff;background:linear-gradient(135deg,#254cff,#5638f5);font-size:19px;box-shadow:0 5px 12px rgba(50,63,240,.28)}.user-upload-zone{display:flex;flex-direction:column;gap:4px;padding:20px 12px;border:1px dashed #bbc6ff;border-radius:12px;color:#6174a4;cursor:pointer}.user-upload-zone i{margin-bottom:4px;color:#2f49fa;font-size:27px}.user-upload-zone strong{color:#0d173b;font-size:15px}.user-upload-zone small{font-size:12px}.user-avatar-hint{display:flex;justify-content:center;gap:9px;margin:21px 0 8px;padding-top:21px;border-top:1px solid #e0e5fa}.user-avatar-hint span{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;color:#16203f;background:linear-gradient(135deg,#e6e9ff,#cdd1ff);font-size:13px;font-weight:800}.user-avatar-hint span:nth-child(2){color:#fff;background:linear-gradient(135deg,#8d46e9,#5b26d3)}.user-avatar-hint span:nth-child(3){color:#855a10;background:linear-gradient(135deg,#ffefb5,#e9c368)}.user-photo-panel>small{color:#6474a1}.user-details-panel{padding-top:4px}.user-details-heading{display:flex;align-items:center;gap:14px;margin-bottom:25px}.user-details-heading>span{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;color:#3448f5;background:#e7eaff;font-size:23px}.user-details-heading h6{margin:0;color:#0d173b;font-size:23px;font-weight:800}.user-details-heading p{margin:3px 0 0;color:#6577a4;font-size:15px}.user-details-panel label{display:block;margin-bottom:7px;color:#111b3d;font-size:15px;font-weight:750}.user-details-panel label em{color:#f33;font-style:normal}.user-details-panel label span{color:#8290b3;font-size:12px;font-weight:500}.user-field{position:relative;display:flex;align-items:center;border:1px solid #d4dcef;border-radius:10px;background:#fff;transition:border-color .18s,box-shadow .18s}.user-field:focus-within{border-color:#4965f6;box-shadow:0 0 0 3px rgba(55,79,244,.10)}.user-field>i:first-child{width:46px;text-align:center;color:#5e6f9b;font-size:18px}.user-field .form-control,.user-field .form-select{height:56px;padding:0 12px 0 0;border:0;box-shadow:none!important;background:transparent;color:#172243}.user-field .form-control::placeholder{color:#8290b3}.user-password-icon{padding-right:17px;color:#5d6d98;font-size:18px}.user-role-row{display:flex;gap:10px}.user-role-picker{position:relative;flex:1;min-width:0}.user-role-trigger{width:100%;height:56px;display:flex;align-items:center;gap:11px;padding:0 14px;border:1px solid #d4dcef;border-radius:10px;background:#fff;color:#172243;text-align:left}.user-role-trigger:focus,.user-role-picker.is-open .user-role-trigger{outline:0;border-color:#4965f6;box-shadow:0 0 0 3px rgba(55,79,244,.10)}.user-role-symbol{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;color:#3e56f4;background:#edf0ff}.user-role-trigger>span:nth-child(2){font-weight:700}.user-role-trigger>.fa-chevron-down{margin-left:auto;color:#6475a1;font-size:12px;transition:transform .18s}.user-role-picker.is-open .fa-chevron-down{transform:rotate(180deg)}.user-role-menu{position:absolute;z-index:20;top:calc(100% + 7px);left:0;right:0;display:none;padding:6px;border:1px solid #d9e1f2;border-radius:11px;background:#fff;box-shadow:0 14px 28px rgba(18,35,75,.16)}.user-role-picker.is-open .user-role-menu{display:block}.user-role-option{width:100%;display:flex;align-items:center;gap:9px;padding:10px;border:0;border-radius:8px;background:transparent;color:#172243;text-align:left;font-size:14px;font-weight:700}.user-role-option:hover,.user-role-option.is-selected{color:#2349ef;background:#edf1ff}.user-role-option i{width:22px;text-align:center;color:#7c4ae2}.user-role-option[data-role="Admin"] i{color:#b27812}.user-role-option[data-role="HR"] i{color:#0b9a5c}.user-add-role-btn{min-width:113px;border:0;border-radius:10px;color:#3448f5;background:linear-gradient(135deg,#e9eaff,#dcdfff);font-weight:750}.user-add-role-btn i{margin-right:7px}.user-password-note{display:flex;gap:11px;align-items:center;margin-top:16px;padding:14px 16px;border:1px solid #cce0fb;border-radius:10px;color:#1748e8;background:#eff7ff;font-size:13px}.user-password-note i{font-size:20px}.user-form-footer{display:flex;justify-content:space-between;align-items:center;padding:20px 32px;border-top:1px solid #dce5f5;background:#fff}.user-footer-copy{display:flex;align-items:center;gap:12px;color:#52638f}.user-footer-copy>i{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#eef1fa;font-size:20px}.user-footer-copy span{display:flex;flex-direction:column}.user-footer-copy strong{color:#111a3b}.user-footer-copy small{font-size:13px}.user-cancel-btn,.user-save-btn{height:52px;min-width:122px;border-radius:10px;font-weight:800}.user-cancel-btn{margin-right:10px;border:1px solid #d0d9ed;background:#f8fafc;color:#132047}.user-save-btn{min-width:180px;border:0;color:#fff;background:linear-gradient(135deg,#294dff,#5834ef);box-shadow:0 8px 20px rgba(61,61,235,.28)}.user-save-btn i{margin-right:9px}@media(max-width:767px){.user-form-body{grid-template-columns:1fr;padding:20px}.user-form-header,.user-form-footer{padding:18px 20px}.user-photo-panel{max-width:360px;margin:auto;width:100%}.user-form-footer{align-items:flex-end;gap:15px;flex-direction:column}.user-role-row{flex-direction:column}.user-add-role-btn{height:48px}.user-footer-copy{display:none}}
+
         @media (max-width: 576px) {
           .rights-option-grid {
             grid-template-columns: 1fr;
           }
+          .rights-app-layout { grid-template-columns:1fr; }
+          .rights-access-toolbar{grid-template-columns:1fr 1fr}.rights-access-toolbar .rights-search{grid-column:span 2}.rights-access-layout{grid-template-columns:1fr}
+          .rights-premium-header { padding:20px; }.rights-title-copy .modal-title{font-size:24px}.rights-selection-count{margin:0 8px 0 auto;min-width:115px}.rights-premium-header .btn-close{position:absolute;right:16px;top:14px}.rights-app-toolbar{grid-template-columns:1fr 1fr}.rights-search{grid-column:span 2}.rights-group-items{padding-left:28px}.rights-group-items:before{left:18px}.rights-group-items .rights-option:before{left:-20px;width:11px}
         }
 
         #usersTable th {
@@ -1309,14 +1341,17 @@
         aria-hidden="true"
       >
         <div
-          class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"
+          class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable rights-premium-dialog"
         >
           <div class="modal-content">
-            <div class="modal-header">
-              <div>
+            <div class="modal-header rights-premium-header">
+              <div class="rights-title-icon"><i class="fas fa-grip"></i></div>
+              <div class="rights-title-copy">
                 <h5 class="modal-title" id="rightsModalTitle">Manage Rights</h5>
-                <small class="text-muted" id="rightsUserName"></small>
+                <strong id="rightsUserName"></strong>
+                <small id="rightsHeaderDescription">Choose which modules this person can access.</small>
               </div>
+              <div class="rights-selection-count"><i class="fas fa-th-large"></i><strong id="rightsSelectedCount">0 / 0</strong><span>Modules Selected</span></div>
               <button
                 type="button"
                 class="btn-close"
@@ -1326,9 +1361,11 @@
             </div>
             <div class="modal-body">
               <div id="appRightsEditor">
-                <p class="text-muted small mb-3">
-                  Choose which app modules this person can open.
-                </p>
+                <div class="rights-app-toolbar">
+                  <label class="rights-search"><i class="fas fa-search"></i><input id="appRightsSearch" type="search" placeholder="Search modules..." /></label>
+                  <button type="button" class="rights-toolbar-btn" id="expandAppRights"><i class="fas fa-expand"></i> Expand All</button>
+                  <button type="button" class="rights-toolbar-btn collapse" id="collapseAppRights"><i class="fas fa-compress"></i> Collapse All</button>
+                </div>
                 <div class="rights-option-grid">
                   <label class="rights-option"
                     ><input
@@ -1421,20 +1458,26 @@
                       value="accessRightsManagement"
                     />Manage Access Rights</label
                   >
+                  <label class="rights-option"
+                    ><input class="form-check-input me-2 app-right-check" type="checkbox" value="allSequences" />All Sequences</label
+                  >
+                  <label class="rights-option"
+                    ><input class="form-check-input me-2 app-right-check" type="checkbox" value="allLeads" />All Leads</label
+                  >
+                  <label class="rights-option"
+                    ><input class="form-check-input me-2 app-right-check" type="checkbox" value="allTrackingReport" />All Tracking Report</label
+                  >
+                  <label class="rights-option"
+                    ><input class="form-check-input me-2 app-right-check" type="checkbox" value="allInterestedLeads" />All Interested Leads</label
+                  >
                 </div>
               </div>
               <div id="accessRightsEditor" class="d-none">
-                <p class="text-muted small">
-                  Choose what actions this person can perform. Role limits are
-                  enforced by the backend.
-                </p>
-                <label class="form-label fw-semibold">Data Scope</label>
-                <select id="modalDataScope" class="form-select mb-3">
-                  <option value="own">Own data only</option>
-                  <option value="assigned">Own + assigned data</option>
-                  <option value="company">Company data</option>
-                  <option value="all">All system data</option>
-                </select>
+                <div class="rights-access-toolbar">
+                  <label class="rights-search"><i class="fas fa-search"></i><input id="accessRightsSearch" type="search" placeholder="Search modules or permissions..." /></label>
+                  <button type="button" class="rights-toolbar-btn" id="selectAllAccessRights"><i class="fas fa-check"></i> Select All</button>
+                  <button type="button" class="rights-toolbar-btn danger" id="deselectAllAccessRights"><i class="fas fa-xmark"></i> Deselect All</button>
+                </div>
                 <div class="rights-option-grid">
                   <label class="rights-option"
                     ><input
@@ -1684,7 +1727,8 @@
                 </div>
               </div>
             </div>
-            <div class="modal-footer">
+            <div class="rights-app-note" id="appRightsNote"><i class="fas fa-circle-info"></i><span><strong>Application Rights control which modules/pages are visible and accessible to the user.</strong><small>You can further define allowed actions inside each module using Access Rights.</small></span></div>
+            <div class="modal-footer rights-premium-footer">
               <button
                 type="button"
                 class="btn btn-outline-primary"
@@ -1799,162 +1843,37 @@
         data-bs-backdrop="static"
         tabindex="-1"
       >
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-          <div class="modal-content">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable user-form-dialog">
+          <div class="modal-content user-form-modal">
             <form id="userForm" enctype="multipart/form-data">
               <input type="hidden" name="user_id" id="userId" />
-              <div class="modal-body">
-                <div class="row">
-                  <div class="col-md-4 text-center">
-                    <div class="mb-3">
-                      <label class="form-label">Profile Image</label>
-                      <div id="imagePreviewContainer">
-                        <img
-                          id="imagePreview"
-                          src="../images/default-avatar.png"
-                          class="image-preview mb-2"
-                          style="
-                            width: 100px;
-                            height: 100px;
-                            border-radius: 50%;
-                            object-fit: cover;
-                          "
-                        />
-                      </div>
-                      <input
-                        type="file"
-                        class="form-control"
-                        name="profile_image"
-                        id="profileImage"
-                        accept="image/*"
-                      />
-                      <small class="text-muted">Upload JPG, PNG</small>
-                    </div>
-                  </div>
-                  <div class="col-md-8">
-                    <div class="row">
-                      <div class="col-md-6 mb-2">
-                        <label>First Name *</label>
-                        <input
-                          type="text"
-                          name="name"
-                          id="name"
-                          class="form-control"
-                          required
-                        />
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label>Last Name *</label>
-                        <input
-                          type="text"
-                          name="lastname"
-                          id="lastname"
-                          class="form-control"
-                          required
-                        />
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label>Mobile Number *</label>
-                        <input
-                          type="text"
-                          name="mobile"
-                          id="mobile"
-                          class="form-control"
-                          required
-                        />
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label>Email *</label>
-                        <input
-                          type="email"
-                          name="email"
-                          id="email"
-                          class="form-control"
-                          required
-                        />
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label>User Code (E.CODE)</label>
-                        <input
-                          type="text"
-                          name="user_code"
-                          id="user_code"
-                          class="form-control"
-                          required
-                        />
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label
-                          class="d-flex justify-content-between align-items-center"
-                          for="role"
-                          >Role
-                          <button
-                            type="button"
-                            class="btn btn-primary btn-sm add-role-btn"
-                            id="addRoleBtn"
-                          >
-                            <i class="fas fa-plus me-1"></i>Add Role
-                          </button></label
-                        >
-                        <select id="role" class="form-select">
-                          <option value="Employee">Employee</option>
-                          <option value="HR">HR</option>
-                          <option value="Admin">Admin</option>
-                        </select>
-                        <div
-                          class="input-group input-group-sm mt-2 d-none"
-                          id="customRoleControls"
-                        >
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="customRoleName"
-                            maxlength="49"
-                            placeholder="New role name"
-                            autocomplete="off"
-                          />
-                          <button
-                            type="button"
-                            class="btn btn-success"
-                            id="saveRoleBtn"
-                          >
-                            <i class="fas fa-check me-1"></i>Save
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn-outline-secondary"
-                            id="cancelRoleBtn"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label>Password</label>
-                        <input
-                          type="password"
-                          name="password"
-                          id="password"
-                          class="form-control"
-                          placeholder="Leave blank to keep unchanged"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div class="modal-header user-form-header">
+                <span class="user-form-header-icon"><i class="fas fa-user-plus"></i></span>
+                <span><h5 id="userModalTitle">Add New Member</h5><p id="userModalSubtitle">Create a new team member and assign a role</p></span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
-              <div class="modal-footer">
-                <button
-                  type="button"
-                  class="btn btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  Cancel
-                </button>
-                <button type="submit" class="btn btn-primary">
-                  Save Member
-                </button>
+              <div class="modal-body user-form-body">
+                <aside class="user-photo-panel">
+                  <h6>Profile Image</h6><p>Upload a profile picture</p>
+                  <label class="user-photo-orb" for="profileImage"><img id="imagePreview" src="../images/user-icon.jpg" alt="Profile icon" /><span><i class="fas fa-camera"></i></span></label>
+                  <label class="user-upload-zone" for="profileImage"><i class="fas fa-cloud-arrow-up"></i><strong>Click to upload</strong><span>or drag and drop</span><small>JPG, PNG (Max 2MB)</small></label>
+                  <input type="file" class="visually-hidden" name="profile_image" id="profileImage" accept="image/png,image/jpeg" />
+                  <div class="user-avatar-hint"><span>AK</span><span>HC</span><span>HR</span></div><small>Or choose a default avatar</small>
+                </aside>
+                <section class="user-details-panel">
+                  <div class="user-details-heading"><span><i class="far fa-user"></i></span><div><h6>Member Details</h6><p>Fill in the information below to create a new member</p></div></div>
+                  <div class="row g-3">
+                    <div class="col-md-6"><label for="name">First Name <em>*</em></label><div class="user-field"><i class="far fa-user"></i><input type="text" name="name" id="name" class="form-control" placeholder="Enter first name" required /></div></div>
+                    <div class="col-md-6"><label for="lastname">Last Name <em>*</em></label><div class="user-field"><i class="far fa-user"></i><input type="text" name="lastname" id="lastname" class="form-control" placeholder="Enter last name" required /></div></div>
+                    <div class="col-md-6"><label for="mobile">Mobile Number <em>*</em></label><div class="user-field"><i class="fas fa-phone"></i><input type="text" name="mobile" id="mobile" class="form-control" placeholder="Enter mobile number" required /></div></div>
+                    <div class="col-md-6"><label for="email">Email <em>*</em></label><div class="user-field"><i class="far fa-envelope"></i><input type="email" name="email" id="email" class="form-control" placeholder="Enter email address" required /></div></div>
+                    <div class="col-md-6"><label for="user_code">User Code (E.CODE) <em>*</em></label><div class="user-field"><i class="fas fa-hashtag"></i><input type="text" name="user_code" id="user_code" class="form-control" placeholder="Enter user code" required /></div></div>
+                    <div class="col-md-6"><label for="role">Role <em>*</em></label><div class="user-role-row"><div class="user-role-picker" id="rolePicker"><select id="role" class="visually-hidden"><option value="Employee">Employee</option><option value="HR">HR</option><option value="Admin">Admin</option></select><button type="button" class="user-role-trigger" id="rolePickerToggle" aria-expanded="false"><span class="user-role-symbol"><i class="fas fa-user"></i></span><span id="rolePickerValue">Employee</span><i class="fas fa-chevron-down"></i></button><div class="user-role-menu" id="rolePickerMenu"></div></div><button type="button" class="btn user-add-role-btn" id="addRoleBtn"><i class="fas fa-plus"></i>Add Role</button></div><div class="input-group input-group-sm mt-2 d-none" id="customRoleControls"><input type="text" class="form-control" id="customRoleName" maxlength="49" placeholder="New role name" autocomplete="off" /><button type="button" class="btn btn-success" id="saveRoleBtn"><i class="fas fa-check me-1"></i>Save</button><button type="button" class="btn btn-outline-secondary" id="cancelRoleBtn">Cancel</button></div></div>
+                    <div class="col-12"><label for="password">Password <span id="passwordOptional">(optional)</span></label><div class="user-field"><i class="fas fa-lock"></i><input type="password" name="password" id="password" class="form-control" placeholder="Set a password (minimum 8 characters)" /><i class="far fa-eye user-password-icon"></i></div><div class="user-password-note"><i class="fas fa-circle-info"></i><span id="passwordNote">Set a secure password of at least 8 characters for the new member.</span></div></div>
+                  </div>
+                </section>
               </div>
+              <div class="modal-footer user-form-footer"><span class="user-footer-copy"><i class="fas fa-users"></i><span><strong id="userFooterTitle">Add Member</strong><small>Give access and start collaboration</small></span></span><div><button type="button" class="btn btn-light user-cancel-btn" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn user-save-btn"><i class="fas fa-floppy-disk"></i><span id="userSaveButtonText">Save Member</span></button></div></div>
             </form>
           </div>
         </div>

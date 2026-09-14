@@ -70,6 +70,12 @@ const appRightsSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // Company-wide Admin workspace modules.
+    allSequences: { type: Boolean, default: false },
+    allLeads: { type: Boolean, default: false },
+    allTrackingReport: { type: Boolean, default: false },
+    allInterestedLeads: { type: Boolean, default: false },
   },
   {
     _id: false,

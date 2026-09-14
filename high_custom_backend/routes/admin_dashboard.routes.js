@@ -37,7 +37,7 @@ router.get(
   "/tracking-report",
   auth,
   requireAdmin,
-  requireAppRight("trackingReport"),
+  requireAppRight("allTrackingReport"),
   requireAccessRight("viewTrackingReport"),
   emailTrackingController.getAdminTrackingReport,
 );
@@ -48,7 +48,7 @@ router.get(
   "/leads",
   auth,
   requireAdmin,
-  requireAppRight("leads"),
+  requireAppRight("allLeads"),
   requireAccessRight("viewAllUsersLeads"),
   adminWorkspaceController.listLeads,
 );
@@ -56,7 +56,7 @@ router.get(
   "/sequences",
   auth,
   requireAdmin,
-  requireAppRight("sequences"),
+  requireAppRight("allSequences"),
   requireAccessRight("viewAllUsersSequences"),
   adminWorkspaceController.listSequences,
 );
@@ -64,7 +64,7 @@ router.patch(
   "/sequences/:sequenceId",
   auth,
   requireAdmin,
-  requireAppRight("sequences"),
+  requireAppRight("allSequences"),
   requireAccessRight("editSequence"),
   adminWorkspaceController.updateSequence,
 );
@@ -72,7 +72,7 @@ router.delete(
   "/sequences/:sequenceId",
   auth,
   requireAdmin,
-  requireAppRight("sequences"),
+  requireAppRight("allSequences"),
   requireAccessRight("deleteSequence"),
   adminWorkspaceController.deleteSequence,
 );
@@ -80,7 +80,7 @@ router.get(
   "/interested-leads",
   auth,
   requireAdmin,
-  requireAppRight("interestedLeads"),
+  requireAppRight("allInterestedLeads"),
   requireAccessRight("viewAllInterestedLeads"),
   adminWorkspaceController.listInterestedLeads,
 );
@@ -88,7 +88,7 @@ router.delete(
   "/interested-leads/:interestId",
   auth,
   requireAdmin,
-  requireAppRight("interestedLeads"),
+  requireAppRight("allInterestedLeads"),
   requireAccessRight("deleteInterestedLead"),
   adminWorkspaceController.deleteInterestedLead,
 );
