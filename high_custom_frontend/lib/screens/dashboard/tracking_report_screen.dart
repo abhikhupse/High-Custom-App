@@ -7,8 +7,13 @@ import '../../services/social_links_api.dart';
 
 class TrackingReportScreen extends StatefulWidget {
   final ValueChanged<String>? onNavigate;
+  final bool canExport;
 
-  const TrackingReportScreen({super.key, this.onNavigate});
+  const TrackingReportScreen({
+    super.key,
+    this.onNavigate,
+    this.canExport = false,
+  });
 
   @override
   State<TrackingReportScreen> createState() => _TrackingReportScreenState();
@@ -80,7 +85,9 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
       setState(() {
         _activities = deliveries
             .whereType<Map>()
-            .map((item) => _activityFromDelivery(Map<String, dynamic>.from(item)))
+            .map(
+              (item) => _activityFromDelivery(Map<String, dynamic>.from(item)),
+            )
             .toList();
         if (pagination is Map) {
           _currentPage = (pagination['page'] as num?)?.toInt() ?? page;
@@ -103,7 +110,10 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
       return (DateTime(now.year, now.month, now.day), end);
     }
     final days = _date == 'Last 7 Days' ? 6 : 29;
-    return (DateTime(now.year, now.month, now.day).subtract(Duration(days: days)), end);
+    return (
+      DateTime(now.year, now.month, now.day).subtract(Duration(days: days)),
+      end,
+    );
   }
 
   _Activity _activityFromDelivery(Map<String, dynamic> delivery) {
@@ -190,10 +200,23 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
       final matchesStatus =
           _status == 'All Status' || activity.status == _status;
       final now = DateTime.now();
-      final days = _date == 'Today' ? 0 : _date == 'Last 7 Days' ? 7 : _date == 'Last 30 Days' ? 30 : -1;
-      final matchesDate = days < 0 || activity.eventDate == null || (days == 0
-          ? activity.eventDate!.year == now.year && activity.eventDate!.month == now.month && activity.eventDate!.day == now.day
-          : activity.eventDate!.isAfter(now.subtract(Duration(days: days))));
+      final days = _date == 'Today'
+          ? 0
+          : _date == 'Last 7 Days'
+          ? 7
+          : _date == 'Last 30 Days'
+          ? 30
+          : -1;
+      final matchesDate =
+          days < 0 ||
+          activity.eventDate == null ||
+          (days == 0
+              ? activity.eventDate!.year == now.year &&
+                    activity.eventDate!.month == now.month &&
+                    activity.eventDate!.day == now.day
+              : activity.eventDate!.isAfter(
+                  now.subtract(Duration(days: days)),
+                ));
       return matchesSearch && matchesStatus && matchesDate;
     }).toList();
   }
@@ -432,28 +455,29 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
             },
           ),
         ),
-        OutlinedButton.icon(
-          onPressed: () => ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('CSV export prepared'))),
-          icon: Icon(Icons.download_rounded, size: mobile ? 19 : 32),
-          label: const Text('Export CSV'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _gold,
-            side: const BorderSide(color: _gold, width: 2),
-            padding: EdgeInsets.symmetric(
-              horizontal: mobile ? 12 : 27,
-              vertical: mobile ? 15 : 25,
+        if (widget.canExport)
+          OutlinedButton.icon(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('CSV export prepared')),
             ),
-            textStyle: TextStyle(
-              fontSize: mobile ? 13 : 20,
-              fontWeight: FontWeight.w500,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+            icon: Icon(Icons.download_rounded, size: mobile ? 19 : 32),
+            label: const Text('Export CSV'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _gold,
+              side: const BorderSide(color: _gold, width: 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: mobile ? 12 : 27,
+                vertical: mobile ? 15 : 25,
+              ),
+              textStyle: TextStyle(
+                fontSize: mobile ? 13 : 20,
+                fontWeight: FontWeight.w500,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -1531,7 +1555,11 @@ class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
       children: [
         const Text(
           'QR & Link Activity',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 6),
         const Text(
@@ -1543,12 +1571,16 @@ class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 34),
             child: Center(
-              child: Text('No tracked links found.', style: TextStyle(color: _TrackingReportScreenState._muted)),
+              child: Text(
+                'No tracked links found.',
+                style: TextStyle(color: _TrackingReportScreenState._muted),
+              ),
             ),
           )
         else
           ..._linkTracking.map((link) {
-            final name = (link['name'] ?? link['platform'] ?? 'Link').toString();
+            final name = (link['name'] ?? link['platform'] ?? 'Link')
+                .toString();
             final url = (link['url'] ?? '').toString();
             final clicks = (link['linkClicks'] as num?)?.toInt() ?? 0;
             final scans = (link['qrScans'] as num?)?.toInt() ?? 0;
@@ -1565,23 +1597,53 @@ class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.link_rounded, color: _TrackingReportScreenState._gold),
+                      const Icon(
+                        Icons.link_rounded,
+                        color: _TrackingReportScreenState._gold,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                        child: Text(
+                          name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   if (url.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(url, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _TrackingReportScreenState._muted, fontSize: 12)),
+                    Text(
+                      url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _TrackingReportScreenState._muted,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 13),
                   Row(
                     children: [
-                      Expanded(child: _trackingMetric(Icons.ads_click, '$clicks', 'Clicks')),
+                      Expanded(
+                        child: _trackingMetric(
+                          Icons.ads_click,
+                          '$clicks',
+                          'Clicks',
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: _trackingMetric(Icons.qr_code_scanner, '$scans', 'Scans')),
+                      Expanded(
+                        child: _trackingMetric(
+                          Icons.qr_code_scanner,
+                          '$scans',
+                          'Scans',
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1604,7 +1666,10 @@ class _LeadDetailsSheetState extends State<_LeadDetailsSheet> {
         children: [
           Icon(icon, size: 17, color: _TrackingReportScreenState._gold),
           const SizedBox(width: 7),
-          Text('$value $label', style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Text(
+            '$value $label',
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
         ],
       ),
     );

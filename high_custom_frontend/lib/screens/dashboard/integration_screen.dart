@@ -10,7 +10,14 @@ import '../../services/integration_api.dart';
 import '../../widgets/app_skeleton.dart';
 
 class IntegrationScreen extends StatefulWidget {
-  const IntegrationScreen({super.key});
+  const IntegrationScreen({
+    super.key,
+    this.canConnect = false,
+    this.canDisconnect = false,
+  });
+
+  final bool canConnect;
+  final bool canDisconnect;
 
   @override
   State<IntegrationScreen> createState() => _IntegrationScreenState();
@@ -1245,52 +1252,60 @@ class _IntegrationScreenState extends State<IntegrationScreen>
           // ======================================================
           // BUTTON
           // ======================================================
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: isConnected
-                ? ElevatedButton.icon(
-                    onPressed: isLoading ? null : onDisconnect,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFEF2F2),
-                      foregroundColor: const Color(0xFFB42318),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+          if ((isConnected && widget.canDisconnect) ||
+              (!isConnected && widget.canConnect))
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: isConnected
+                  ? ElevatedButton.icon(
+                      onPressed: isLoading || !widget.canDisconnect
+                          ? null
+                          : onDisconnect,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFEF2F2),
+                        foregroundColor: const Color(0xFFB42318),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    ),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.link_off_rounded),
-                    label: Text(isLoading ? 'Disconnecting...' : 'Disconnect'),
-                  )
-                : ElevatedButton.icon(
-                    onPressed: isLoading ? null : onConnect,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF315BEF),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.link_off_rounded),
+                      label: Text(
+                        isLoading ? 'Disconnecting...' : 'Disconnect',
                       ),
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: isLoading || !widget.canConnect
+                          ? null
+                          : onConnect,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF315BEF),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.add_link_rounded),
+                      label: Text(isLoading ? 'Connecting...' : 'Connect'),
                     ),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.add_link_rounded),
-                    label: Text(isLoading ? 'Connecting...' : 'Connect'),
-                  ),
-          ),
+            ),
         ],
       ),
     );

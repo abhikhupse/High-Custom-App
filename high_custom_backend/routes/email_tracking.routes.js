@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const emailTrackingController = require("../controller/email_tracking.controller");
+const { requireAppRight, requireAccessRight } = require("../middleware/user-access");
 
 // ============================================================
 // EMAIL OPEN TRACKING
@@ -42,12 +43,16 @@ router.post(
 router.get(
   "/report",
   require("../middleware/auth.middleware"),
+  requireAppRight("trackingReport"),
+  requireAccessRight("viewTrackingReport"),
   emailTrackingController.getTrackingReport,
 );
 
 router.get(
   "/interest-details",
   require("../middleware/auth.middleware"),
+  requireAppRight("interestedLeads"),
+  requireAccessRight("viewInterestedLeads"),
   emailTrackingController.getInterestDetails,
 );
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
 
 // ============================================================
 // DASHBOARD SIDEBAR
@@ -14,6 +15,7 @@ class DashboardSidebar extends StatelessWidget {
   final String selectedMenu;
 
   final Function(String) onMenuSelected;
+  final UserModel? user;
 
   // ============================================================
   // CONSTRUCTOR
@@ -24,29 +26,27 @@ class DashboardSidebar extends StatelessWidget {
     required this.isOpen,
     required this.selectedMenu,
     required this.onMenuSelected,
+    this.user,
   });
+
+  bool _canOpen(String appRight, String accessRight) =>
+      user?.canOpen(appRight, accessRight) == true;
 
   // ============================================================
   // COLORS
   // ============================================================
 
-  static const Color background =
-      Color(0xFF050709);
+  static const Color background = Color(0xFF050709);
 
-  static const Color cardBackground =
-      Color(0xFF0B0E12);
+  static const Color cardBackground = Color(0xFF0B0E12);
 
-  static const Color gold =
-      Color(0xFFF2C45F);
+  static const Color gold = Color(0xFFF2C45F);
 
-  static const Color goldDark =
-      Color(0xFFD9A93F);
+  static const Color goldDark = Color(0xFFD9A93F);
 
-  static const Color white =
-      Colors.white;
+  static const Color white = Colors.white;
 
-  static const Color mutedText =
-      Color(0xFFA8ADB6);
+  static const Color mutedText = Color(0xFFA8ADB6);
 
   // ============================================================
   // BUILD
@@ -55,9 +55,7 @@ class DashboardSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(
-        milliseconds: 250,
-      ),
+      duration: const Duration(milliseconds: 250),
 
       curve: Curves.easeInOut,
 
@@ -66,26 +64,15 @@ class DashboardSidebar extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
 
-        border: Border(
-          right: BorderSide(
-            color: gold.withOpacity(
-              0.22,
-            ),
-          ),
-        ),
+        border: Border(right: BorderSide(color: gold.withOpacity(0.22))),
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              0.50,
-            ),
+            color: Colors.black.withOpacity(0.50),
 
             blurRadius: 20,
 
-            offset: const Offset(
-              5,
-              0,
-            ),
+            offset: const Offset(5, 0),
           ),
         ],
       ),
@@ -100,66 +87,45 @@ class DashboardSidebar extends StatelessWidget {
                   // ==================================================
                   // SIDEBAR HEADER
                   // ==================================================
-
                   _buildSidebarHeader(),
 
                   // ==================================================
                   // DIVIDER
                   // ==================================================
-
                   Container(
                     height: 1,
 
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                    ),
+                    margin: const EdgeInsets.symmetric(horizontal: 18),
 
-                    color: gold.withOpacity(
-                      0.18,
-                    ),
+                    color: gold.withOpacity(0.18),
                   ),
 
                   // ==================================================
                   // MENU
                   // ==================================================
-
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(
-                        10,
-                        16,
-                        10,
-                        24,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(10, 16, 10, 24),
 
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.stretch,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
 
                         children: [
                           // ==========================================
                           // MAIN LABEL
                           // ==========================================
+                          _sectionLabel('MAIN MENU'),
 
-                          _sectionLabel(
-                            'MAIN MENU',
-                          ),
-
-                          const SizedBox(
-                            height: 8,
-                          ),
+                          const SizedBox(height: 8),
 
                           // ==========================================
                           // DASHBOARD
                           // ==========================================
-
-                          _menuItem(
-                            icon:
-                                Icons.dashboard_outlined,
-
-                            title:
-                                'Dashboard',
-                          ),
+                          if (_canOpen('dashboard', 'viewDashboard'))
+                            _menuItem(
+                              icon: Icons.dashboard_outlined,
+                              title: 'Dashboard',
+                            ),
 
                           // ==========================================
                           // TEMPLATES
@@ -173,112 +139,86 @@ class DashboardSidebar extends StatelessWidget {
                           // ==========================================
                           // LEADS
                           // ==========================================
+                          if (_canOpen('leads', 'viewLeads'))
+                            _menuItem(
+                              icon: Icons.people_outline_rounded,
+                              title: 'Leads',
+                            ),
 
-                          _menuItem(
-                            icon:
-                                Icons.people_outline_rounded,
-
-                            title:
-                                'Leads',
-                          ),
-
-                          _menuItem(
-                            icon:
-                                Icons.person_search_outlined,
-
-                            title:
-                                'Interested Leads',
-                          ),
+                          if (_canOpen(
+                            'interestedLeads',
+                            'viewInterestedLeads',
+                          ))
+                            _menuItem(
+                              icon: Icons.person_search_outlined,
+                              title: 'Interested Leads',
+                            ),
 
                           // ==========================================
                           // MASTER
                           // ==========================================
+                          if (_canOpen('socialLinks', 'viewSocialLinks') ||
+                              _canOpen('businessLink', 'viewBusinessLink') ||
+                              _canOpen('sequences', 'viewSequences') ||
+                              _canOpen('trackingReport', 'viewTrackingReport'))
+                            _mailAutomationMenu(),
 
-                          _mailAutomationMenu(),
-
-                          const SizedBox(
-                            height: 18,
-                          ),
+                          const SizedBox(height: 18),
 
                           // ==========================================
                           // DIVIDER
                           // ==========================================
-
                           Container(
                             height: 1,
 
-                            margin:
-                                const EdgeInsets.symmetric(
-                              horizontal: 8,
-                            ),
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
 
-                            color: gold.withOpacity(
-                              0.15,
-                            ),
+                            color: gold.withOpacity(0.15),
                           ),
 
-                          const SizedBox(
-                            height: 18,
-                          ),
+                          const SizedBox(height: 18),
 
                           // ==========================================
                           // OTHER LABEL
                           // ==========================================
+                          _sectionLabel('OTHER'),
 
-                          _sectionLabel(
-                            'OTHER',
-                          ),
-
-                          const SizedBox(
-                            height: 8,
-                          ),
+                          const SizedBox(height: 8),
 
                           // ==========================================
                           // PRIVACY POLICY
                           // ==========================================
-
                           _menuItem(
-                            icon:
-                                Icons.privacy_tip_outlined,
+                            icon: Icons.privacy_tip_outlined,
 
-                            title:
-                                'Privacy Policy',
+                            title: 'Privacy Policy',
                           ),
 
                           // ==========================================
                           // LANDING PAGE
                           // ==========================================
-
                           _menuItem(
-                            icon:
-                                Icons.web_outlined,
+                            icon: Icons.web_outlined,
 
-                            title:
-                                'Landing Page',
+                            title: 'Landing Page',
                           ),
 
                           // ==========================================
                           // TERMS
                           // ==========================================
-
                           _menuItem(
-                            icon:
-                                Icons.article_outlined,
+                            icon: Icons.article_outlined,
 
-                            title:
-                                'Terms & Conditions',
+                            title: 'Terms & Conditions',
                           ),
 
                           // ==========================================
                           // CONTACT
                           // ==========================================
-
                           _menuItem(
-                            icon:
-                                Icons.contact_mail_outlined,
+                            icon: Icons.contact_mail_outlined,
 
-                            title:
-                                'Contact Us',
+                            title: 'Contact Us',
                           ),
                         ],
                       ),
@@ -296,61 +236,37 @@ class DashboardSidebar extends StatelessWidget {
 
   Widget _buildSidebarHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        18,
-        20,
-        18,
-        18,
-      ),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
 
       child: Row(
         children: [
           // ======================================================
           // LOGO
           // ======================================================
-
           Container(
             width: 45,
 
             height: 45,
 
             decoration: BoxDecoration(
-              color: gold.withOpacity(
-                0.07,
-              ),
+              color: gold.withOpacity(0.07),
 
-              borderRadius: BorderRadius.circular(
-                11,
-              ),
+              borderRadius: BorderRadius.circular(11),
 
-              border: Border.all(
-                color: gold.withOpacity(
-                  0.35,
-                ),
-              ),
+              border: Border.all(color: gold.withOpacity(0.35)),
             ),
 
-            child: const Icon(
-              Icons.diamond_outlined,
-
-              color: gold,
-
-              size: 28,
-            ),
+            child: const Icon(Icons.diamond_outlined, color: gold, size: 28),
           ),
 
-          const SizedBox(
-            width: 11,
-          ),
+          const SizedBox(width: 11),
 
           // ======================================================
           // BRAND
           // ======================================================
-
           const Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
                 Text(
@@ -358,44 +274,36 @@ class DashboardSidebar extends StatelessWidget {
 
                   maxLines: 1,
 
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
 
                   style: TextStyle(
                     color: gold,
 
                     fontSize: 18,
 
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
 
-                    letterSpacing:
-                        0.3,
+                    letterSpacing: 0.3,
                   ),
                 ),
 
-                SizedBox(
-                  height: 3,
-                ),
+                SizedBox(height: 3),
 
                 Text(
                   'BELIEVE IN PERFECTION',
 
                   maxLines: 1,
 
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
 
                   style: TextStyle(
                     color: mutedText,
 
                     fontSize: 6.5,
 
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
 
-                    letterSpacing:
-                        1.5,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ],
@@ -410,29 +318,21 @@ class DashboardSidebar extends StatelessWidget {
   // SECTION LABEL
   // ============================================================
 
-  Widget _sectionLabel(
-    String title,
-  ) {
+  Widget _sectionLabel(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
 
       child: Text(
         title,
 
         style: TextStyle(
-          color: gold.withOpacity(
-            0.55,
-          ),
+          color: gold.withOpacity(0.55),
 
           fontSize: 10,
 
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
 
-          letterSpacing:
-              1.4,
+          letterSpacing: 1.4,
         ),
       ),
     );
@@ -442,92 +342,45 @@ class DashboardSidebar extends StatelessWidget {
   // NORMAL MENU ITEM
   // ============================================================
 
-  Widget _menuItem({
-    required IconData icon,
-    required String title,
-  }) {
-    final bool isSelected =
-        selectedMenu == title;
+  Widget _menuItem({required IconData icon, required String title}) {
+    final bool isSelected = selectedMenu == title;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 5,
-      ),
+      padding: const EdgeInsets.only(bottom: 5),
 
       child: Material(
         color: Colors.transparent,
 
         child: InkWell(
           onTap: () {
-            onMenuSelected(
-              title,
-            );
+            onMenuSelected(title);
           },
 
-          borderRadius:
-              BorderRadius.circular(
-            11,
-          ),
+          borderRadius: BorderRadius.circular(11),
 
-          splashColor:
-              gold.withOpacity(
-            0.08,
-          ),
+          splashColor: gold.withOpacity(0.08),
 
-          highlightColor:
-              gold.withOpacity(
-            0.04,
-          ),
+          highlightColor: gold.withOpacity(0.04),
 
           child: AnimatedContainer(
-            duration:
-                const Duration(
-              milliseconds: 180,
-            ),
+            duration: const Duration(milliseconds: 180),
 
             height: 48,
 
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 13,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 13),
 
-            decoration:
-                BoxDecoration(
-              color: isSelected
-                  ? gold.withOpacity(
-                      0.09,
-                    )
-                  : Colors.transparent,
+            decoration: BoxDecoration(
+              color: isSelected ? gold.withOpacity(0.09) : Colors.transparent,
 
-              borderRadius:
-                  BorderRadius.circular(
-                11,
+              borderRadius: BorderRadius.circular(11),
+
+              border: Border.all(
+                color: isSelected ? gold.withOpacity(0.48) : Colors.transparent,
               ),
 
-              border:
-                  Border.all(
-                color: isSelected
-                    ? gold.withOpacity(
-                        0.48,
-                      )
-                    : Colors.transparent,
-              ),
-
-              boxShadow:
-                  isSelected
-                      ? [
-                          BoxShadow(
-                            color:
-                                gold.withOpacity(
-                              0.05,
-                            ),
-
-                            blurRadius:
-                                14,
-                          ),
-                        ]
-                      : null,
+              boxShadow: isSelected
+                  ? [BoxShadow(color: gold.withOpacity(0.05), blurRadius: 14)]
+                  : null,
             ),
 
             child: Row(
@@ -535,27 +388,19 @@ class DashboardSidebar extends StatelessWidget {
                 // ================================================
                 // ICON BOX
                 // ================================================
-
                 Container(
                   width: 31,
 
                   height: 31,
 
-                  alignment:
-                      Alignment.center,
+                  alignment: Alignment.center,
 
-                  decoration:
-                      BoxDecoration(
+                  decoration: BoxDecoration(
                     color: isSelected
-                        ? gold.withOpacity(
-                            0.12,
-                          )
+                        ? gold.withOpacity(0.12)
                         : Colors.transparent,
 
-                    borderRadius:
-                        BorderRadius.circular(
-                      8,
-                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
 
                   child: Icon(
@@ -563,43 +408,31 @@ class DashboardSidebar extends StatelessWidget {
 
                     size: 20,
 
-                    color: isSelected
-                        ? gold
-                        : mutedText,
+                    color: isSelected ? gold : mutedText,
                   ),
                 ),
 
-                const SizedBox(
-                  width: 11,
-                ),
+                const SizedBox(width: 11),
 
                 // ================================================
                 // TITLE
                 // ================================================
-
                 Expanded(
                   child: Text(
                     title,
 
                     maxLines: 1,
 
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
 
-                    style:
-                        TextStyle(
-                      color: isSelected
-                          ? gold
-                          : const Color(
-                              0xFFD0D3D9,
-                            ),
+                    style: TextStyle(
+                      color: isSelected ? gold : const Color(0xFFD0D3D9),
 
                       fontSize: 14,
 
-                      fontWeight:
-                          isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                 ),
@@ -607,32 +440,19 @@ class DashboardSidebar extends StatelessWidget {
                 // ================================================
                 // SELECTED INDICATOR
                 // ================================================
-
                 if (isSelected)
                   Container(
                     width: 4,
 
                     height: 18,
 
-                    decoration:
-                        BoxDecoration(
+                    decoration: BoxDecoration(
                       color: gold,
 
-                      borderRadius:
-                          BorderRadius.circular(
-                        10,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
 
                       boxShadow: [
-                        BoxShadow(
-                          color:
-                              gold.withOpacity(
-                            0.35,
-                          ),
-
-                          blurRadius:
-                              7,
-                        ),
+                        BoxShadow(color: gold.withOpacity(0.35), blurRadius: 7),
                       ],
                     ),
                   ),
@@ -651,172 +471,132 @@ class DashboardSidebar extends StatelessWidget {
   Widget _mailAutomationMenu() {
     final bool hasSelectedChild =
         selectedMenu == 'Link' ||
-            selectedMenu == 'Social Links' ||
-            selectedMenu == 'Master' ||
-            selectedMenu ==
-                'Tracking Report';
+        selectedMenu == 'Social Links' ||
+        selectedMenu == 'Master' ||
+        selectedMenu == 'Tracking Report';
     bool isExpanded = true;
 
     return StatefulBuilder(
       builder: (context, setMenuState) => Container(
-      margin: const EdgeInsets.only(
-        bottom: 5,
-      ),
+        margin: const EdgeInsets.only(bottom: 5),
 
-      decoration: BoxDecoration(
-        color: hasSelectedChild
-            ? gold.withOpacity(
-                0.035,
-              )
-            : Colors.transparent,
+        decoration: BoxDecoration(
+          color: hasSelectedChild
+              ? gold.withOpacity(0.035)
+              : Colors.transparent,
 
-        borderRadius:
-            BorderRadius.circular(
-          12,
+          borderRadius: BorderRadius.circular(12),
         ),
-      ),
 
-      child: Column(
-        children: [
-          // ====================================================
-          // TITLE
-          // ====================================================
+        child: Column(
+          children: [
+            // ====================================================
+            // TITLE
+            // ====================================================
+            InkWell(
+              onTap: () {
+                setMenuState(() {
+                  isExpanded = !isExpanded;
+                });
+              },
 
-          InkWell(
-            onTap: () {
-              setMenuState(() {
-                isExpanded = !isExpanded;
-              });
-            },
+              borderRadius: BorderRadius.circular(12),
 
-            borderRadius:
-                BorderRadius.circular(
-              12,
-            ),
+              child: Container(
+                height: 48,
 
-            child: Container(
-              height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 13),
 
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 13,
-              ),
+                child: Row(
+                  children: [
+                    // ==============================================
+                    // ICON
+                    // ==============================================
+                    Container(
+                      width: 31,
 
-              child: Row(
-                children: [
-                // ==============================================
-                // ICON
-                // ==============================================
+                      height: 31,
 
-                Container(
-                  width: 31,
+                      alignment: Alignment.center,
 
-                  height: 31,
+                      child: Icon(
+                        Icons.auto_awesome_outlined,
 
-                  alignment:
-                      Alignment.center,
+                        size: 20,
 
-                  child: Icon(
-                    Icons.auto_awesome_outlined,
+                        color: hasSelectedChild ? gold : mutedText,
+                      ),
+                    ),
 
-                    size: 20,
+                    const SizedBox(width: 11),
 
-                    color: hasSelectedChild
-                        ? gold
-                        : mutedText,
-                  ),
-                ),
+                    // ==============================================
+                    // TITLE
+                    // ==============================================
+                    Expanded(
+                      child: Text(
+                        'Master',
 
-                const SizedBox(
-                  width: 11,
-                ),
+                        style: TextStyle(
+                          color: hasSelectedChild
+                              ? gold
+                              : const Color(0xFFD0D3D9),
 
-                // ==============================================
-                // TITLE
-                // ==============================================
+                          fontSize: 14,
 
-                Expanded(
-                  child: Text(
-                    'Master',
-
-                    style:
-                        TextStyle(
-                      color: hasSelectedChild
-                          ? gold
-                          : const Color(
-                              0xFFD0D3D9,
-                            ),
-
-                      fontSize: 14,
-
-                      fontWeight:
-                          hasSelectedChild
+                          fontWeight: hasSelectedChild
                               ? FontWeight.w700
                               : FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ),
+
+                    // ==============================================
+                    // ARROW
+                    // ==============================================
+                    AnimatedRotation(
+                      turns: isExpanded ? 0 : -0.25,
+
+                      duration: const Duration(milliseconds: 180),
+
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+
+                        color: hasSelectedChild ? gold : mutedText,
+
+                        size: 21,
+                      ),
+                    ),
+                  ],
                 ),
-
-                // ==============================================
-                // ARROW
-                // ==============================================
-
-                AnimatedRotation(
-                  turns: isExpanded ? 0 : -0.25,
-
-                  duration: const Duration(
-                    milliseconds: 180,
-                  ),
-
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-
-                    color: hasSelectedChild
-                        ? gold
-                        : mutedText,
-
-                    size: 21,
-                  ),
-                ),
-                ],
               ),
             ),
-          ),
 
-          // ====================================================
-          // SUB MENU
-          // ====================================================
+            // ====================================================
+            // SUB MENU
+            // ====================================================
+            if (isExpanded)
+              Padding(
+                padding: const EdgeInsets.only(left: 28, bottom: 5),
 
-          if (isExpanded) Padding(
-            padding: const EdgeInsets.only(
-              left: 28,
-              bottom: 5,
-            ),
+                child: Column(
+                  children: [
+                    if (_canOpen('socialLinks', 'viewSocialLinks'))
+                      _subMenuItem(title: 'Social Links'),
 
-            child: Column(
-              children: [
-                _subMenuItem(
-                  title: 'Social Links',
+                    if (_canOpen('businessLink', 'viewBusinessLink'))
+                      _subMenuItem(title: 'Link'),
+
+                    if (_canOpen('sequences', 'viewSequences'))
+                      _subMenuItem(title: 'Sequences', menuValue: 'Master'),
+
+                    if (_canOpen('trackingReport', 'viewTrackingReport'))
+                      _subMenuItem(title: 'Tracking Report'),
+                  ],
                 ),
-
-                _subMenuItem(
-                  title: 'Link',
-                ),
-
-                _subMenuItem(
-                  title: 'Sequences',
-                  menuValue: 'Master',
-                ),
-
-                _subMenuItem(
-                  title:
-                      'Tracking Report',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -825,67 +605,37 @@ class DashboardSidebar extends StatelessWidget {
   // SUB MENU ITEM
   // ============================================================
 
-  Widget _subMenuItem({
-    required String title,
-    String? menuValue,
-  }) {
+  Widget _subMenuItem({required String title, String? menuValue}) {
     final String selectedValue = menuValue ?? title;
-    final bool isSelected =
-        selectedMenu == selectedValue;
+    final bool isSelected = selectedMenu == selectedValue;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 3,
-      ),
+      padding: const EdgeInsets.only(bottom: 3),
 
       child: Material(
         color: Colors.transparent,
 
         child: InkWell(
           onTap: () {
-            onMenuSelected(
-              selectedValue,
-            );
+            onMenuSelected(selectedValue);
           },
 
-          borderRadius:
-              BorderRadius.circular(
-            9,
-          ),
+          borderRadius: BorderRadius.circular(9),
 
           child: AnimatedContainer(
-            duration:
-                const Duration(
-              milliseconds: 180,
-            ),
+            duration: const Duration(milliseconds: 180),
 
             height: 39,
 
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 11,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 11),
 
-            decoration:
-                BoxDecoration(
-              color: isSelected
-                  ? gold.withOpacity(
-                      0.09,
-                    )
-                  : Colors.transparent,
+            decoration: BoxDecoration(
+              color: isSelected ? gold.withOpacity(0.09) : Colors.transparent,
 
-              borderRadius:
-                  BorderRadius.circular(
-                9,
-              ),
+              borderRadius: BorderRadius.circular(9),
 
-              border:
-                  Border.all(
-                color: isSelected
-                    ? gold.withOpacity(
-                        0.30,
-                      )
-                    : Colors.transparent,
+              border: Border.all(
+                color: isSelected ? gold.withOpacity(0.30) : Colors.transparent,
               ),
             ),
 
@@ -894,64 +644,45 @@ class DashboardSidebar extends StatelessWidget {
                 // ================================================
                 // BULLET
                 // ================================================
-
                 Container(
                   width: 6,
 
                   height: 6,
 
-                  decoration:
-                      BoxDecoration(
-                    shape:
-                        BoxShape.circle,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
 
-                    color: isSelected
-                        ? gold
-                        : const Color(
-                            0xFF666B75,
-                          ),
+                    color: isSelected ? gold : const Color(0xFF666B75),
 
-                    boxShadow:
-                        isSelected
-                            ? [
-                                BoxShadow(
-                                  color:
-                                      gold.withOpacity(
-                                    0.40,
-                                  ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: gold.withOpacity(0.40),
 
-                                  blurRadius:
-                                      6,
-                                ),
-                              ]
-                            : null,
+                              blurRadius: 6,
+                            ),
+                          ]
+                        : null,
                   ),
                 ),
 
-                const SizedBox(
-                  width: 11,
-                ),
+                const SizedBox(width: 11),
 
                 // ================================================
                 // TITLE
                 // ================================================
-
                 Expanded(
                   child: Text(
                     title,
 
-                    style:
-                        TextStyle(
-                      color: isSelected
-                          ? gold
-                          : mutedText,
+                    style: TextStyle(
+                      color: isSelected ? gold : mutedText,
 
                       fontSize: 13,
 
-                      fontWeight:
-                          isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w400,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w400,
                     ),
                   ),
                 ),

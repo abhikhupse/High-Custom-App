@@ -315,6 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: DashboardSidebar(
                               isOpen: true,
                               selectedMenu: selectedMenu,
+                              user: dashboardController.user,
                               onMenuSelected: _handleSidebarMenu,
                             ),
                           ),
@@ -343,6 +344,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         child: DashboardSidebar(
                                           isOpen: true,
                                           selectedMenu: selectedMenu,
+                                          user: dashboardController.user,
                                           onMenuSelected: _handleSidebarMenu,
                                         ),
                                       )
@@ -367,6 +369,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
 
   Widget _buildMobileFooter() {
+    final user = dashboardController.user;
+    bool allowed(String appRight, String accessRight) =>
+        user?.canOpen(appRight, accessRight) == true;
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF070A0E),
@@ -385,37 +390,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 78,
           child: Row(
             children: [
-              _buildFooterItem(
-                label: 'Dashboard',
-                icon: Icons.home_outlined,
-                selected: selectedMenu == 'Dashboard',
-                onTap: () => _handleSidebarMenu('Dashboard'),
-              ),
-              _buildFooterItem(
-                label: 'Leads',
-                icon: Icons.people_outline_rounded,
-                selected: selectedMenu == 'Leads',
-                onTap: () => _handleSidebarMenu('Leads'),
-              ),
-              _buildAddLeadFooterItem(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AddLeadScreen()),
-                  );
-                },
-              ),
-              _buildFooterItem(
-                label: 'Sequences',
-                icon: Icons.account_tree_outlined,
-                selected: selectedMenu == 'Master',
-                onTap: () => _handleSidebarMenu('Master'),
-              ),
-              _buildFooterItem(
-                label: 'Settings',
-                icon: Icons.settings_outlined,
-                selected: selectedMenu == 'Profile',
-                onTap: () => _handleSidebarMenu('Profile'),
-              ),
+              if (allowed('dashboard', 'viewDashboard'))
+                _buildFooterItem(
+                  label: 'Dashboard',
+                  icon: Icons.home_outlined,
+                  selected: selectedMenu == 'Dashboard',
+                  onTap: () => _handleSidebarMenu('Dashboard'),
+                ),
+              if (allowed('leads', 'viewLeads'))
+                _buildFooterItem(
+                  label: 'Leads',
+                  icon: Icons.people_outline_rounded,
+                  selected: selectedMenu == 'Leads',
+                  onTap: () => _handleSidebarMenu('Leads'),
+                ),
+              if (allowed('leads', 'createLead'))
+                _buildAddLeadFooterItem(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AddLeadScreen()),
+                    );
+                  },
+                ),
+              if (allowed('sequences', 'viewSequences'))
+                _buildFooterItem(
+                  label: 'Sequences',
+                  icon: Icons.account_tree_outlined,
+                  selected: selectedMenu == 'Master',
+                  onTap: () => _handleSidebarMenu('Master'),
+                ),
+              if (allowed('profile', 'viewProfile'))
+                _buildFooterItem(
+                  label: 'Settings',
+                  icon: Icons.settings_outlined,
+                  selected: selectedMenu == 'Profile',
+                  onTap: () => _handleSidebarMenu('Profile'),
+                ),
             ],
           ),
         ),
@@ -525,6 +535,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
 
   Widget _buildSelectedContent() {
+    const requirements = {
+      'Dashboard': ['dashboard', 'viewDashboard'],
+      'Leads': ['leads', 'viewLeads'],
+      'Interested Leads': ['interestedLeads', 'viewInterestedLeads'],
+      'Master': ['sequences', 'viewSequences'],
+      'Tracking Report': ['trackingReport', 'viewTrackingReport'],
+      'Social Links': ['socialLinks', 'viewSocialLinks'],
+      'Link': ['businessLink', 'viewBusinessLink'],
+      'Integration': ['integrations', 'viewIntegrations'],
+      'Notifications': ['notifications', 'viewNotifications'],
+      'Profile': ['profile', 'viewProfile'],
+    };
+    final permissionRequirement = requirements[selectedMenu];
+    if (permissionRequirement != null &&
+        dashboardController.user != null &&
+        !dashboardController.user!.canOpen(
+          permissionRequirement[0],
+          permissionRequirement[1],
+        )) {
+      return const Center(
+        child: Text(
+          'You do not have permission to open this page.',
+          style: TextStyle(color: Color(0xFFAEB4BF)),
+        ),
+      );
+    }
     switch (selectedMenu) {
       // ========================================================
       // DASHBOARD
@@ -545,7 +581,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // ========================================================
 
       case 'Leads':
-        return const LeadsScreen();
+        return LeadsScreen(
+          canImport:
+              dashboardController.user?.canOpen('leads', 'importLeads') == true,
+          canExport:
+              dashboardController.user?.canOpen('leads', 'exportLeads') == true,
+        );
 
       case 'Interested Leads':
         return const InterestedLeadsScreen();
@@ -571,7 +612,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // ========================================================
 
       case 'Tracking Report':
-        return const TrackingReportScreen();
+        return TrackingReportScreen(
+          canExport:
+              dashboardController.user?.canOpen(
+                'trackingReport',
+                'exportTrackingReport',
+              ) ==
+              true,
+        );
 
       // ========================================================
       // PROFILE
@@ -585,7 +633,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // ========================================================
 
       case 'Integration':
-        return const IntegrationScreen();
+        return IntegrationScreen(
+          canConnect:
+              dashboardController.user?.canOpen(
+                'integrations',
+                'connectIntegration',
+              ) ==
+              true,
+          canDisconnect:
+              dashboardController.user?.canOpen(
+                'integrations',
+                'disconnectIntegration',
+              ) ==
+              true,
+        );
 
       case 'Notifications':
         return const NotificationsScreen();

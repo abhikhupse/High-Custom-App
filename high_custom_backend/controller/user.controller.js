@@ -676,6 +676,11 @@ exports.getUserDetails = async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        // Always return the server-calculated values.  Web and mobile must
+        // never infer permissions from a role or from stale local storage.
+        appRights: req.user.appRights || {},
+        accessRights: req.user.accessRights || {},
+        dataScope: req.user.dataScope || "own",
         profileImage: user.profileImage,
         isEmailVerified: user.isEmailVerified,
         isLogIn: user.isLogIn,

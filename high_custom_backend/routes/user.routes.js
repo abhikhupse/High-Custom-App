@@ -16,8 +16,6 @@ router.post("/login", userCtrl.login);
 router.get(
   "/profile",
   authMiddleware,
-  requireAppRight("profile"),
-  requireAccessRight("viewProfile"),
   userCtrl.getUserDetails,
 );
 router.post("/logout", authMiddleware, userCtrl.logout);

@@ -264,6 +264,60 @@
   };
   renderScopedNavigation();
 
+  // One permission source for every static Admin page.  The API calculates
+  // effective role defaults plus user-specific overrides, so UI visibility
+  // and backend enforcement use the same keys.
+  const pageRequirement = (url) => {
+    const path = url.pathname.toLowerCase();
+    const interested = url.searchParams.get("status") === "interested";
+    if (path.endsWith("/dashboard.html")) return ["dashboard", "viewDashboard"];
+    if (path.includes("/users/")) return ["users", "viewUsers"];
+    if (path.endsWith("/master/usermasterlist.html")) return ["sequences", "viewAllUsersSequences"];
+    if (path.endsWith("/master/usersequencetable.html")) return ["trackingReport", "viewAllUsersTracking"];
+    if (path.endsWith("/leads/total-leads.html")) return interested ? ["interestedLeads", "viewAllInterestedLeads"] : ["leads", "viewAllUsersLeads"];
+    if (path.endsWith("/leads/index.html")) return interested ? ["interestedLeads", "viewInterestedLeads"] : ["leads", "viewLeads"];
+    if (path.endsWith("/master/master-list.html")) return ["sequences", "viewSequences"];
+    if (path.endsWith("/reports/campaign.html")) return ["trackingReport", "viewTrackingReport"];
+    if (path.includes("/social/") && path.includes("link-document")) return ["businessLink", "viewBusinessLink"];
+    if (path.includes("/social/")) return ["socialLinks", "viewSocialLinks"];
+    return null;
+  };
+  const denyPage = () => {
+    document.body.replaceChildren();
+    const notice = document.createElement("main");
+    notice.style.cssText = "min-height:100vh;display:grid;place-items:center;background:#f5f7fb;padding:24px;font:600 16px Arial,sans-serif;color:#10213d";
+    notice.innerHTML = '<section style="max-width:430px;text-align:center;background:#fff;padding:36px;border-radius:16px;box-shadow:0 12px 35px #15294a1c"><h1 style="margin:0 0 10px">Access denied</h1><p style="margin:0 0 22px;color:#61708a;font-weight:400">You do not have permission to open this page.</p><a href="' + new URL("dashboard.html", adminRoot).href + '" style="display:inline-block;background:#a8751f;color:#fff;text-decoration:none;padding:11px 17px;border-radius:8px">Go back</a></section>';
+    document.body.append(notice);
+  };
+  const applyPermissions = async () => {
+    const token = localStorage.getItem("highCustomAdminToken");
+    if (!token) return;
+    const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const apiBase = isLocal ? "http://localhost:3000/api" : (localStorage.getItem("highCustomApiBase") || "https://high-custom-app.onrender.com/api");
+    try {
+      const response = await fetch(`${apiBase}/user/profile`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } });
+      const payload = await response.json().catch(() => ({}));
+      const user = payload?.user;
+      if (!response.ok || !payload?.success || !user) return;
+      localStorage.setItem("highCustomAdminUser", JSON.stringify(user));
+      const allowed = (requirement) => !requirement || (user.appRights?.[requirement[0]] === true && user.accessRights?.[requirement[1]] === true);
+      document.querySelectorAll(".sidebar a.nav-link[href]").forEach((link) => {
+        const requirement = pageRequirement(new URL(link.href, window.location.origin));
+        link.closest(".nav-item").hidden = !allowed(requirement);
+      });
+      document.querySelectorAll(".sidebar .sub-menu").forEach((menu) => {
+        const children = [...menu.querySelectorAll(":scope > .nav-item")];
+        const group = menu.closest(".nav-item");
+        if (group) group.hidden = children.length > 0 && children.every((child) => child.hidden);
+      });
+      if (!allowed(pageRequirement(new URL(window.location.href)))) denyPage();
+    } catch (_) {
+      // Existing backend route protection remains the security boundary if a
+      // temporary connection failure prevents the visual update.
+    }
+  };
+  applyPermissions();
+
   // Each route above is explicit. Do not remap by menu label: Admin and Master
   // intentionally contain duplicate labels such as Leads and Sequences.
 

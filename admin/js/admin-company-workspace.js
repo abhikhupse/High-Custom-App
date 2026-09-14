@@ -49,7 +49,7 @@
         ? "bg-success"
         : "bg-secondary"
     }">${esc(value || "Pending")}</span>`;
-  const sequenceState = { page: 1, limit: 10, rows: [], canDelete: true };
+  const sequenceState = { page: 1, limit: 10, rows: [], canDelete: false, canEdit: false };
   const leadState = { page: 1, limit: 10, rows: [] };
   const initials = (value) =>
     String(value || "A")
@@ -385,10 +385,13 @@
               const displayOwner =
                 item.owner?.name || item.userId?.email || "—";
               const variant = String(item.variant || "A").toUpperCase();
+              const editAction = sequenceState.canEdit
+                ? `<button class="sequence-action" data-sequence-action="edit" data-id="${esc(item._id)}" title="Edit"><i class="fas fa-pen"></i></button>`
+                : "";
               const deleteAction = sequenceState.canDelete
                 ? `<button class="sequence-action delete" data-sequence-action="delete" data-id="${esc(item._id)}" title="Delete"><i class="far fa-trash-alt"></i></button>`
                 : "";
-              return `<tr><td class="sequence-row-no">${(sequenceState.page - 1) * sequenceState.limit + index + 1}</td><td class="sequence-subject" title="${esc(item.subject)}">${esc(item.subject || "—")}</td><td><span class="sequence-variant ${variant === "B" ? "variant-b" : ""}">${esc(variant)}</span></td><td>${esc(item.gapDays ?? 0)}</td><td>${esc(item.businessType || "—")}</td><td>${sequenceStatus(item.status)}</td><td><span class="sequence-owner"><span class="sequence-owner-avatar ${ownerTone(displayOwner)}">${esc(initials(displayOwner))}</span>${esc(displayOwner)}</span></td><td><span class="sequence-date"><i class="far fa-calendar-alt"></i>${esc(sequenceDate(item.createdAt))}</span></td><td><button class="sequence-action" data-sequence-action="view" data-id="${esc(item._id)}" title="View"><i class="fas fa-eye"></i></button><button class="sequence-action" data-sequence-action="edit" data-id="${esc(item._id)}" title="Edit"><i class="fas fa-pen"></i></button><button class="sequence-action" data-sequence-action="copy" data-id="${esc(item._id)}" title="Copy content"><i class="far fa-copy"></i></button>${deleteAction}</td></tr>`;
+              return `<tr><td class="sequence-row-no">${(sequenceState.page - 1) * sequenceState.limit + index + 1}</td><td class="sequence-subject" title="${esc(item.subject)}">${esc(item.subject || "—")}</td><td><span class="sequence-variant ${variant === "B" ? "variant-b" : ""}">${esc(variant)}</span></td><td>${esc(item.gapDays ?? 0)}</td><td>${esc(item.businessType || "—")}</td><td>${sequenceStatus(item.status)}</td><td><span class="sequence-owner"><span class="sequence-owner-avatar ${ownerTone(displayOwner)}">${esc(initials(displayOwner))}</span>${esc(displayOwner)}</span></td><td><span class="sequence-date"><i class="far fa-calendar-alt"></i>${esc(sequenceDate(item.createdAt))}</span></td><td><button class="sequence-action" data-sequence-action="view" data-id="${esc(item._id)}" title="View"><i class="fas fa-eye"></i></button>${editAction}<button class="sequence-action" data-sequence-action="copy" data-id="${esc(item._id)}" title="Copy content"><i class="far fa-copy"></i></button>${deleteAction}</td></tr>`;
             })
             .join("")
         : '<tr><td colspan="9" class="text-center py-5 text-muted">No sequences found.</td></tr>';
@@ -425,8 +428,8 @@
       const currentUser = users.find(
         (user) => String(user._id) === String(usersResponse.currentUserId),
       );
-      sequenceState.canDelete =
-        currentUser?.accessRights?.deleteSequence !== false;
+      sequenceState.canDelete = currentUser?.accessRights?.deleteSequence === true;
+      sequenceState.canEdit = currentUser?.accessRights?.editSequence === true;
       const options = users
         .map((user) => {
           const name =
