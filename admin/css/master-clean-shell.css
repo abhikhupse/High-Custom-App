@@ -1,6 +1,10 @@
 /* Shared chrome for every Master workspace. Page-specific content stays intact. */
 html, body { min-height: 100%; background: #f5f8ff; }
 body { color: #10224a; }
+html.master-shared-shell body > .overlay,
+html.master-shared-shell body > .sidebar-overlay { display: none !important; }
+html.master-shared-shell .sidebar,
+html.master-shared-shell .top-navbar { isolation: isolate; }
 .main-content { min-height: 100vh; padding: 104px 32px 36px !important; background: #f5f8ff !important; }
 .master-clean-page { max-width: 1500px; margin: 0 auto; }
 .master-clean-hero { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:24px; }

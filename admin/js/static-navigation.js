@@ -32,6 +32,23 @@
     document.head.append(sidebarCss);
   }
 
+  // Master screens used to carry their own full header/sidebar styles in each
+  // static template. Load one final, shared stylesheet after those templates
+  // so a hard refresh cannot bring the old chrome back over the new shell.
+  const isMasterWorkspace = /\/admin\/(social|master|reports|Leads)\//i.test(
+    window.location.pathname,
+  );
+  if (isMasterWorkspace) {
+    document.documentElement.classList.add("master-shared-shell");
+    if (!document.getElementById("masterCleanShellCss")) {
+      const masterCss = document.createElement("link");
+      masterCss.id = "masterCleanShellCss";
+      masterCss.rel = "stylesheet";
+      masterCss.href = `${new URL("css/master-clean-shell.css", getAdminRoot()).href}?v=20260915-4`;
+      document.head.append(masterCss);
+    }
+  }
+
   function getAdminRoot() {
     const path = window.location.pathname;
     const adminMarker = "/admin/";
