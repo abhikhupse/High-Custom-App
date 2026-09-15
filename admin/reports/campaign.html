@@ -838,77 +838,21 @@ body.theme-dark .tracking-report-card .table tbody tr:hover { background:#1e293b
     <!-- ========== MAIN CONTENT ========== -->
     <div class="main-content" id="mainContent">
         
-<div class="container-fluid tracking-report-ui">
-    <div class="row">
-        <div class="col-12">
-            <div class="tracking-heading">
-                <div class="heading-icon"><i class="fas fa-chart-line"></i></div>
-                <div><h2>Email Tracking Report</h2><p>Your own campaign delivery, open and reply activity.</p></div>
-            </div>
-        </div>
+<section id="masterTrackingReportPage" class="master-tracking-report">
+    <div class="admin-tracking-heading">
+        <div class="admin-tracking-title"><span class="admin-tracking-title__icon"><i class="fas fa-chart-column"></i></span><div><h1>Tracking Report</h1><p>View your email tracking details and campaign activity.</p></div></div>
+        <div class="admin-tracking-today"><i class="far fa-calendar-alt"></i><span>Today<small id="masterTrackingToday">—</small></span></div>
     </div>
-
-    <!-- Stats Cards -->
-    
-
-    <!-- Second Row Stats -->
-    
-
-    <!-- DataTable -->
-    <div class="card tracking-report-card">
-        
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="campaignTable" class="table table-bordered table-hover align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th width="5%">#</th>
-                            <th width="12%">Lead Name</th>
-                            <th width="15%">Lead Email</th>
-                            <th width="5%">Step</th>
-                            <th width="18%">Subject</th>
-                            <th width="8%">Status</th>
-                            <th width="10%">Scheduled At</th>
-                            <th width="10%">Sent At</th>
-                            <th width="10%">Seen At</th>
-                            <th width="10%">WhatsApp</th>
-                            <th width="10%">Instagram</th>
-                            <th width="10%">Facebook Messenger</th>
-                            <th width="10%">Threads</th>
-                            <th width="10%">Telegram</th>
-                            <th width="10%">Snapchat</th>
-                            <th width="10%">X</th>
-                            <th width="10%">linkedin</th>
-                            <th width="10%">Other</th>
-                            <th width="10%">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be populated by DataTable -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <div class="tracking-filter-bar" aria-label="Tracking report filters">
+        <div class="tracking-filter-group"><input id="masterTrackingSearch" class="form-control" type="search" placeholder="Search lead name, email, subject..."></div>
+        <div class="tracking-filter-group"><select id="masterTrackingBusinessType" class="form-select"><option value="">All Business Types</option></select></div>
+        <div class="tracking-filter-group"><select id="masterTrackingStep" class="form-select"><option value="">All Steps</option></select></div>
+        <div class="tracking-filter-group"><select id="masterTrackingStatus" class="form-select"><option value="">All Status</option><option value="pending">Pending</option><option value="sent">Sent</option><option value="seen">Seen</option><option value="replied">Replied</option><option value="interested">Interested</option><option value="not interested">Not Interested</option><option value="failed">Failed</option></select></div>
+        <div class="tracking-filter-group"><select id="masterTrackingDateRange" class="form-select"><option value="">Select Date Range</option><option value="today">Today</option><option value="7days">Last 7 Days</option><option value="30days">Last 30 Days</option></select></div>
     </div>
-</div>
-
-<!-- Details Modal -->
-<div class="modal fade" id="detailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">📧 Email Campaign Details</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="detailsContent">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2">Loading...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    <div class="tracking-report-card"><div class="tracking-table-toolbar"><label>Show <select id="masterTrackingPageSize"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select> entries</label><div class="tracking-toolbar-actions"><button id="masterTrackingRefresh" type="button" title="Refresh"><i class="fas fa-rotate-right"></i></button><button id="masterTrackingExportCsv" type="button"><i class="fas fa-download me-2"></i>Export CSV</button><button class="tracking-export-excel" id="masterTrackingExportExcel" type="button"><i class="fas fa-file-excel me-2"></i>Export Excel</button></div></div><div class="tracking-table-wrap"><table id="masterTrackingTable" class="table tracking-all-table align-middle"><thead><tr><th>#</th><th>Lead Name</th><th>Lead Email</th><th>Business Type</th><th>Step</th><th>Subject</th><th>Scheduled At</th><th>Status</th><th>Sent At</th><th>Seen At</th><th>WhatsApp</th><th>Instagram</th><th>Facebook Messenger</th><th>Threads</th><th>Actions</th></tr></thead><tbody></tbody></table></div><div class="tracking-pagination" id="masterTrackingPagination" aria-live="polite"></div></div>
+</section>
+<link rel="stylesheet" href="../css/admin-all-tracking-report.css">
 <link rel="stylesheet" href="/css/colReorder.dataTables.min.css">
 <script src="/js/dataTables.colReorder.min.js"></script>
 <script>
@@ -1206,6 +1150,7 @@ $(document).ready(function() {
     </script>
 <script src="../js/static-navigation.js"></script>
 <script src="/js/admin-own-workspace.js"></script>
+<script src="../js/master-tracking-report.js"></script>
 </body>
 
 </html>

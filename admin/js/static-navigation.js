@@ -104,9 +104,6 @@
     const actions = document.createElement("div");
     actions.className = "universal-header-actions";
     actions.innerHTML = `
-      <button class="universal-notification" type="button" title="Notifications" aria-label="Notifications">
-        <i class="fas fa-bell"></i><span class="universal-notification-badge">3</span>
-      </button>
       <div class="dropdown universal-profile-menu">
         <button class="universal-profile-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="universal-profile-avatar" data-shared-profile-avatar>${initials}</span>
@@ -115,7 +112,7 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end universal-profile-dropdown">
           <li><a class="dropdown-item" href="${new URL("users/profile.html", adminRoot).href}"><i class="fas fa-user"></i> Profile</a></li>
-          <li><a class="dropdown-item" href="#"><i class="fas fa-plug"></i> Integrations</a></li>
+          <li><a class="dropdown-item integration-page-link" href="${new URL("integrations.html", adminRoot).href}"><i class="fas fa-plug"></i> Integrations</a></li>
           <li><a class="dropdown-item" href="#"><i class="fas fa-gear"></i> Settings</a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</a></li>
@@ -177,6 +174,15 @@
   upgradeHeader();
   addLogoutControl();
   hydrateHeaderProfile();
+  // Legacy templates contain their own profile dropdown markup. Keep this
+  // single route handler so the Integrations item works before or after the
+  // shared header replaces that legacy markup.
+  document.addEventListener("click", (event) => {
+    const item = event.target.closest(".dropdown-item, a");
+    if (!item || item.textContent.trim().toLowerCase() !== "integrations") return;
+    event.preventDefault();
+    window.location.assign(new URL("integrations.html", adminRoot).href);
+  });
   // The two groups intentionally use different routes, even where a screen
   // looks similar. Admin routes load protected company-wide data; Master
   // routes load data derived from the current JWT owner.
@@ -259,6 +265,7 @@
     const path = url.pathname.toLowerCase();
     const interested = url.searchParams.get("status") === "interested";
     if (path.endsWith("/dashboard.html")) return ["dashboard", "viewDashboard"];
+    if (path.endsWith("/integrations.html")) return ["integrations", "viewIntegrations"];
     if (path.includes("/users/")) return ["users", "viewUsers"];
     if (path.endsWith("/master/usermasterlist.html")) return ["allSequences", "viewAllUsersSequences"];
     if (path.endsWith("/master/usersequencetable.html")) return ["allTrackingReport", "viewAllUsersTracking"];

@@ -1392,3 +1392,52 @@ body.theme-dark .premium-topbar {
   color: #8d650d;
   background: #fff7e7;
 }
+
+/* Header date selector — refined to match the premium calendar reference. */
+.premium-topbar-actions #dashboardHeaderFilters .date-filter-wrap .btn {
+  display: inline-flex !important;
+  align-items: center;
+  min-width: 166px;
+  height: 48px !important;
+  padding: 5px 13px 5px 6px !important;
+  border: 1px solid #dce3ee !important;
+  border-radius: 15px !important;
+  background: linear-gradient(115deg, #fffefa 0%, #ffffff 72%) !important;
+  color: #101a31 !important;
+  font-size: 0.91rem !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgba(24, 42, 76, 0.08) !important;
+}
+.premium-topbar-actions #dashboardHeaderFilters .date-filter-wrap .btn i {
+  display: grid;
+  flex: 0 0 35px;
+  width: 35px;
+  height: 35px;
+  margin: 0 10px 0 0 !important;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #fff7e5, #fae3b4);
+  color: #ad7415;
+  font-size: 0.96rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+.premium-topbar-actions #dashboardHeaderFilters .date-filter-wrap #currentFilterLabel {
+  min-width: 72px;
+  padding-left: 11px;
+  border-left: 1px solid #e5e9f0;
+  font-size: 13px !important;
+  font-weight: 750;
+  line-height: 1;
+}
+.premium-topbar-actions #dashboardHeaderFilters .date-filter-wrap .btn::after {
+  margin-left: auto;
+  color: #1f2b45;
+  border-width: .35em .35em 0;
+}
+.premium-topbar-actions #dashboardHeaderFilters .date-filter-wrap .btn:hover,
+.premium-topbar-actions #dashboardHeaderFilters .date-filter-wrap .btn:focus {
+  border-color: #d3ae67 !important;
+  background: #fff !important;
+  box-shadow: 0 10px 24px rgba(163, 111, 26, 0.17) !important;
+  transform: translateY(-1px);
+}

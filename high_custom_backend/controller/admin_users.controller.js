@@ -379,6 +379,20 @@ exports.update = async (req, res, next) => {
         }),
         ...body.appRights,
       };
+
+      // The configured Administrator must never lose access to the panel or
+      // to the two permission-management screens. This protects both UI and
+      // direct API requests from locking the Administrator out.
+      if (isConfiguredAdmin(user.email)) {
+        [
+          "dashboard",
+          "users",
+          "appRightsManagement",
+          "accessRightsManagement",
+        ].forEach((right) => {
+          changes.appRights[right] = true;
+        });
+      }
     }
 
     // ========================================================

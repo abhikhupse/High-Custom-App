@@ -661,11 +661,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function loadAppRights(user) {
     const rights = user.appRights || {};
+    const requiredAdministratorRights = new Set([
+      "dashboard",
+      "users",
+      "appRightsManagement",
+      "accessRightsManagement",
+    ]);
+    const lockAdministratorRights = isPrimaryAdmin(user);
 
     document.querySelectorAll(".app-right-check").forEach((checkbox) => {
       checkbox.disabled = false;
 
       checkbox.checked = rights[checkbox.value] === true;
+
+      // These are the minimum controls needed for the configured
+      // Administrator to retain access to the panel and permissions editor.
+      if (lockAdministratorRights && requiredAdministratorRights.has(checkbox.value)) {
+        checkbox.checked = true;
+        checkbox.disabled = true;
+        checkbox.closest(".rights-option")?.setAttribute(
+          "title",
+          "Required for the Administrator",
+        );
+      }
     });
 
     enhanceAppRightsEditor();
@@ -1253,9 +1271,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function collectAppRights() {
     const rights = {};
+    const requiredAdministratorRights = new Set([
+      "dashboard",
+      "users",
+      "appRightsManagement",
+      "accessRightsManagement",
+    ]);
+    const lockAdministratorRights = isPrimaryAdmin(selectedUser);
 
     document.querySelectorAll(".app-right-check").forEach((checkbox) => {
-      rights[checkbox.value] = checkbox.checked;
+      rights[checkbox.value] =
+        lockAdministratorRights && requiredAdministratorRights.has(checkbox.value)
+          ? true
+          : checkbox.checked;
     });
 
     return rights;
