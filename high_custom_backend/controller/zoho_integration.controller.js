@@ -6,6 +6,36 @@ const { zohoGet, syncZohoReplies } = require("../services/zoho_reply.service");
 
 const APP_DEEP_LINK = "highcustom://integration";
 
+// Admin Panel return URLs are signed into OAuth state and only accepted for
+// the local admin page or the configured hosted Admin Panel origin.
+function getSafeAdminReturnUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const localAdmin = ["localhost", "127.0.0.1"].includes(url.hostname)
+      && ["http:", "https:"].includes(url.protocol)
+      && /\/integrations\.html$/i.test(url.pathname);
+    const configured = String(process.env.ADMIN_WEB_URL || "").trim();
+    const configuredAdmin = configured
+      && url.origin === new URL(configured).origin
+      && /\/integrations\.html$/i.test(url.pathname);
+    return localAdmin || configuredAdmin ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function integrationRedirect(returnUrl, success, params = {}) {
+  if (returnUrl) {
+    const url = new URL(returnUrl);
+    url.searchParams.set("provider", "zoho");
+    url.searchParams.set("success", String(success));
+    Object.entries(params).forEach(([key, value]) => { if (value) url.searchParams.set(key, String(value)); });
+    return url.toString();
+  }
+  return `${APP_DEEP_LINK}?${new URLSearchParams({ provider: "zoho", success: String(success), ...params }).toString()}`;
+}
+
 function accountsBaseUrl() {
   return String(
     process.env.ZOHO_ACCOUNTS_BASE_URL || "https://accounts.zoho.in",
@@ -38,7 +68,11 @@ exports.connectZoho = async (req, res) => {
 
     const config = requiredConfig();
     const state = jwt.sign(
-      { userId: userId.toString(), provider: "zoho" },
+      {
+        userId: userId.toString(),
+        provider: "zoho",
+        adminReturnUrl: getSafeAdminReturnUrl(req.query.returnUrl),
+      },
       process.env.JWT_SECRET,
       {
         expiresIn: "10m",
@@ -66,11 +100,8 @@ exports.connectZoho = async (req, res) => {
 };
 
 exports.zohoCallback = async (req, res) => {
-  const redirectFailure = (error) =>
-    res.redirect(
-      302,
-      `${APP_DEEP_LINK}?provider=zoho&success=false&error=${encodeURIComponent(error)}`,
-    );
+  let returnUrl = null;
+  const redirectFailure = (error) => res.redirect(302, integrationRedirect(returnUrl, false, { error }));
 
   try {
     const { code, state, error } = req.query;
@@ -84,6 +115,7 @@ exports.zohoCallback = async (req, res) => {
     } catch (_) {
       return redirectFailure("invalid_state");
     }
+    returnUrl = getSafeAdminReturnUrl(decoded.adminReturnUrl);
     if (!decoded.userId || decoded.provider !== "zoho")
       return redirectFailure("invalid_state");
 
@@ -151,10 +183,7 @@ exports.zohoCallback = async (req, res) => {
       { upsert: true, returnDocument: "after" },
     );
 
-    return res.redirect(
-      302,
-      `${APP_DEEP_LINK}?provider=zoho&success=true&email=${encodeURIComponent(email)}`,
-    );
+    return res.redirect(302, integrationRedirect(returnUrl, true, { email }));
   } catch (error) {
     console.error("Zoho Callback Error:", {
       step: error.zohoPath ? "mail_account_lookup" : "oauth_token_exchange",
@@ -185,7 +214,7 @@ exports.getZohoStatus = async (req, res) => {
         .status(401)
         .json({ success: false, message: "User authentication required." });
     const integration = await ZOHO_INTEGRATION.findOne({ userId }).select(
-      "email connectedAt lastSyncAt lastSyncError",
+      "email scope connectedAt lastSyncAt lastSyncError",
     );
     if (!integration) {
       return res
