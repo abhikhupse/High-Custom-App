@@ -52,15 +52,20 @@
   };
   const click = (icon, kind, value) =>
     `<span class="tracking-click ${kind}"><i class="${icon}"></i>${Number(value || 0)}</span>`;
-  const actionLinks = (links) =>
-    Array.isArray(links) && links.length
-      ? links
-          .map(
-            (link) =>
-              `<div class="tracking-action-link"><strong>${esc(link.label || link.type || "Action Link")}</strong> <span>${esc(link.status || "Not Clicked")} · ${Number(link.clickCount || 0)} ${Number(link.clickCount || 0) === 1 ? "click" : "clicks"}</span>${link.lastClickedAt ? `<small>${esc(date(link.lastClickedAt))}</small>` : ""}</div>`,
-          )
-          .join("")
-      : '<span class="text-muted">—</span>';
+  const platformCell = (links, type, icon, className, fallbackCount) => {
+    const link = (Array.isArray(links) ? links : []).find(
+      (item) => item.type === type,
+    );
+    const count = Number(link?.clickCount ?? fallbackCount ?? 0);
+    const lastClicked = link?.lastClickedAt
+      ? `<small>${esc(date(link.lastClickedAt))}</small>`
+      : "";
+    const indicator =
+      count > 0
+        ? click(icon, className, count)
+        : `<span class="tracking-click ${className}"><i class="${icon}"></i></span>`;
+    return `<span class="tracking-platform-cell ${className}">${indicator}${count > 0 ? lastClicked : ""}</span>`;
+  };
   const range = (value) => {
     if (!value) return {};
     const end = new Date();
@@ -82,19 +87,6 @@
       throw new Error(data.message || "Unable to load tracking data.");
     return data;
   };
-
-  const headerRow = table.tHead?.rows[0];
-  const seenHeader =
-    headerRow &&
-    [...headerRow.cells].find((cell) => cell.textContent.trim() === "Seen At");
-  if (
-    seenHeader &&
-    ![...headerRow.cells].some(
-      (cell) => cell.textContent.trim() === "Action Links",
-    )
-  ) {
-    seenHeader.insertAdjacentHTML("afterend", "<th>Action Links</th>");
-  }
 
   function pagination(meta) {
     const host = document.getElementById("masterTrackingPagination");
@@ -171,13 +163,13 @@
         ? rows
             .map(
               (item, index) =>
-                `<tr><td>${(state.page - 1) * state.limit + index + 1}</td><td><span class="tracking-owner"><span class="tracking-owner-avatar">${esc(initials(name(item)))}</span>${esc(name(item))}</span></td><td>${esc(item.leadId?.email || item.email || "—")}</td><td><span class="tracking-business">${esc(item.sequenceId?.type || "—")}</span></td><td><span class="tracking-step">${esc(item.sequenceId?.step || "—")}</span></td><td title="${esc(item.sequenceId?.subject || "")}">${esc(item.sequenceId?.subject || "—")}</td><td>${esc(date(item.createdAt))}</td><td>${status(item)}</td><td>${esc(date(item.sentAt))}</td><td>${esc(date(item.openedAt))}</td><td>${actionLinks(item.actionLinks)}</td><td>${click("fab fa-whatsapp", "whatsapp", item.whatsapp_clicks)}</td><td>${click("fab fa-instagram", "instagram", item.instagram_clicks)}</td><td>${click("fab fa-facebook-messenger", "messenger", item.facebook_messenger_clicks)}</td><td>${esc(Number(item.threads_clicks || 0))}</td><td><button type="button" class="tracking-action" data-master-view="${index}" title="View details"><i class="fas fa-eye"></i></button></td></tr>`,
+                `<tr><td>${(state.page - 1) * state.limit + index + 1}</td><td><span class="tracking-owner"><span class="tracking-owner-avatar">${esc(initials(name(item)))}</span>${esc(name(item))}</span></td><td>${esc(item.leadId?.email || item.email || "—")}</td><td><span class="tracking-business">${esc(item.sequenceId?.type || "—")}</span></td><td><span class="tracking-step">${esc(item.sequenceId?.step || "—")}</span></td><td title="${esc(item.sequenceId?.subject || "")}">${esc(item.sequenceId?.subject || "—")}</td><td>${esc(date(item.createdAt))}</td><td>${status(item)}</td><td>${esc(date(item.sentAt))}</td><td>${esc(date(item.openedAt))}</td><td>${platformCell(item.actionLinks, "whatsapp", "fab fa-whatsapp", "whatsapp", item.whatsapp_clicks)}</td><td>${platformCell(item.actionLinks, "instagram", "fab fa-instagram", "instagram", item.instagram_clicks)}</td><td>${platformCell(item.actionLinks, "messenger", "fab fa-facebook-messenger", "messenger", item.facebook_messenger_clicks)}</td><td>${platformCell(item.actionLinks, "threads", "fas fa-at", "threads", item.threads_clicks)}</td><td><button type="button" class="tracking-action" data-master-view="${index}" title="View details"><i class="fas fa-eye"></i></button></td></tr>`,
             )
             .join("")
-        : '<tr><td colspan="16" class="text-center py-5 text-muted">No personal tracking data available.</td></tr>';
+        : '<tr><td colspan="15" class="text-center py-5 text-muted">No personal tracking data available.</td></tr>';
       pagination(data.pagination || {});
     } catch (error) {
-      table.tBodies[0].innerHTML = `<tr><td colspan="16" class="text-center py-5 text-danger">${esc(error.message)}</td></tr>`;
+      table.tBodies[0].innerHTML = `<tr><td colspan="15" class="text-center py-5 text-danger">${esc(error.message)}</td></tr>`;
     }
   }
 

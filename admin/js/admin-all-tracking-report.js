@@ -74,15 +74,20 @@
   };
   const click = (icon, name, count) =>
     `<span class="tracking-click ${name}"><i class="${icon}"></i>${Number(count || 0)}</span>`;
-  const actionLinks = (links) =>
-    Array.isArray(links) && links.length
-      ? links
-          .map(
-            (link) =>
-              `<div class="tracking-action-link"><strong>${esc(link.label || link.type || "Action Link")}</strong> <span>${esc(link.status || "Not Clicked")} · ${Number(link.clickCount || 0)} ${Number(link.clickCount || 0) === 1 ? "click" : "clicks"}</span>${link.lastClickedAt ? `<small>${esc(date(link.lastClickedAt))}</small>` : ""}</div>`,
-          )
-          .join("")
-      : '<span class="text-muted">—</span>';
+  const platformCell = (links, type, icon, className, fallbackCount) => {
+    const link = (Array.isArray(links) ? links : []).find(
+      (item) => item.type === type,
+    );
+    const count = Number(link?.clickCount ?? fallbackCount ?? 0);
+    const lastClicked = link?.lastClickedAt
+      ? `<small>${esc(date(link.lastClickedAt))}</small>`
+      : "";
+    const indicator =
+      count > 0
+        ? click(icon, className, count)
+        : `<span class="tracking-click ${className}"><i class="${icon}"></i></span>`;
+    return `<span class="tracking-platform-cell ${className}">${indicator}${count > 0 ? lastClicked : ""}</span>`;
+  };
 
   function pagination(meta) {
     const host = document.getElementById("adminTrackingPagination");
@@ -158,15 +163,15 @@
         ? rows
             .map((item, index) => {
               const owner = item.full_name || "—";
-              return `<tr><td>${(state.page - 1) * state.limit + index + 1}</td><td><span class="tracking-owner"><span class="tracking-owner-avatar ${tone(owner)}">${esc(initials(item.lead_name))}</span>${esc(item.lead_name || "—")}</span></td><td>${esc(item.lead_email || "—")}</td><td><span class="tracking-business">${esc(item.business_type || "—")}</span></td><td><span class="tracking-step">${esc(item.step || "—")}</span></td><td title="${esc(item.subject)}">${esc(item.subject || "—")}</td><td>${esc(date(item.scheduled_at))}</td><td>${status(item.status_badge)}</td><td>${esc(date(item.sent_at))}</td><td>${esc(date(item.seen_at))}</td><td>${actionLinks(item.action_links)}</td><td>${click("fab fa-whatsapp", "whatsapp", item.whatsapp_clicks)}</td><td>${click("fab fa-instagram", "instagram", item.instagram_clicks)}</td><td>${click("fab fa-facebook-messenger", "messenger", item.facebook_messenger_clicks)}</td><td>${esc(Number(item.threads_clicks || 0))}</td><td><button type="button" class="tracking-action" data-tracking-view="${index}" title="View details"><i class="fas fa-eye"></i></button></td></tr>`;
+              return `<tr><td>${(state.page - 1) * state.limit + index + 1}</td><td><span class="tracking-owner"><span class="tracking-owner-avatar ${tone(owner)}">${esc(initials(item.lead_name))}</span>${esc(item.lead_name || "—")}</span></td><td>${esc(item.lead_email || "—")}</td><td><span class="tracking-business">${esc(item.business_type || "—")}</span></td><td><span class="tracking-step">${esc(item.step || "—")}</span></td><td title="${esc(item.subject)}">${esc(item.subject || "—")}</td><td>${esc(date(item.scheduled_at))}</td><td>${status(item.status_badge)}</td><td>${esc(date(item.sent_at))}</td><td>${esc(date(item.seen_at))}</td><td>${platformCell(item.action_links, "whatsapp", "fab fa-whatsapp", "whatsapp", item.whatsapp_clicks)}</td><td>${platformCell(item.action_links, "instagram", "fab fa-instagram", "instagram", item.instagram_clicks)}</td><td>${platformCell(item.action_links, "messenger", "fab fa-facebook-messenger", "messenger", item.facebook_messenger_clicks)}</td><td>${platformCell(item.action_links, "threads", "fas fa-at", "threads", item.threads_clicks)}</td><td><button type="button" class="tracking-action" data-tracking-view="${index}" title="View details"><i class="fas fa-eye"></i></button></td></tr>`;
             })
             .join("")
-        : '<tr><td colspan="16" class="text-center py-5 text-muted">No tracking data available.</td></tr>';
+        : '<tr><td colspan="15" class="text-center py-5 text-muted">No tracking data available.</td></tr>';
       pagination(data.pagination || {});
     } catch (error) {
       const body =
         table.tBodies[0] || table.appendChild(document.createElement("tbody"));
-      body.innerHTML = `<tr><td colspan="16" class="text-center py-5 text-danger">${esc(error.message)}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="15" class="text-center py-5 text-danger">${esc(error.message)}</td></tr>`;
     }
   }
 
@@ -267,9 +272,10 @@
         Step: item.step,
         Subject: item.subject,
         Status: item.status_badge,
-        "Action Links": (item.action_links || [])
-          .map((link) => `${link.label}: ${link.status} (${link.clickCount})`)
-          .join("; "),
+        WhatsApp: item.whatsapp_clicks || 0,
+        Instagram: item.instagram_clicks || 0,
+        "Facebook Messenger": item.facebook_messenger_clicks || 0,
+        Threads: item.threads_clicks || 0,
         "Scheduled At": date(item.scheduled_at),
         "Sent At": date(item.sent_at),
         "Seen At": date(item.seen_at),
