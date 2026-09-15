@@ -21,7 +21,9 @@ function normalizeActionLinks(value) {
   ];
   return links
     .map((link) => ({
-      type: String(link?.type || link?.platform || "")
+      type: String(
+        link?.type || link?.platform || link?.platform_name || link?.name || "",
+      )
         .trim()
         .toLowerCase(),
       label: String(
@@ -29,6 +31,16 @@ function normalizeActionLinks(value) {
       ).trim(),
       url: String(link?.url || link?.platform_url || "").trim(),
       enabled: link?.enabled !== false,
+    }))
+    .map((link) => ({
+      ...link,
+      type: link.type.includes("instagram")
+        ? "instagram"
+        : link.type.includes("facebook") && link.type.includes("messenger")
+          ? "messenger"
+          : link.type.includes("facebook")
+            ? "facebook"
+            : link.type,
     }))
     .filter(
       (link) =>

@@ -13,11 +13,24 @@ function buildDeliveryActionLinks(sequence) {
   const whatsapp = actionLinks.whatsapp;
   const cta = actionLinks.cta;
 
+  const actionType = (link) => {
+    const value =
+      `${link?.text || link?.label || ""} ${link?.url || ""}`.toLowerCase();
+    if (value.includes("instagram")) return "instagram";
+    if (value.includes("facebook") && value.includes("messenger"))
+      return "messenger";
+    if (value.includes("facebook")) return "facebook";
+    if (value.includes("threads")) return "threads";
+    if (value.includes("telegram")) return "telegram";
+    if (value.includes("linkedin")) return "linkedin";
+    return "website";
+  };
+
   if (whatsapp?.enabled && /^https?:\/\//i.test(whatsapp.url || "")) {
     links.push({ type: "whatsapp", label: "WhatsApp", url: whatsapp.url });
   }
   if (cta?.enabled && cta.text && /^https?:\/\//i.test(cta.url || "")) {
-    links.push({ type: "website", label: cta.text, url: cta.url });
+    links.push({ type: actionType(cta), label: cta.text, url: cta.url });
   }
   for (const link of Array.isArray(actionLinks.links)
     ? actionLinks.links

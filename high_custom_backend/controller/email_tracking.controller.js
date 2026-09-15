@@ -10,6 +10,18 @@ const {
 } = require("../services/email_notification.service");
 
 function actionLinksForDelivery(delivery, sequence = {}) {
+  const actionType = (link) => {
+    const value =
+      `${link?.text || link?.label || ""} ${link?.url || ""}`.toLowerCase();
+    if (value.includes("instagram")) return "instagram";
+    if (value.includes("facebook") && value.includes("messenger"))
+      return "messenger";
+    if (value.includes("facebook")) return "facebook";
+    if (value.includes("threads")) return "threads";
+    if (value.includes("telegram")) return "telegram";
+    if (value.includes("linkedin")) return "linkedin";
+    return "website";
+  };
   const stored = Array.isArray(delivery.actionLinks)
     ? delivery.actionLinks
     : [];
@@ -26,7 +38,7 @@ function actionLinksForDelivery(delivery, sequence = {}) {
           : null,
         sequence.actionLinks?.cta?.enabled && sequence.actionLinks.cta.url
           ? {
-              type: "website",
+              type: actionType(sequence.actionLinks.cta),
               label: sequence.actionLinks.cta.text || "Website",
               url: sequence.actionLinks.cta.url,
             }
@@ -410,7 +422,7 @@ exports.trackActionLink = async (req, res) => {
       }
       if (cta?.enabled && /^https?:\/\//i.test(cta.url || "")) {
         links.push({
-          type: "website",
+          type: actionType(cta),
           label: cta.text || "Website",
           url: cta.url,
         });

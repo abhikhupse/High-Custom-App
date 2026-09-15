@@ -452,6 +452,12 @@ function buildSequenceEmail({
 
   const ctaUrl = typeof cta.url === "string" ? cta.url.trim() : "";
 
+  const ctaType = `${ctaText} ${ctaUrl}`.toLowerCase().includes("instagram")
+    ? "instagram"
+    : `${ctaText} ${ctaUrl}`.toLowerCase().includes("facebook")
+      ? "facebook"
+      : "website";
+
   if (cta.enabled === true && ctaText !== "" && isValidUrl(ctaUrl)) {
     ctaHtml = `
       <tr>
@@ -461,7 +467,7 @@ function buildSequenceEmail({
           "
         >
           <a
-            href="${escapeHtml(trackedActionUrl("website", ctaUrl))}"
+            href="${escapeHtml(trackedActionUrl(ctaType, ctaUrl))}"
             target="_blank"
             style="
               display:block;
