@@ -1,0 +1,2 @@
+/* A calm toolbar: data actions on the left, discovery and reset on the right. */
+.mlp .mlp-tools [data-filter]{display:none}.mlp .mlp-tools-right{gap:14px}.mlp .mlp-tools-right .mlp-search{min-width:320px}@media(max-width:650px){.mlp .mlp-tools-right .mlp-search{min-width:0;width:100%}}
