@@ -1,0 +1,2 @@
+/* Inline fields remain editable without a distracting hover treatment. */
+.mlp-table .mlp-inline-edit:hover{background:transparent!important;box-shadow:none!important}.mlp-table .mlp-inline-edit:hover:after{display:none!important}.mlp-table .mlp-inline-edit{cursor:pointer}
