@@ -19,7 +19,7 @@ function buildDeliveryActionLinks(sequence) {
     if (value.includes("instagram")) return "instagram";
     if (value.includes("facebook") && value.includes("messenger"))
       return "messenger";
-    if (value.includes("facebook")) return "facebook";
+    if (value.includes("facebook")) return "messenger";
     if (value.includes("threads")) return "threads";
     if (value.includes("telegram")) return "telegram";
     if (value.includes("linkedin")) return "linkedin";

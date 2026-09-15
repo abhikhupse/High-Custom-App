@@ -241,6 +241,13 @@ const sequenceSchema = new mongoose.Schema(
         default: null,
         index: true,
       },
+
+      // Enables the rich, per-link tracking markup for sequences that contain
+      // saved Business Link actions.
+      trackActionLinks: {
+        type: Boolean,
+        default: false,
+      },
     },
 
     // ============================================================

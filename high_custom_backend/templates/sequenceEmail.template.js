@@ -455,7 +455,7 @@ function buildSequenceEmail({
   const ctaType = `${ctaText} ${ctaUrl}`.toLowerCase().includes("instagram")
     ? "instagram"
     : `${ctaText} ${ctaUrl}`.toLowerCase().includes("facebook")
-      ? "facebook"
+      ? "messenger"
       : "website";
 
   if (cta.enabled === true && ctaText !== "" && isValidUrl(ctaUrl)) {

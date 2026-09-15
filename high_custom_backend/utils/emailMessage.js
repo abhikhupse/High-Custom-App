@@ -108,9 +108,12 @@ function buildSequenceBodies(options, provider = "gmail") {
   // Sequences created from saved Business Link settings have an enabled brand
   // logo. They must use the rich template so the saved logo and CTA links are
   // preserved in the actual email—not only in the editor preview.
+  const hasTrackedActionLinks =
+    options.sequence?.tracking?.trackActionLinks === true;
   const rich =
     format === "html" ||
-    (format === "personal_html" && options.sequence?.brand?.enabled === true);
+    (format === "personal_html" &&
+      (options.sequence?.brand?.enabled === true || hasTrackedActionLinks));
   const html = rich
     ? buildSequenceEmail(options)
     : format === "plain"

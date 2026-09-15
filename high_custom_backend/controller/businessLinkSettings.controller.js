@@ -3,6 +3,19 @@ const SocialLink = require("../model/socialLink.model");
 const User = require("../model/user.model");
 const Sequence = require("../model/sequence.model");
 
+function linkType(link = {}) {
+  const value = `${link.platform || ""} ${link.name || ""} ${link.url || ""}`.toLowerCase();
+  if (value.includes("instagram")) return "instagram";
+  // The report uses one Facebook Messenger column, so legacy Facebook links
+  // and Messenger links must contribute to the same tracked counter.
+  if (value.includes("messenger") || value.includes("facebook")) return "messenger";
+  if (value.includes("threads")) return "threads";
+  if (value.includes("telegram")) return "telegram";
+  if (value.includes("linkedin")) return "linkedin";
+  if (/(^|[^a-z])x([^a-z]|$)|twitter/.test(value)) return "x";
+  return "website";
+}
+
 function getPublicBaseUrl(req) {
   return String(process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 }
@@ -25,7 +38,7 @@ exports.save = async (req, res) => {
     const digits = String(user?.phone || "").replace(/\D/g, "");
     if (!digits) return res.status(400).json({ success: false, message: "Registered mobile number not found." });
     const links = await SocialLink.find({ _id: { $in: ids }, userId: req.user.id })
-      .select("name url")
+      .select("name url platform")
       .lean();
     const logoUrl = `${getPublicBaseUrl(req)}/uploads/brand/high_custom_logo.png`;
     const whatsappUrl = `https://wa.me/${digits}`;
@@ -52,11 +65,24 @@ exports.save = async (req, res) => {
         : { userId: req.user.id },
       { $set: {
         brand: { enabled: true, logoUrl, logoPosition: "Center" },
+        "tracking.trackActionLinks": true,
         actionLinks: {
           whatsapp: { enabled: true, url: whatsappUrl },
           cta: primaryLink
             ? { enabled: true, text: primaryLink.name, url: primaryLink.url }
             : { enabled: false, text: null, url: null },
+          // The first selected link remains the primary CTA. Every remaining
+          // selected social link is included in the message with its own
+          // tracking route and delivery-level counter.
+          links: links
+            .filter((link) => String(link._id) !== String(primaryLink?._id))
+            .map((link) => ({
+              type: linkType(link),
+              label: link.name,
+              url: link.url,
+              enabled: true,
+            }))
+            .filter((link) => link.type !== "website"),
         },
       } },
     );

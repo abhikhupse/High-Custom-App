@@ -16,7 +16,7 @@ function actionLinksForDelivery(delivery, sequence = {}) {
     if (value.includes("instagram")) return "instagram";
     if (value.includes("facebook") && value.includes("messenger"))
       return "messenger";
-    if (value.includes("facebook")) return "facebook";
+    if (value.includes("facebook")) return "messenger";
     if (value.includes("threads")) return "threads";
     if (value.includes("telegram")) return "telegram";
     if (value.includes("linkedin")) return "linkedin";
@@ -63,7 +63,7 @@ function actionLinksForDelivery(delivery, sequence = {}) {
   return source.map((link) => {
     const clickCount = Number(link.clickCount || 0);
     return {
-      type: link.type,
+      type: link.type === "facebook" ? "messenger" : link.type,
       label: link.label,
       status: clickCount > 0 ? "Clicked" : "Not Clicked",
       clickCount,
@@ -1299,7 +1299,9 @@ exports.getAdminTrackingReport = async (req, res) => {
       const sequence = delivery.sequenceId || {};
       const actionLinks = actionLinksForDelivery(delivery, sequence);
       const clickCount = (type) =>
-        actionLinks.find((link) => link.type === type)?.clickCount || 0;
+        actionLinks
+          .filter((link) => link.type === type)
+          .reduce((total, link) => total + Number(link.clickCount || 0), 0);
       const leadName =
         `${lead.firstName || ""} ${lead.lastName || ""}`.trim() ||
         lead.name ||

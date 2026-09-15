@@ -39,7 +39,7 @@ function normalizeActionLinks(value) {
         : link.type.includes("facebook") && link.type.includes("messenger")
           ? "messenger"
           : link.type.includes("facebook")
-            ? "facebook"
+            ? "messenger"
             : link.type,
     }))
     .filter(
@@ -435,6 +435,19 @@ exports.createSequence = async (req, res) => {
       }
     }
 
+    // Saved Business Link settings are the default social action links for a
+    // new sequence. Keep every selected platform (not just the first CTA) so
+    // each click can be shown in its own tracking-report column.
+    const submittedActionLinks = normalizeActionLinks(parsedActionLinks);
+    const savedActionLinks = normalizeActionLinks({
+      links: Array.isArray(businessSettings?.actionLinks)
+        ? businessSettings.actionLinks
+        : [],
+    });
+    const sequenceActionLinks = submittedActionLinks.length
+      ? submittedActionLinks
+      : savedActionLinks.filter((link) => link.url !== ctaData.url);
+
     // ==========================================================
     // EDITOR
     // ==========================================================
@@ -563,7 +576,7 @@ exports.createSequence = async (req, res) => {
 
         cta: ctaData,
 
-        links: normalizeActionLinks(parsedActionLinks),
+        links: sequenceActionLinks,
       },
 
       // ======================================================
@@ -574,6 +587,9 @@ exports.createSequence = async (req, res) => {
         enabled: trackingEnabled,
 
         trackingId: parsedTracking?.trackingId || crypto.randomUUID(),
+
+        trackActionLinks:
+          whatsappEnabled || ctaData.enabled || sequenceActionLinks.length > 0,
       },
 
       // ======================================================
