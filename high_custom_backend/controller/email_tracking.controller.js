@@ -374,8 +374,38 @@ exports.trackActionLink = async (req, res) => {
       .toLowerCase();
     if (!trackingId || !actionType) return res.sendStatus(404);
 
+    let delivery = await SEQUENCE_DELIVERY.findOne({ trackingId });
+    if (!delivery || delivery.status === "failed") return res.sendStatus(404);
+
+    // Older deliveries were created before per-link counters existed. Build
+    // their snapshot from the sequence on the first click, then use the same
+    // atomic counter update as newer deliveries.
+    if (
+      !Array.isArray(delivery.actionLinks) ||
+      delivery.actionLinks.length === 0
+    ) {
+      const sequence = await SEQUENCE.findById(delivery.sequenceId)
+        .select("actionLinks")
+        .lean();
+      const links = [];
+      const whatsapp = sequence?.actionLinks?.whatsapp;
+      const cta = sequence?.actionLinks?.cta;
+      if (whatsapp?.enabled && /^https?:\/\//i.test(whatsapp.url || "")) {
+        links.push({ type: "whatsapp", label: "WhatsApp", url: whatsapp.url });
+      }
+      if (cta?.enabled && /^https?:\/\//i.test(cta.url || "")) {
+        links.push({
+          type: "website",
+          label: cta.text || "Website",
+          url: cta.url,
+        });
+      }
+      delivery.actionLinks = links;
+      await delivery.save();
+    }
+
     const now = new Date();
-    const delivery = await SEQUENCE_DELIVERY.findOneAndUpdate(
+    delivery = await SEQUENCE_DELIVERY.findOneAndUpdate(
       { trackingId, status: { $ne: "failed" }, "actionLinks.type": actionType },
       {
         $inc: { "actionLinks.$.clickCount": 1 },
