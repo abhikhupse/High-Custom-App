@@ -5,7 +5,45 @@ const LEAD = require("../model/leads.model");
 const EMAIL_SUPPRESSION = require("../model/email_suppression.model");
 const LEAD_INTEREST_DETAILS = require("../model/lead_interest_details.model");
 const { detectEmailOpenScanner } = require("../utils/emailOpenScanner");
-const { recordEmailNotification } = require("../services/email_notification.service");
+const {
+  recordEmailNotification,
+} = require("../services/email_notification.service");
+
+function actionLinksForDelivery(delivery, sequence = {}) {
+  const stored = Array.isArray(delivery.actionLinks)
+    ? delivery.actionLinks
+    : [];
+  const source = stored.length
+    ? stored
+    : [
+        sequence.actionLinks?.whatsapp?.enabled &&
+        sequence.actionLinks.whatsapp.url
+          ? {
+              type: "whatsapp",
+              label: "WhatsApp",
+              url: sequence.actionLinks.whatsapp.url,
+            }
+          : null,
+        sequence.actionLinks?.cta?.enabled && sequence.actionLinks.cta.url
+          ? {
+              type: "website",
+              label: sequence.actionLinks.cta.text || "Website",
+              url: sequence.actionLinks.cta.url,
+            }
+          : null,
+      ].filter(Boolean);
+
+  return source.map((link) => {
+    const clickCount = Number(link.clickCount || 0);
+    return {
+      type: link.type,
+      label: link.label,
+      status: clickCount > 0 ? "Clicked" : "Not Clicked",
+      clickCount,
+      lastClickedAt: link.lastClickedAt || null,
+    };
+  });
+}
 
 // ============================================================
 // TRACK EMAIL OPEN
@@ -126,7 +164,9 @@ exports.trackOpen = async (req, res) => {
 
     if (scannerCheck.isScanner) {
       console.log(`IGNORED OPEN: ${scannerCheck.reason}`);
-      console.log("============================================================");
+      console.log(
+        "============================================================",
+      );
 
       return sendTrackingPixel(res);
     }
@@ -326,6 +366,38 @@ function sendTrackingPixel(res) {
   }
 }
 
+exports.trackActionLink = async (req, res) => {
+  try {
+    const trackingId = String(req.params.trackingId || "").trim();
+    const actionType = String(req.params.actionType || "")
+      .trim()
+      .toLowerCase();
+    if (!trackingId || !actionType) return res.sendStatus(404);
+
+    const now = new Date();
+    const delivery = await SEQUENCE_DELIVERY.findOneAndUpdate(
+      { trackingId, status: { $ne: "failed" }, "actionLinks.type": actionType },
+      {
+        $inc: { "actionLinks.$.clickCount": 1 },
+        $set: {
+          "actionLinks.$.lastClickedAt": now,
+          clickedAt: now,
+        },
+      },
+      { new: true },
+    ).lean();
+
+    const link = delivery?.actionLinks?.find(
+      (item) => item.type === actionType,
+    );
+    if (!link?.url) return res.sendStatus(404);
+    return res.redirect(302, link.url);
+  } catch (error) {
+    console.error("TRACK ACTION LINK ERROR:", error);
+    return res.sendStatus(404);
+  }
+};
+
 exports.trackResponse = async (req, res) => {
   try {
     const trackingId = String(req.params.trackingId || "").trim();
@@ -410,7 +482,10 @@ exports.confirmResponse = async (req, res) => {
       delivery.respondedAt = new Date();
 
       await delivery.save();
-      await SEQUENCE.updateOne({ _id: delivery.sequenceId }, { $inc: increments });
+      await SEQUENCE.updateOne(
+        { _id: delivery.sequenceId },
+        { $inc: increments },
+      );
 
       await recordEmailNotification({
         userId: delivery.userId,
@@ -424,7 +499,8 @@ exports.confirmResponse = async (req, res) => {
     if (response === "notInterested" && delivery.email) {
       await EMAIL_SUPPRESSION.updateOne(
         { userId: delivery.userId, email: delivery.email.toLowerCase().trim() },
-        { $setOnInsert: { reason: "unsubscribe" } }, { upsert: true },
+        { $setOnInsert: { reason: "unsubscribe" } },
+        { upsert: true },
       );
     } else if (response === "interested" && delivery.email) {
       // A lead can change their mind from an earlier unsubscribe link. Remove
@@ -484,7 +560,9 @@ function sendResponseConfirmationPage(res, { trackingId, response }) {
   const message = interested
     ? "Please confirm that you are interested and would like to share your contact details."
     : "Please confirm that you are not interested and no longer want to receive these emails.";
-  const buttonLabel = interested ? "Yes, I am interested" : "Confirm unsubscribe";
+  const buttonLabel = interested
+    ? "Yes, I am interested"
+    : "Confirm unsubscribe";
 
   res.set({
     "Content-Type": "text/html; charset=UTF-8",
@@ -757,7 +835,8 @@ exports.getTrackingReport = async (req, res) => {
       deliveryQuery.createdAt = {};
       if (startDate) {
         const start = new Date(startDate);
-        if (!Number.isNaN(start.getTime())) deliveryQuery.createdAt.$gte = start;
+        if (!Number.isNaN(start.getTime()))
+          deliveryQuery.createdAt.$gte = start;
       }
       if (endDate) {
         const end = new Date(endDate);
@@ -769,16 +848,16 @@ exports.getTrackingReport = async (req, res) => {
     }
 
     if (search && String(search).trim()) {
-      const escaped = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escaped = String(search)
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(escaped, "i");
       const matchingLeads = await LEAD.find({
         userId,
-        $or: [
-          { firstName: regex },
-          { lastName: regex },
-          { email: regex },
-        ],
-      }).select("_id").lean();
+        $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
+      })
+        .select("_id")
+        .lean();
       const matchingLeadIds = new Set(
         matchingLeads.map((lead) => String(lead._id)),
       );
@@ -792,9 +871,12 @@ exports.getTrackingReport = async (req, res) => {
     if (status && status !== "All Status") {
       const normalizedStatus = String(status).toLowerCase();
       if (normalizedStatus === "seen") deliveryQuery.openedAt = { $ne: null };
-      else if (normalizedStatus === "replied") deliveryQuery.repliedAt = { $ne: null };
-      else if (normalizedStatus === "interested") deliveryQuery.response = "interested";
-      else if (normalizedStatus === "not interested") deliveryQuery.response = "notInterested";
+      else if (normalizedStatus === "replied")
+        deliveryQuery.repliedAt = { $ne: null };
+      else if (normalizedStatus === "interested")
+        deliveryQuery.response = "interested";
+      else if (normalizedStatus === "not interested")
+        deliveryQuery.response = "notInterested";
       else deliveryQuery.status = normalizedStatus;
     }
 
@@ -803,7 +885,7 @@ exports.getTrackingReport = async (req, res) => {
     // ==========================================================
 
     const deliveries = await SEQUENCE_DELIVERY.find(deliveryQuery)
-      .populate("sequenceId", "step variant subject type")
+      .populate("sequenceId", "step variant subject type actionLinks")
       .populate("leadId", "firstName lastName name email phone")
       .sort({
         createdAt: -1,
@@ -992,6 +1074,7 @@ exports.getTrackingReport = async (req, res) => {
 
       deliveries: deliveries.map((delivery) => ({
         ...delivery,
+        actionLinks: actionLinksForDelivery(delivery, delivery.sequenceId),
         responseStatus:
           delivery.response === "interested"
             ? "Interested"
@@ -1047,53 +1130,107 @@ exports.getAdminTrackingReport = async (req, res) => {
         ...(startDate && { $gte: new Date(startDate) }),
         ...(endDate && { $lte: new Date(`${endDate}T23:59:59.999Z`) }),
       };
-    const normalizedStatus = String(status || "").trim().toLowerCase();
+    const normalizedStatus = String(status || "")
+      .trim()
+      .toLowerCase();
     if (normalizedStatus && normalizedStatus !== "all status") {
       if (normalizedStatus === "interested") query.response = "interested";
-      else if (normalizedStatus === "not-interested") query.response = "notInterested";
+      else if (normalizedStatus === "not-interested")
+        query.response = "notInterested";
       else if (normalizedStatus === "replied") query.repliedAt = { $ne: null };
-      else if (normalizedStatus === "opened" || normalizedStatus === "seen") query.openedAt = { $ne: null };
+      else if (normalizedStatus === "opened" || normalizedStatus === "seen")
+        query.openedAt = { $ne: null };
       else query.status = normalizedStatus;
     }
-    if (step !== undefined && step !== "" && Number.isFinite(Number(step))) query.step = Number(step);
+    if (step !== undefined && step !== "" && Number.isFinite(Number(step)))
+      query.step = Number(step);
     if (businessType) {
-      const matchingSequences = await SEQUENCE.find({ businessType: String(businessType).trim() }).select("_id").lean();
-      query.sequenceId = { $in: matchingSequences.map((sequence) => sequence._id) };
+      const matchingSequences = await SEQUENCE.find({
+        businessType: String(businessType).trim(),
+      })
+        .select("_id")
+        .lean();
+      query.sequenceId = {
+        $in: matchingSequences.map((sequence) => sequence._id),
+      };
     }
     if (search && String(search).trim()) {
-      const expression = new RegExp(String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      const expression = new RegExp(
+        String(search)
+          .trim()
+          .replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i",
+      );
       const [matchingLeads, matchingSequences] = await Promise.all([
-        LEAD.find({ $or: [{ firstName: expression }, { lastName: expression }, { name: expression }, { email: expression }, { company: expression }] }).select("_id").lean(),
-        SEQUENCE.find({ $or: [{ subject: expression }, { content: expression }, { businessType: expression }] }).select("_id").lean(),
+        LEAD.find({
+          $or: [
+            { firstName: expression },
+            { lastName: expression },
+            { name: expression },
+            { email: expression },
+            { company: expression },
+          ],
+        })
+          .select("_id")
+          .lean(),
+        SEQUENCE.find({
+          $or: [
+            { subject: expression },
+            { content: expression },
+            { businessType: expression },
+          ],
+        })
+          .select("_id")
+          .lean(),
       ]);
       query.$or = [
         { email: expression },
         { leadId: { $in: matchingLeads.map((lead) => lead._id) } },
-        { sequenceId: { $in: matchingSequences.map((sequence) => sequence._id) } },
+        {
+          sequenceId: {
+            $in: matchingSequences.map((sequence) => sequence._id),
+          },
+        },
       ];
     }
     const defaultLimit = Number.parseInt(req.query.length, 10) || 10;
-    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || defaultLimit, 1), 100);
-    const page = Math.max(Number.parseInt(req.query.page, 10) || (Math.floor((Number.parseInt(req.query.start, 10) || 0) / limit) + 1), 1);
+    const limit = Math.min(
+      Math.max(Number.parseInt(req.query.limit, 10) || defaultLimit, 1),
+      100,
+    );
+    const page = Math.max(
+      Number.parseInt(req.query.page, 10) ||
+        Math.floor((Number.parseInt(req.query.start, 10) || 0) / limit) + 1,
+      1,
+    );
     const skip = (page - 1) * limit;
-    const [recordsTotal, recordsFiltered, businessTypes, steps, deliveries] = await Promise.all([
-      SEQUENCE_DELIVERY.countDocuments({}),
-      SEQUENCE_DELIVERY.countDocuments(query),
-      SEQUENCE.distinct("businessType", { businessType: { $nin: [null, ""] } }),
-      SEQUENCE_DELIVERY.distinct("step"),
-      SEQUENCE_DELIVERY.find(query)
-        .populate("userId", "firstName lastName email")
-        .populate("sequenceId", "step subject businessType")
-        .populate("leadId", "firstName lastName name email company businessType")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-    ]);
+    const [recordsTotal, recordsFiltered, businessTypes, steps, deliveries] =
+      await Promise.all([
+        SEQUENCE_DELIVERY.countDocuments({}),
+        SEQUENCE_DELIVERY.countDocuments(query),
+        SEQUENCE.distinct("businessType", {
+          businessType: { $nin: [null, ""] },
+        }),
+        SEQUENCE_DELIVERY.distinct("step"),
+        SEQUENCE_DELIVERY.find(query)
+          .populate("userId", "firstName lastName email")
+          .populate("sequenceId", "step subject businessType actionLinks")
+          .populate(
+            "leadId",
+            "firstName lastName name email company businessType",
+          )
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+      ]);
     const data = deliveries.map((delivery) => {
       const lead = delivery.leadId || {};
       const owner = delivery.userId || {};
       const sequence = delivery.sequenceId || {};
+      const actionLinks = actionLinksForDelivery(delivery, sequence);
+      const clickCount = (type) =>
+        actionLinks.find((link) => link.type === type)?.clickCount || 0;
       const leadName =
         `${lead.firstName || ""} ${lead.lastName || ""}`.trim() ||
         lead.name ||
@@ -1102,17 +1239,32 @@ exports.getAdminTrackingReport = async (req, res) => {
         `${owner.firstName || ""} ${owner.lastName || ""}`.trim() ||
         owner.email ||
         "—";
-      const clicks = delivery.clickedAt ? 1 : 0;
+      const clicks = actionLinks.reduce(
+        (total, link) => total + link.clickCount,
+        0,
+      );
       // A delivery may keep its original transport status (for example "sent")
       // after it has been opened, replied to, or marked interested.  Report the
       // most meaningful current state instead of displaying that stale value.
-      const response = String(delivery.response || "").trim().toLowerCase();
+      const response = String(delivery.response || "")
+        .trim()
+        .toLowerCase();
       let reportStatus = delivery.status || "Pending";
-      if (["interested", "positive"].includes(response)) reportStatus = "Interested";
-      else if (["notinterested", "not-interested", "not interested", "negative"].includes(response)) reportStatus = "Not Interested";
+      if (["interested", "positive"].includes(response))
+        reportStatus = "Interested";
+      else if (
+        [
+          "notinterested",
+          "not-interested",
+          "not interested",
+          "negative",
+        ].includes(response)
+      )
+        reportStatus = "Not Interested";
       else if (delivery.repliedAt) reportStatus = "Replied";
       else if (delivery.openedAt) reportStatus = "Opened";
-      else if (String(reportStatus).toLowerCase() === "success") reportStatus = "Sent";
+      else if (String(reportStatus).toLowerCase() === "success")
+        reportStatus = "Sent";
       return {
         lead_name: leadName,
         lead_email: lead.email || delivery.email || "—",
@@ -1123,10 +1275,11 @@ exports.getAdminTrackingReport = async (req, res) => {
         status_badge: reportStatus,
         sent_at: delivery.sentAt,
         seen_at: delivery.openedAt,
-        whatsapp_clicks: 0,
-        instagram_clicks: 0,
-        facebook_messenger_clicks: 0,
-        threads_clicks: 0,
+        action_links: actionLinks,
+        whatsapp_clicks: clickCount("whatsapp"),
+        instagram_clicks: clickCount("instagram"),
+        facebook_messenger_clicks: clickCount("messenger"),
+        threads_clicks: clickCount("threads"),
         telegram_clicks: 0,
         snapchat_clicks: 0,
         x_clicks: 0,
@@ -1144,16 +1297,22 @@ exports.getAdminTrackingReport = async (req, res) => {
       recordsTotal,
       recordsFiltered,
       data,
-      pagination: { page, limit, total: recordsFiltered, totalPages: Math.ceil(recordsFiltered / limit) },
-      filterOptions: { businessTypes: businessTypes.sort(), steps: steps.sort((a, b) => Number(a) - Number(b)) },
+      pagination: {
+        page,
+        limit,
+        total: recordsFiltered,
+        totalPages: Math.ceil(recordsFiltered / limit),
+      },
+      filterOptions: {
+        businessTypes: businessTypes.sort(),
+        steps: steps.sort((a, b) => Number(a) - Number(b)),
+      },
     });
   } catch (error) {
     console.error("GET ADMIN TRACKING REPORT ERROR:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to get all users tracking report.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get all users tracking report.",
+    });
   }
 };

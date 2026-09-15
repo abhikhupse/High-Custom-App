@@ -17,6 +17,11 @@ const { requireAppRight, requireAccessRight } = require("../middleware/user-acce
 router.get("/open/:trackingId", emailTrackingController.trackOpen);
 
 router.get(
+  "/click/:trackingId/:actionType",
+  emailTrackingController.trackActionLink,
+);
+
+router.get(
   "/response/:trackingId/:response",
   emailTrackingController.trackResponse,
 );

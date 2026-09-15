@@ -7,6 +7,21 @@ const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
 
 const { sendSequenceEmail } = require("./email.service");
 
+function buildDeliveryActionLinks(sequence) {
+  const actionLinks = sequence?.actionLinks || {};
+  const links = [];
+  const whatsapp = actionLinks.whatsapp;
+  const cta = actionLinks.cta;
+
+  if (whatsapp?.enabled && /^https?:\/\//i.test(whatsapp.url || "")) {
+    links.push({ type: "whatsapp", label: "WhatsApp", url: whatsapp.url });
+  }
+  if (cta?.enabled && cta.text && /^https?:\/\//i.test(cta.url || "")) {
+    links.push({ type: "website", label: cta.text, url: cta.url });
+  }
+  return links;
+}
+
 // ============================================================
 // SEND ONE SEQUENCE TO ONE LEAD
 // ============================================================
@@ -20,14 +35,31 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   console.log("VARIANT:", sequence?.variant);
   console.log("==============================================");
 
-  const suppression = lead.tracking === false ? null : await EMAIL_SUPPRESSION.findOne({
-    userId: sequence.userId, email: String(lead.email || "").trim().toLowerCase(),
-  }).select("reason").lean();
-  let skipReason = lead.tracking === false ? "lead_unsubscribed"
-    : suppression ? `lead_${suppression.reason}` : null;
-  if (!skipReason && await SEQUENCE_DELIVERY.exists({
-    userId: sequence.userId, leadId: lead._id, repliedAt: { $ne: null },
-  })) {
+  const suppression =
+    lead.tracking === false
+      ? null
+      : await EMAIL_SUPPRESSION.findOne({
+          userId: sequence.userId,
+          email: String(lead.email || "")
+            .trim()
+            .toLowerCase(),
+        })
+          .select("reason")
+          .lean();
+  let skipReason =
+    lead.tracking === false
+      ? "lead_unsubscribed"
+      : suppression
+        ? `lead_${suppression.reason}`
+        : null;
+  if (
+    !skipReason &&
+    (await SEQUENCE_DELIVERY.exists({
+      userId: sequence.userId,
+      leadId: lead._id,
+      repliedAt: { $ne: null },
+    }))
+  ) {
     skipReason = "lead_already_replied";
   }
   if (skipReason) {
@@ -185,6 +217,8 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
   const trackingId = crypto.randomUUID();
 
+  const deliveryActionLinks = buildDeliveryActionLinks(sequence);
+
   let delivery = null;
 
   const existingPending = await SEQUENCE_DELIVERY.findOne({
@@ -231,6 +265,8 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
     existingPending.trackingId = trackingId;
 
+    existingPending.actionLinks = deliveryActionLinks;
+
     await existingPending.save();
 
     delivery = existingPending;
@@ -250,8 +286,7 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
   if (
     !parsedBaseUrl ||
-    (parsedBaseUrl.protocol !== "http:" &&
-      parsedBaseUrl.protocol !== "https:")
+    (parsedBaseUrl.protocol !== "http:" && parsedBaseUrl.protocol !== "https:")
   ) {
     console.error(
       "Sequence email was not sent because the public tracking base URL is invalid.",
@@ -287,6 +322,8 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
       existingFailed.scheduledAt = new Date();
       existingFailed.trackingId = trackingId;
 
+      existingFailed.actionLinks = deliveryActionLinks;
+
       await existingFailed.save();
 
       delivery = existingFailed;
@@ -308,6 +345,10 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
   const notInterestedUrl = `${parsedBaseUrl.origin}/api/email-tracking/response/${encodeURIComponent(
     trackingId,
   )}/notInterested`;
+
+  const actionLinkTrackingBaseUrl = `${parsedBaseUrl.origin}/api/email-tracking/click/${encodeURIComponent(
+    trackingId,
+  )}`;
 
   console.log("==============================================");
   console.log("TRACKING URL GENERATED");
@@ -341,6 +382,8 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
         status: "pending",
 
         trackingId,
+
+        actionLinks: deliveryActionLinks,
 
         scheduledAt: new Date(),
       });
@@ -384,6 +427,8 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
       interestedUrl,
 
       notInterestedUrl,
+
+      actionLinkTrackingBaseUrl,
 
       baseUrl,
 
@@ -514,7 +559,10 @@ async function sendSequenceToLead({ sequence, lead, baseUrl }) {
 
     // Provider acceptance is final even if a later local statistics write fails.
     if (acceptedRecorded) {
-      console.error("Email sent, but local statistics update failed:", failureReason);
+      console.error(
+        "Email sent, but local statistics update failed:",
+        failureReason,
+      );
       return { sent: true, failed: false, messageId: delivery.messageId };
     }
     delivery.status = "failed";

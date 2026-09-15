@@ -127,6 +127,10 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
     final lastName = lead['lastName']?.toString().trim() ?? '';
     final name = '$firstName $lastName'.trim();
     final email = lead['email']?.toString() ?? 'Unknown email';
+    final actionLinks = (delivery['actionLinks'] as List<dynamic>? ?? const [])
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
+      .toList();
 
     String status;
     dynamic eventDate;
@@ -163,6 +167,7 @@ class _TrackingReportScreenState extends State<TrackingReportScreen> {
       eventDate: date,
       timeLabel: date == null ? status : '$status at ${_formatTime(date)}',
       dateLabel: date == null ? '' : 'on ${_formatDate(date)}',
+      actionLinks: actionLinks,
     );
   }
 
@@ -1013,6 +1018,12 @@ class _ActivityCard extends StatelessWidget {
               height: 1.35,
             ),
           ),
+          if (activity.actionLinks.isNotEmpty) ...[
+            SizedBox(height: compact ? 14 : 24),
+            ...activity.actionLinks.map(
+              (link) => _actionLinkRow(link, compact),
+            ),
+          ],
           SizedBox(height: compact ? 18 : 35),
           Row(
             children: [
@@ -1043,6 +1054,41 @@ class _ActivityCard extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionLinkRow(Map<String, dynamic> link, bool compact) {
+    final count = (link['clickCount'] as num?)?.toInt() ?? 0;
+    final clicked = count > 0;
+    return Padding(
+      padding: EdgeInsets.only(bottom: compact ? 7 : 10),
+      child: Row(
+        children: [
+          Icon(
+            clicked ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+            color: clicked ? const Color(0xFF68D391) : _TrackingReportScreenState._muted,
+            size: compact ? 17 : 22,
+          ),
+          SizedBox(width: compact ? 8 : 11),
+          Expanded(
+            child: Text(
+              '${link['label'] ?? link['type'] ?? 'Action Link'}  •  ${clicked ? 'Clicked' : 'Not Clicked'}',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 12 : 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            '$count ${count == 1 ? 'Click' : 'Clicks'}',
+            style: TextStyle(
+              color: _TrackingReportScreenState._muted,
+              fontSize: compact ? 12 : 15,
+            ),
           ),
         ],
       ),
@@ -1836,6 +1882,7 @@ class _Activity {
   final DateTime? eventDate;
   final String timeLabel;
   final String dateLabel;
+  final List<Map<String, dynamic>> actionLinks;
   const _Activity({
     required this.initial,
     required this.name,
@@ -1847,6 +1894,7 @@ class _Activity {
     required this.eventDate,
     required this.timeLabel,
     required this.dateLabel,
+    required this.actionLinks,
   });
 }
 

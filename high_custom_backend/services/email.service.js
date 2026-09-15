@@ -1,4 +1,7 @@
-const { createMimeMessage, buildSequenceBodies } = require("../utils/emailMessage");
+const {
+  createMimeMessage,
+  buildSequenceBodies,
+} = require("../utils/emailMessage");
 const { google } = require("googleapis");
 const { promises: dns } = require("node:dns");
 
@@ -27,7 +30,9 @@ const senderCopyLabelPromiseCache = new Map();
 const recipientProviderCache = new Map();
 
 function recipientDomain(email) {
-  const normalized = String(email || "").trim().toLowerCase();
+  const normalized = String(email || "")
+    .trim()
+    .toLowerCase();
   const separator = normalized.lastIndexOf("@");
   return separator > 0 ? normalized.slice(separator + 1) : "";
 }
@@ -122,8 +127,7 @@ async function resolveSenderCopyLabel(gmail, accountEmail) {
   });
 
   const existingLabel = (labelsResponse.data.labels || []).find(
-    (label) =>
-      label.type === "user" && label.name === SENDER_COPY_LABEL_NAME,
+    (label) => label.type === "user" && label.name === SENDER_COPY_LABEL_NAME,
   );
 
   if (existingLabel?.id) {
@@ -340,6 +344,7 @@ async function sendGmailSequenceEmail({
   trackingUrl,
   interestedUrl,
   notInterestedUrl,
+  actionLinkTrackingBaseUrl,
   baseUrl,
   onAccepted,
 }) {
@@ -488,6 +493,7 @@ async function sendGmailSequenceEmail({
     trackingUrl,
     interestedUrl,
     notInterestedUrl,
+    actionLinkTrackingBaseUrl,
     baseUrl,
   });
 
@@ -674,14 +680,15 @@ async function sendGmailSequenceEmail({
 // deterministic way to switch providers without adding a second setting: the
 // provider they most recently authorized becomes the sender.
 async function sendSequenceEmail(options) {
-  const [zohoIntegration, gmailIntegration, goDaddyIntegration] = await Promise.all([
-    findZohoIntegration(options.userId),
-    GMAIL_INTEGRATION.findOne({
-      userId: options.userId,
-      reconnectRequiredAt: null,
-    }),
-    findGoDaddyIntegration(options.userId, true),
-  ]);
+  const [zohoIntegration, gmailIntegration, goDaddyIntegration] =
+    await Promise.all([
+      findZohoIntegration(options.userId),
+      GMAIL_INTEGRATION.findOne({
+        userId: options.userId,
+        reconnectRequiredAt: null,
+      }),
+      findGoDaddyIntegration(options.userId, true),
+    ]);
 
   const zohoScope = String(zohoIntegration?.scope || "");
   const zohoCanSend =
@@ -692,16 +699,18 @@ async function sendSequenceEmail(options) {
     new Date(gmailIntegration.sendingBlockedUntil).getTime() <= Date.now();
 
   const providers = [
-    zohoIntegration && zohoCanSend && {
-      name: "zoho",
-      integration: zohoIntegration,
-      connectedAt: zohoIntegration.connectedAt || zohoIntegration.updatedAt,
-    },
-    gmailIntegration && gmailCanSend && {
-      name: "gmail",
-      integration: gmailIntegration,
-      connectedAt: gmailIntegration.connectedAt || gmailIntegration.updatedAt,
-    },
+    zohoIntegration &&
+      zohoCanSend && {
+        name: "zoho",
+        integration: zohoIntegration,
+        connectedAt: zohoIntegration.connectedAt || zohoIntegration.updatedAt,
+      },
+    gmailIntegration &&
+      gmailCanSend && {
+        name: "gmail",
+        integration: gmailIntegration,
+        connectedAt: gmailIntegration.connectedAt || gmailIntegration.updatedAt,
+      },
     goDaddyIntegration && {
       name: "godaddy",
       integration: goDaddyIntegration,
@@ -737,27 +746,27 @@ async function sendSequenceEmail(options) {
   }
 
   if (senderProvider?.name === "zoho") {
-      const zohoScope = String(zohoIntegration.scope || "");
-      if (
-        !zohoScope.includes("ZohoMail.messages.CREATE") &&
-        !zohoScope.includes("ZohoMail.messages.ALL")
-      ) {
-        const error = createEmailError({
-          message:
-            "Zoho Mail was connected without send permission. Disconnect and reconnect Zoho Mail.",
-          failureType: "permission_error",
-          failureReason:
-            "Zoho Mail was connected without send permission. Disconnect and reconnect Zoho Mail.",
-        });
-        error.retryable = false;
-        throw error;
-      }
-
-      console.log("EMAIL PROVIDER SELECTED: ZOHO");
-      return sendZohoSequenceEmail({
-        ...options,
-        integration: zohoIntegration,
+    const zohoScope = String(zohoIntegration.scope || "");
+    if (
+      !zohoScope.includes("ZohoMail.messages.CREATE") &&
+      !zohoScope.includes("ZohoMail.messages.ALL")
+    ) {
+      const error = createEmailError({
+        message:
+          "Zoho Mail was connected without send permission. Disconnect and reconnect Zoho Mail.",
+        failureType: "permission_error",
+        failureReason:
+          "Zoho Mail was connected without send permission. Disconnect and reconnect Zoho Mail.",
       });
+      error.retryable = false;
+      throw error;
+    }
+
+    console.log("EMAIL PROVIDER SELECTED: ZOHO");
+    return sendZohoSequenceEmail({
+      ...options,
+      integration: zohoIntegration,
+    });
   }
 
   if (senderProvider?.name === "gmail") {

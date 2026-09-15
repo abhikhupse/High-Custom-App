@@ -169,6 +169,17 @@ const sequenceDeliverySchema = new mongoose.Schema(
       default: null,
     },
 
+    actionLinks: [
+      {
+        _id: false,
+        type: { type: String, required: true },
+        label: { type: String, required: true },
+        url: { type: String, required: true },
+        clickCount: { type: Number, default: 0 },
+        lastClickedAt: { type: Date, default: null },
+      },
+    ],
+
     response: {
       type: String,
       enum: ["interested", "notInterested"],

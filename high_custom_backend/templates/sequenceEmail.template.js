@@ -176,6 +176,7 @@ function buildSequenceEmail({
   trackingUrl = null,
   interestedUrl = null,
   notInterestedUrl = null,
+  actionLinkTrackingBaseUrl = null,
   baseUrl = null,
 }) {
   const brand =
@@ -200,6 +201,11 @@ function buildSequenceEmail({
     sequence.actionLinks && typeof sequence.actionLinks === "object"
       ? sequence.actionLinks
       : {};
+
+  const trackedActionUrl = (type, url) =>
+    actionLinkTrackingBaseUrl
+      ? `${actionLinkTrackingBaseUrl}/${encodeURIComponent(type)}`
+      : url;
 
   // ==========================================================
   // SUBJECT
@@ -355,7 +361,7 @@ function buildSequenceEmail({
           "
         >
           <a
-            href="${escapeHtml(whatsappUrl)}"
+            href="${escapeHtml(trackedActionUrl("whatsapp", whatsappUrl))}"
             target="_blank"
             style="
               display:block;
@@ -390,10 +396,7 @@ function buildSequenceEmail({
   const attachmentName =
     typeof attachment.name === "string" ? attachment.name.trim() : "";
 
-  if (
-    isValidUrl(attachmentUrl) &&
-    attachmentName !== ""
-  ) {
+  if (isValidUrl(attachmentUrl) && attachmentName !== "") {
     attachmentHtml = `
       <tr>
         <td
@@ -442,7 +445,7 @@ function buildSequenceEmail({
           "
         >
           <a
-            href="${escapeHtml(ctaUrl)}"
+            href="${escapeHtml(trackedActionUrl("website", ctaUrl))}"
             target="_blank"
             style="
               display:block;
@@ -472,7 +475,11 @@ function buildSequenceEmail({
 
   let trackingPixel = "";
 
-  if (process.env.EMAIL_OPEN_TRACKING_ENABLED !== "false" && sequence.tracking?.enabled !== false && isValidUrl(trackingUrl)) {
+  if (
+    process.env.EMAIL_OPEN_TRACKING_ENABLED !== "false" &&
+    sequence.tracking?.enabled !== false &&
+    isValidUrl(trackingUrl)
+  ) {
     trackingPixel = `
       <img
         src="${escapeHtml(trackingUrl)}"
@@ -494,7 +501,11 @@ function buildSequenceEmail({
 
   let responseButtonsHtml = "";
 
-  if (process.env.EMAIL_RESPONSE_BUTTONS_ENABLED !== "false" && isValidUrl(interestedUrl) && isValidUrl(notInterestedUrl)) {
+  if (
+    process.env.EMAIL_RESPONSE_BUTTONS_ENABLED !== "false" &&
+    isValidUrl(interestedUrl) &&
+    isValidUrl(notInterestedUrl)
+  ) {
     responseButtonsHtml = `
       <tr>
         <td style="padding:4px 20px 24px 20px;">
