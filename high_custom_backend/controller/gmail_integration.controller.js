@@ -16,6 +16,36 @@ const {
 
 const APP_DEEP_LINK = "highcustom://integration";
 
+// Mobile requests return through the deep link. Admin Panel return URLs are
+// signed into OAuth state and accepted only from trusted admin origins.
+const getSafeAdminReturnUrl = (value) => {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const localAdmin = ["localhost", "127.0.0.1"].includes(url.hostname)
+      && ["http:", "https:"].includes(url.protocol)
+      && /\/integrations\.html$/i.test(url.pathname);
+    const configured = String(process.env.ADMIN_WEB_URL || "").trim();
+    const configuredAdmin = configured
+      && url.origin === new URL(configured).origin
+      && /\/integrations\.html$/i.test(url.pathname);
+    return localAdmin || configuredAdmin ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
+const integrationRedirect = (returnUrl, success, params = {}) => {
+  if (returnUrl) {
+    const url = new URL(returnUrl);
+    url.searchParams.set("provider", "gmail");
+    url.searchParams.set("success", String(success));
+    Object.entries(params).forEach(([key, value]) => { if (value) url.searchParams.set(key, String(value)); });
+    return url.toString();
+  }
+  return `${APP_DEEP_LINK}?${new URLSearchParams({ success: String(success), ...params }).toString()}`;
+};
+
 // ============================================================
 // CONNECT GMAIL
 // ============================================================
@@ -47,11 +77,10 @@ exports.connectGmail = async (req, res) => {
     const state = jwt.sign(
       {
         userId: userId.toString(),
+        adminReturnUrl: getSafeAdminReturnUrl(req.query.returnUrl),
       },
       process.env.JWT_SECRET,
-      // {
-      //   expiresIn: "10m",
-      // },
+      { expiresIn: "10m" },
     );
 
     // ========================================================
@@ -111,6 +140,7 @@ exports.connectGmail = async (req, res) => {
 // ============================================================
 
 exports.gmailCallback = async (req, res) => {
+  let returnUrl = null;
   try {
     const { code, state, error } = req.query;
 
@@ -167,6 +197,8 @@ exports.gmailCallback = async (req, res) => {
       return res.redirect(`${APP_DEEP_LINK}?success=false&error=invalid_state`);
     }
 
+    returnUrl = getSafeAdminReturnUrl(decodedState.adminReturnUrl);
+
     // ========================================================
     // GET USER ID
     // ========================================================
@@ -176,7 +208,7 @@ exports.gmailCallback = async (req, res) => {
     if (!userId) {
       console.error("User ID not found in OAuth state.");
 
-      return res.redirect(`${APP_DEEP_LINK}?success=false&error=no_user`);
+      return res.redirect(integrationRedirect(returnUrl, false, { error: "no_user" }));
     }
 
     console.log("OAuth User ID:", userId);
@@ -202,9 +234,7 @@ exports.gmailCallback = async (req, res) => {
     if (!tokens.access_token) {
       console.error("Google did not return access token.");
 
-      return res.redirect(
-        `${APP_DEEP_LINK}?success=false&error=no_access_token`,
-      );
+      return res.redirect(integrationRedirect(returnUrl, false, { error: "no_access_token" }));
     }
 
     // ========================================================
@@ -235,7 +265,7 @@ exports.gmailCallback = async (req, res) => {
     if (!gmailEmail) {
       console.error("Unable to retrieve Gmail email.");
 
-      return res.redirect(`${APP_DEEP_LINK}?success=false&error=no_email`);
+      return res.redirect(integrationRedirect(returnUrl, false, { error: "no_email" }));
     }
 
     // ========================================================
@@ -265,9 +295,7 @@ exports.gmailCallback = async (req, res) => {
     if (!refreshToken) {
       console.error("Google did not provide refresh token.");
 
-      return res.redirect(
-        `${APP_DEEP_LINK}?success=false&error=no_refresh_token`,
-      );
+      return res.redirect(integrationRedirect(returnUrl, false, { error: "no_refresh_token" }));
     }
 
     // ========================================================
@@ -335,15 +363,12 @@ exports.gmailCallback = async (req, res) => {
     console.log("================================================");
 
     // ========================================================
-    // REDIRECT BACK TO FLUTTER
+    // REDIRECT BACK TO THE ADMIN PANEL (or Flutter for mobile requests)
     // ========================================================
 
-    const appRedirectUrl =
-      `${APP_DEEP_LINK}` +
-      `?success=true` +
-      `&email=${encodeURIComponent(gmailEmail)}`;
+    const appRedirectUrl = integrationRedirect(returnUrl, true, { email: gmailEmail });
 
-    console.log("Redirecting to Flutter:");
+    console.log("Redirecting after Gmail OAuth:");
 
     console.log(appRedirectUrl);
 
@@ -363,12 +388,7 @@ exports.gmailCallback = async (req, res) => {
 
     const errorMessage = error?.message || "unknown_error";
 
-    return res.redirect(
-      302,
-      `${APP_DEEP_LINK}` +
-        `?success=false` +
-        `&error=${encodeURIComponent(errorMessage)}`,
-    );
+    return res.redirect(302, integrationRedirect(returnUrl, false, { error: errorMessage }));
   }
 };
 
