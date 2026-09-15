@@ -60,7 +60,12 @@ async function createMimeMessage({ from, to, subject, html, text }) {
 function buildSequenceBodies(options, provider = "gmail") {
   const format = provider === "zoho" && process.env.EMAIL_ZOHO_PLAIN_TEXT === "true"
     ? "plain" : process.env.EMAIL_SEQUENCE_FORMAT || "personal_html";
-  const rich = format === "html";
+  // Sequences created from saved Business Link settings have an enabled brand
+  // logo. They must use the rich template so the saved logo and CTA links are
+  // preserved in the actual email—not only in the editor preview.
+  const rich = format === "html" || (
+    format === "personal_html" && options.sequence?.brand?.enabled === true
+  );
   const html = rich ? buildSequenceEmail(options)
     : format === "plain" ? undefined : buildPersonalSequenceHtml(options);
   return {
