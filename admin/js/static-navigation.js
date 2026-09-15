@@ -257,6 +257,9 @@
     });
   };
   renderScopedNavigation();
+  // Pages begin with legacy chrome hidden. Reveal it only after the shared
+  // navigation has replaced its content, preventing a refresh-time flash.
+  document.documentElement.classList.add("hc-shell-ready");
 
   // One permission source for every static Admin page.  The API calculates
   // effective role defaults plus user-specific overrides, so UI visibility
