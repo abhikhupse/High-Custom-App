@@ -37,16 +37,19 @@
       endDate: end.toISOString().slice(0, 10),
     };
   };
-  const date = (value) =>
-    value
-      ? new Date(value).toLocaleString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "—";
+  const date = (value) => {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(parsed);
+  };
   const initials = (value) =>
     String(value || "—")
       .split(/\s+/)
@@ -57,36 +60,47 @@
       .toUpperCase();
   const tone = (value) => ["gold", "blue", ""][String(value || "").length % 3];
   const status = (value) => {
-    const raw = String(value || "Pending");
-    const normalized = raw
+    const key = String(value || "pending")
       .replace(/([a-z])([A-Z])/g, "$1-$2")
+      .trim()
       .toLowerCase()
-      .replace(/\s+/g, "-");
-    const supported = [
-      "sent",
-      "pending",
-      "failed",
-      "opened",
-      "interested",
-      "not-interested",
-    ];
-    return `<span class="tracking-status-pill ${supported.includes(normalized) ? normalized : "pending"}">${esc(normalized === "not-interested" ? "Not Interested" : raw)}</span>`;
+      .replace(/[\s_]+/g, "-");
+    const aliases = {
+      success: ["sent", "Sent"],
+      sent: ["sent", "Sent"],
+      pending: ["pending", "Pending"],
+      failed: ["failed", "Failed"],
+      opened: ["opened", "Opened"],
+      seen: ["opened", "Opened"],
+      replied: ["replied", "Replied"],
+      interested: ["interested", "Interested"],
+      positive: ["interested", "Interested"],
+      "not-interested": ["not-interested", "Not Interested"],
+      negative: ["not-interested", "Not Interested"],
+    };
+    const [className, label] = aliases[key] || ["pending", "Pending"];
+    return `<span class="tracking-status-pill ${className}">${label}</span>`;
   };
   const click = (icon, name, count) =>
     `<span class="tracking-click ${name}"><i class="${icon}"></i>${Number(count || 0)}</span>`;
   const platformCell = (links, type, icon, className, fallbackCount) => {
-    const link = (Array.isArray(links) ? links : []).find(
-      (item) => item.type === type,
+    const matched = (Array.isArray(links) ? links : []).filter((item) =>
+      type === "messenger"
+        ? ["messenger", "facebook"].includes(String(item.type || "").toLowerCase())
+        : String(item.type || "").toLowerCase() === type,
     );
-    const count = Number(link?.clickCount ?? fallbackCount ?? 0);
-    const lastClicked = link?.lastClickedAt
-      ? `<small>${esc(date(link.lastClickedAt))}</small>`
+    const count = matched.length
+      ? matched.reduce((total, item) => total + Number(item.clickCount || 0), 0)
+      : Number(fallbackCount || 0);
+    const latestClick = matched
+      .map((item) => item.lastClickedAt)
+      .filter(Boolean)
+      .sort((a, b) => new Date(b) - new Date(a))[0];
+    const lastClicked = latestClick
+      ? `<small class="tracking-last-click">Last click: ${esc(date(latestClick))}</small>`
       : "";
-    const indicator =
-      count > 0
-        ? click(icon, className, count)
-        : `<span class="tracking-click ${className}"><i class="${icon}"></i></span>`;
-    return `<span class="tracking-platform-cell ${className}">${indicator}${count > 0 ? lastClicked : ""}</span>`;
+    const indicator = click(icon, className, count);
+    return `<span class="tracking-platform-cell ${className}">${indicator}${lastClicked}</span>`;
   };
 
   function pagination(meta) {

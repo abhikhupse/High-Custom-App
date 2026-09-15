@@ -16,16 +16,19 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  const date = (value) =>
-    value
-      ? new Date(value).toLocaleString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "—";
+  const date = (value) => {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(parsed);
+  };
   const name = (item) =>
     `${item.leadId?.firstName || ""} ${item.leadId?.lastName || ""}`.trim() ||
     item.leadId?.name ||
@@ -53,18 +56,23 @@
   const click = (icon, kind, value) =>
     `<span class="tracking-click ${kind}"><i class="${icon}"></i>${Number(value || 0)}</span>`;
   const platformCell = (links, type, icon, className, fallbackCount) => {
-    const link = (Array.isArray(links) ? links : []).find(
-      (item) => item.type === type,
+    const matched = (Array.isArray(links) ? links : []).filter((item) =>
+      type === "messenger"
+        ? ["messenger", "facebook"].includes(String(item.type || "").toLowerCase())
+        : String(item.type || "").toLowerCase() === type,
     );
-    const count = Number(link?.clickCount ?? fallbackCount ?? 0);
-    const lastClicked = link?.lastClickedAt
-      ? `<small>${esc(date(link.lastClickedAt))}</small>`
+    const count = matched.length
+      ? matched.reduce((total, item) => total + Number(item.clickCount || 0), 0)
+      : Number(fallbackCount || 0);
+    const latestClick = matched
+      .map((item) => item.lastClickedAt)
+      .filter(Boolean)
+      .sort((a, b) => new Date(b) - new Date(a))[0];
+    const clickedAt = latestClick
+      ? `<small class="tracking-last-click">Last click: ${esc(date(latestClick))}</small>`
       : "";
-    const indicator =
-      count > 0
-        ? click(icon, className, count)
-        : `<span class="tracking-click ${className}"><i class="${icon}"></i></span>`;
-    return `<span class="tracking-platform-cell ${className}">${indicator}${count > 0 ? lastClicked : ""}</span>`;
+    const indicator = click(icon, className, count);
+    return `<span class="tracking-platform-cell ${className}">${indicator}${clickedAt}</span>`;
   };
   const range = (value) => {
     if (!value) return {};
