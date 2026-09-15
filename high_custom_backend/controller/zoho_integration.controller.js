@@ -43,14 +43,23 @@ function accountsBaseUrl() {
 }
 
 function requiredConfig() {
+  const requiredScopes = [
+    "ZohoMail.accounts.READ",
+    "ZohoMail.folders.READ",
+    "ZohoMail.messages.READ",
+    "ZohoMail.messages.CREATE",
+  ];
+  const configuredScopes = String(process.env.ZOHO_SCOPES || "")
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter(Boolean);
   const values = {
     clientId: String(process.env.ZOHO_CLIENT_ID || "").trim(),
     clientSecret: String(process.env.ZOHO_CLIENT_SECRET || "").trim(),
     redirectUri: String(process.env.ZOHO_REDIRECT_URI || "").trim(),
-    scopes: String(
-      process.env.ZOHO_SCOPES ||
-        "ZohoMail.accounts.READ,ZohoMail.folders.READ,ZohoMail.messages.READ,ZohoMail.messages.CREATE",
-    ).trim(),
+    // Keep required Mail permissions even if an older Render environment
+    // variable only contains a partial scope list.
+    scopes: [...new Set([...configuredScopes, ...requiredScopes])].join(","),
   };
   if (!values.clientId || !values.clientSecret || !values.redirectUri) {
     throw new Error("Zoho OAuth environment variables are not configured.");
@@ -231,17 +240,6 @@ exports.getZohoStatus = async (req, res) => {
       scope.includes("ZohoMail.messages.CREATE") ||
       scope.includes("ZohoMail.messages.ALL");
 
-    if (!canSend) {
-      return res.status(200).json({
-        success: true,
-        connected: false,
-        reconnectRequired: true,
-        email: integration.email,
-        message:
-          "Zoho Mail send permission is missing. Disconnect and reconnect Zoho Mail.",
-      });
-    }
-
     return res.status(200).json({
       success: true,
       connected: true,
@@ -249,6 +247,10 @@ exports.getZohoStatus = async (req, res) => {
       connectedAt: integration.connectedAt,
       lastSyncAt: integration.lastSyncAt,
       syncHealthy: !integration.lastSyncError,
+      sendPermissionMissing: !canSend,
+      message: canSend
+        ? "Zoho Mail is connected."
+        : "Zoho Mail is connected, but email sending requires one quick reconnect.",
     });
   } catch (error) {
     console.error("Zoho Status Error:", error.message);
