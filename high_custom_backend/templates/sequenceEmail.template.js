@@ -385,6 +385,22 @@ function buildSequenceEmail({
     `;
   }
 
+  const socialLinksHtml = (
+    Array.isArray(actionLinks.links) ? actionLinks.links : []
+  )
+    .filter(
+      (link) => link?.enabled !== false && link?.label && isValidUrl(link?.url),
+    )
+    .map(
+      (link) => `
+      <tr><td style="padding:0 20px 20px 20px;">
+        <a href="${escapeHtml(trackedActionUrl(link.type, link.url))}" target="_blank" style="display:block;width:100%;box-sizing:border-box;background:#475467;color:#FFFFFF;text-decoration:none;text-align:center;padding:12px 10px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;">
+          ${escapeHtml(link.label)}
+        </a>
+      </td></tr>`,
+    )
+    .join("");
+
   // ==========================================================
   // DOCUMENT
   // ==========================================================
@@ -621,6 +637,8 @@ ${content}
 ${ctaHtml}
 
 ${whatsappHtml}
+
+${socialLinksHtml}
 
 ${attachmentHtml}
 

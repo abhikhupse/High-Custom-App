@@ -19,6 +19,18 @@ function buildDeliveryActionLinks(sequence) {
   if (cta?.enabled && cta.text && /^https?:\/\//i.test(cta.url || "")) {
     links.push({ type: "website", label: cta.text, url: cta.url });
   }
+  for (const link of Array.isArray(actionLinks.links)
+    ? actionLinks.links
+    : []) {
+    if (
+      link?.enabled !== false &&
+      link.type &&
+      link.label &&
+      /^https?:\/\//i.test(link.url || "")
+    ) {
+      links.push({ type: link.type, label: link.label, url: link.url });
+    }
+  }
   return links;
 }
 

@@ -7,6 +7,37 @@ const crypto = require("crypto");
 
 const { processSequencesForUser } = require("../jobs/sequence.job");
 
+function normalizeActionLinks(value) {
+  const links = Array.isArray(value?.links) ? value.links : [];
+  const knownTypes = [
+    "instagram",
+    "facebook",
+    "messenger",
+    "threads",
+    "telegram",
+    "snapchat",
+    "x",
+    "linkedin",
+  ];
+  return links
+    .map((link) => ({
+      type: String(link?.type || link?.platform || "")
+        .trim()
+        .toLowerCase(),
+      label: String(
+        link?.label || link?.name || link?.platform_name || "",
+      ).trim(),
+      url: String(link?.url || link?.platform_url || "").trim(),
+      enabled: link?.enabled !== false,
+    }))
+    .filter(
+      (link) =>
+        knownTypes.includes(link.type) &&
+        link.label &&
+        /^https?:\/\//i.test(link.url),
+    );
+}
+
 // ============================================================
 // CREATE SEQUENCE
 // ============================================================
@@ -519,6 +550,8 @@ exports.createSequence = async (req, res) => {
         },
 
         cta: ctaData,
+
+        links: normalizeActionLinks(parsedActionLinks),
       },
 
       // ======================================================
@@ -1475,6 +1508,8 @@ exports.updateSequence = async (req, res) => {
         text: ctaText || null,
         url: ctaUrl || null,
       },
+
+      links: normalizeActionLinks(parsedActionLinks),
     };
 
     sequence.tracking.enabled = true;

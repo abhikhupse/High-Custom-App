@@ -400,6 +400,18 @@ exports.trackActionLink = async (req, res) => {
           url: cta.url,
         });
       }
+      for (const link of Array.isArray(sequence?.actionLinks?.links)
+        ? sequence.actionLinks.links
+        : []) {
+        if (
+          link?.enabled !== false &&
+          link.type &&
+          link.label &&
+          /^https?:\/\//i.test(link.url || "")
+        ) {
+          links.push({ type: link.type, label: link.label, url: link.url });
+        }
+      }
       delivery.actionLinks = links;
       await delivery.save();
     }

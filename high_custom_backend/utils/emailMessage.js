@@ -18,10 +18,15 @@ function buildSequenceText({
     for (const item of [
       sequence.actionLinks?.cta,
       sequence.actionLinks?.whatsapp,
+      ...(sequence.actionLinks?.links || []),
     ]) {
       if (item?.enabled && /^https?:\/\//i.test(item.url || "")) {
         const type =
-          item === sequence.actionLinks?.whatsapp ? "whatsapp" : "website";
+          item === sequence.actionLinks?.whatsapp
+            ? "whatsapp"
+            : item === sequence.actionLinks?.cta
+              ? "website"
+              : item.type;
         const destination = actionLinkTrackingBaseUrl
           ? `${actionLinkTrackingBaseUrl}/${encodeURIComponent(type)}`
           : item.url;

@@ -214,6 +214,16 @@ const sequenceSchema = new mongoose.Schema(
           default: null,
         },
       },
+
+      links: [
+        {
+          _id: false,
+          type: { type: String, required: true },
+          label: { type: String, required: true },
+          url: { type: String, required: true },
+          enabled: { type: Boolean, default: true },
+        },
+      ],
     },
 
     // ============================================================
