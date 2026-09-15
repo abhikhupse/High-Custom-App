@@ -31,6 +31,21 @@ function actionLinksForDelivery(delivery, sequence = {}) {
               url: sequence.actionLinks.cta.url,
             }
           : null,
+        ...(Array.isArray(sequence.actionLinks?.links)
+          ? sequence.actionLinks.links
+              .filter(
+                (link) =>
+                  link?.enabled !== false &&
+                  link.type &&
+                  link.label &&
+                  /^https?:\/\//i.test(link.url || ""),
+              )
+              .map((link) => ({
+                type: String(link.type).toLowerCase(),
+                label: link.label,
+                url: link.url,
+              }))
+          : []),
       ].filter(Boolean);
 
   return source.map((link) => {
