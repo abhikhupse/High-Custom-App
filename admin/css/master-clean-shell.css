@@ -1,0 +1,15 @@
+/* Shared chrome for every Master workspace. Page-specific content stays intact. */
+html, body { min-height: 100%; background: #f5f8ff; }
+body { color: #10224a; }
+.main-content { min-height: 100vh; padding: 104px 32px 36px !important; background: #f5f8ff !important; }
+.master-clean-page { max-width: 1500px; margin: 0 auto; }
+.master-clean-hero { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:24px; }
+.master-clean-title { margin:0; color:#10224a; font-size:30px; line-height:1.15; font-weight:800; letter-spacing:-.6px; }
+.master-clean-subtitle { margin:7px 0 0; color:#60729c; font-size:15px; }
+.master-clean-card { overflow:hidden; border:1px solid #e2e9f7; border-radius:18px; background:#fff; box-shadow:0 10px 28px rgba(28,55,106,.06); }
+.master-clean-card .table { margin:0; }
+.master-clean-card .table thead th { padding:15px 16px; border:0; background:#132a50; color:#fff; font-size:12px; font-weight:700; white-space:nowrap; }
+.master-clean-card .table tbody td { padding:15px 16px; vertical-align:middle; color:#28446f; border-color:#edf1f8; }
+.master-clean-card .btn { border-radius:10px; font-weight:700; }
+.master-clean-card .table-responsive { overflow-x:auto; }
+@media (max-width: 768px) { .main-content { padding:82px 16px 24px !important; } .master-clean-title { font-size:25px; } .master-clean-hero { align-items:flex-start; flex-direction:column; } }
