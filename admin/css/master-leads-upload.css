@@ -1,0 +1,2 @@
+/* Keep the upload control label and icon centred at every zoom level. */
+.mlp .mlp-tools-left label.mlp-btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;line-height:1;min-width:145px}.mlp .mlp-tools-left label.mlp-btn i{display:inline-flex;align-items:center;justify-content:center;margin-right:9px}.mlp .mlp-tools-left label.mlp-btn input{display:none!important}
