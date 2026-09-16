@@ -90,7 +90,12 @@
         .slice(0, 2)
         .toUpperCase() || "A";
 
-    header.classList.add("universal-dashboard-header");
+    // Discard every legacy page-header class and inline style.  Static pages
+    // previously shipped their own title, filters and profile markup; the
+    // shared header below is now the only non-dashboard header source.
+    header.className = "top-navbar universal-dashboard-header";
+    header.removeAttribute("style");
+    header.removeAttribute("data-bs-theme");
     header.replaceChildren();
 
     if (toggle) header.append(toggle);
