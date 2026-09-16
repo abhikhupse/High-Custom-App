@@ -266,6 +266,7 @@
     });
   };
   renderScopedNavigation();
+  document.body.classList.add("shared-navigation-ready");
   // Pages begin with legacy chrome hidden. Reveal it only after the shared
   // navigation has replaced its content, preventing a refresh-time flash.
   document.documentElement.classList.add("hc-shell-ready");

@@ -30,6 +30,7 @@
     .sidebar{position:fixed;inset:0 auto 0 0;width:225px;z-index:1040}
     .top-navbar{position:fixed;top:0;right:0;left:225px;z-index:1030}
     .main-content{margin-left:225px;padding-top:76px;min-height:100vh}
+    body:not(.shared-navigation-ready) .sidebar,body:not(.shared-navigation-ready) .top-navbar{visibility:hidden}
     @media(max-width:991px){.top-navbar{left:0}.main-content{margin-left:0;padding-top:70px}}
   </style>
 </head>
