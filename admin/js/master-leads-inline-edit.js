@@ -10,7 +10,7 @@
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.success === false) throw new Error(data.message || "Unable to update lead.");
   }
-  const idFor = row => row.querySelector("[data-edit], [data-delete]")?.dataset.edit || row.querySelector("[data-delete]")?.dataset.delete;
+  const idFor = row => row.querySelector("[data-edit], [data-delete]")?.dataset.edit || row.querySelector("[data-delete]")?.dataset.delete || row.querySelector("[data-lead-id]")?.dataset.leadId;
   function prepare() {
     const root = document.querySelector(".mlp");
     const table = root?.querySelector(".mlp-table");
