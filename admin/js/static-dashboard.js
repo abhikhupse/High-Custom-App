@@ -57,15 +57,55 @@
         .map((part) => part[0])
         .join("")
         .toUpperCase() || "A";
+    const backend = apiBase.replace(/\/api\/?$/, "");
+    const profileImage = user?.profileImage
+      ? (() => {
+          try {
+            return new URL(user.profileImage, `${backend}/`).href;
+          } catch {
+            return "";
+          }
+        })()
+      : "";
+
     document
       .querySelectorAll("[data-admin-profile-name]")
       .forEach((element) => (element.textContent = name));
     document
       .querySelectorAll("[data-admin-profile-role]")
       .forEach((element) => (element.textContent = displayRole(user)));
+
+    document.querySelectorAll(".premium-profile-avatar").forEach((avatar) => {
+      let image = avatar.querySelector("img[data-admin-profile-image]");
+      const initialsNode = avatar.querySelector(
+        "[data-admin-profile-initials]",
+      );
+      if (!image) {
+        image = document.createElement("img");
+        image.dataset.adminProfileImage = "true";
+        image.alt = "";
+        image.hidden = true;
+        avatar.insertBefore(image, avatar.firstChild);
+      }
+      // Keep initials visible in the compact dashboard header.  A stored
+      // profile-image URL can be empty, expired, or inaccessible and used to
+      // leave this avatar blank. The shared Admin header uses initials too.
+      image.removeAttribute("src");
+      image.hidden = true;
+      if (initialsNode) initialsNode.textContent = initials;
+      image.onerror = () => {
+        image.removeAttribute("src");
+        image.hidden = true;
+        if (initialsNode) initialsNode.textContent = initials;
+      };
+    });
+
     document
       .querySelectorAll("[data-admin-profile-initials]")
-      .forEach((element) => (element.textContent = initials));
+      .forEach((element) => {
+        const parent = element.closest(".premium-profile-avatar");
+        element.textContent = initials;
+      });
     // The Admin header intentionally uses the user's initials (AK, HC, etc.)
     // so the compact gold avatar remains readable on every page.
   }

@@ -16,10 +16,10 @@
     const headerCss = document.createElement("link");
     headerCss.id = "adminSharedHeaderCss";
     headerCss.rel = "stylesheet";
-    headerCss.href = new URL(
+    headerCss.href = `${new URL(
       "css/admin-shared-header.css",
       getAdminRoot(),
-    ).href;
+    ).href}?v=20260916-3`;
     document.head.append(headerCss);
   }
 
@@ -71,9 +71,11 @@
   };
   const upgradeHeader = () => {
     const header = document.querySelector(".top-navbar");
-    // The dashboard already owns its premium header and live date controls.
-    if (!header || header.classList.contains("premium-topbar")) return;
+    if (!header) return;
+    const isDashboard = header.classList.contains("premium-topbar");
     const toggle = header.querySelector(".sidebar-toggle");
+    const dashboardFilters = header.querySelector("#dashboardHeaderFilters");
+    const dashboardThemeToggle = header.querySelector("#themeToggle");
     const saved = JSON.parse(
       localStorage.getItem("highCustomAdminUser") || "{}",
     );
@@ -89,11 +91,10 @@
         .join("")
         .slice(0, 2)
         .toUpperCase() || "A";
-
-    // Discard every legacy page-header class and inline style.  Static pages
-    // previously shipped their own title, filters and profile markup; the
-    // shared header below is now the only non-dashboard header source.
+    // Every route, including Dashboard, uses this one header shell. Dashboard
+    // merely retains its two live filters as a child of the common actions.
     header.className = "top-navbar universal-dashboard-header";
+    header.dataset.dashboardHeader = String(isDashboard);
     header.removeAttribute("style");
     header.removeAttribute("data-bs-theme");
     header.replaceChildren();
@@ -123,6 +124,11 @@
           <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</a></li>
         </ul>
       </div>`;
+    if (isDashboard && dashboardFilters) {
+      dashboardFilters.className = "universal-dashboard-filters";
+      actions.prepend(dashboardFilters);
+    }
+    if (isDashboard && dashboardThemeToggle) actions.append(dashboardThemeToggle);
     header.append(actions);
   };
 
@@ -165,12 +171,15 @@
           .toUpperCase() || "A";
       const nameElement = profile.querySelector("[data-shared-profile-name]");
       const roleElement = profile.querySelector("[data-shared-profile-role]");
-      const avatar = profile.querySelector("[data-shared-profile-avatar]");
+      const avatarBadge = profile.querySelector("[data-shared-profile-avatar]");
+
       if (nameElement) nameElement.textContent = name;
       if (roleElement)
         roleElement.textContent =
           user.role === "User" ? "Admin" : user.role || "Admin";
-      if (avatar) avatar.textContent = initials;
+
+      if (avatarBadge) avatarBadge.textContent = initials;
+
       localStorage.setItem("highCustomAdminUser", JSON.stringify(user));
     } catch (_) {
       // Keep the cached profile visible if the API is temporarily unavailable.
@@ -195,13 +204,7 @@
   const renderScopedNavigation = () => {
     const nav = document.querySelector(".sidebar .nav-menu");
     if (!nav) return;
-    if (
-      nav.dataset.scopedNavigation === "true" ||
-      nav.dataset.dashboardShellReady === "true" ||
-      nav.querySelector("[data-dashboard-submenu]")
-    ) {
-      return;
-    }
+    if (nav.dataset.scopedNavigation === "true") return;
     const sidebar = nav.closest(".sidebar");
     if (sidebar) {
       sidebar.className = "sidebar";
@@ -286,22 +289,11 @@
     );
     const nav = document.querySelector(".sidebar .nav-menu");
     if (!header && !nav) return;
-    if (
-      nav &&
-      (nav.dataset.dashboardShellReady === "true" ||
-        nav.querySelector("[data-dashboard-submenu]"))
-    )
-      return;
     new MutationObserver(() => {
       if (header && !header.querySelector(".universal-header-copy"))
         upgradeHeader();
       const currentNav = document.querySelector(".sidebar .nav-menu");
-      if (
-        !currentNav ||
-        currentNav.dataset.dashboardShellReady === "true" ||
-        currentNav.querySelector("[data-dashboard-submenu]")
-      )
-        return;
+      if (!currentNav) return;
       if (currentNav && !currentNav.querySelector("#submenu-master")) {
         delete currentNav.dataset.scopedNavigation;
         renderScopedNavigation();

@@ -94,6 +94,75 @@
   gap: 18px;
   margin-left: auto;
 }
+.universal-dashboard-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.universal-dashboard-filters .user-filter-wrap {
+  position: relative;
+}
+.universal-dashboard-filters .user-filter-wrap::before {
+  content: "\f2bd";
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: #b1802d;
+  font-family: "Font Awesome 6 Free";
+  font-size: 0.86rem;
+  font-weight: 900;
+  pointer-events: none;
+}
+.universal-dashboard-filters .user-filter-wrap .form-select {
+  width: 205px;
+  height: 46px !important;
+  padding: 0 36px 0 38px;
+  border: 1px solid #d9e2ee;
+  border-radius: 13px;
+  background: #fff;
+  color: #172235;
+  font-size: 0.84rem;
+  font-weight: 700;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.055);
+}
+.universal-dashboard-filters .date-filter-wrap .btn {
+  display: inline-flex !important;
+  align-items: center;
+  min-width: 166px;
+  height: 48px !important;
+  padding: 5px 13px 5px 6px !important;
+  border: 1px solid #dce3ee !important;
+  border-radius: 15px !important;
+  background: linear-gradient(115deg, #fffefa, #fff 72%) !important;
+  color: #101a31 !important;
+  font-size: 0.91rem !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgba(24, 42, 76, 0.08) !important;
+}
+.universal-dashboard-filters .date-filter-wrap .btn i {
+  display: grid;
+  flex: 0 0 35px;
+  width: 35px;
+  height: 35px;
+  margin: 0 10px 0 0 !important;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #fff7e5, #fae3b4);
+  color: #ad7415;
+}
+.universal-dashboard-filters .date-filter-wrap #currentFilterLabel {
+  min-width: 72px;
+  padding-left: 11px;
+  border-left: 1px solid #e5e9f0;
+  font-size: 13px !important;
+  font-weight: 750;
+  line-height: 1;
+}
+@media (max-width: 1190px) {
+  .universal-dashboard-filters .user-filter-wrap { display: none; }
+}
 .universal-notification {
   position: relative;
   border: 0;
@@ -142,12 +211,13 @@
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #071225, #243b60);
-  color: #fff;
+  color: #fff !important;
   font-weight: 800;
   border: 2px solid #ecd18a;
   box-shadow: 0 3px 9px rgba(15, 23, 42, 0.16);
   overflow: hidden;
   flex: 0 0 46px;
+  letter-spacing: 0.02em;
 }
 .universal-profile-avatar img {
   width: 100%;
@@ -182,6 +252,18 @@
   color: #9a7029;
   background: #fbf3e2;
   font-size: 0.63rem;
+}
+
+/* Keep every non-dashboard page on the identical profile-avatar scale. */
+.universal-profile-avatar {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  font: 800 16px/1 Inter, system-ui, sans-serif !important;
 }
 .universal-profile-dropdown {
   min-width: 200px;
@@ -222,6 +304,7 @@
   font-size: 0.92rem;
   letter-spacing: 0.02em;
   background: radial-gradient(circle at 32% 24%, #263d66, #071225 68%);
+  color: #fff !important;
   border: 2px solid #e9c66d;
   overflow: visible;
 }
@@ -289,7 +372,9 @@
   background: rgba(212, 167, 44, 0.12) !important;
   color: #fff !important;
 }
-.sidebar .nav-link.active-indicator i { color: #f6d57e !important; }
+.sidebar .nav-link.active-indicator i {
+  color: #f6d57e !important;
+}
 /* Use the same High Custom gold selection state on every Admin page. */
 .sidebar .nav-link.active {
   color: #fff !important;
@@ -302,7 +387,9 @@
   background: rgba(212, 167, 44, 0.12) !important;
   color: #fff !important;
 }
-.sidebar .nav-link.active-indicator i { color: #f6d57e !important; }
+.sidebar .nav-link.active-indicator i {
+  color: #f6d57e !important;
+}
 @media (max-width: 991px) {
   .top-navbar.universal-dashboard-header {
     left: 0;
@@ -336,5 +423,43 @@
   }
 }
 @media (min-width: 992px) {
-  .top-navbar .sidebar-toggle { display: none !important; }
+  .top-navbar .sidebar-toggle {
+    display: none !important;
+  }
+}
+
+/* Dashboard and workspace headers deliberately share one avatar component. */
+.premium-profile-avatar,
+.universal-profile-avatar {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  flex: 0 0 52px !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: visible !important;
+  border: 2px solid #e9c66d !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 32% 24%, #263d66, #071225 68%) !important;
+  color: #fff !important;
+  font: 800 16px/1 Inter, system-ui, sans-serif !important;
+}
+.premium-profile-avatar [data-admin-profile-initials],
+.universal-profile-avatar [data-shared-profile-avatar] {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  color: #fff !important;
+  font: inherit !important;
+}
+.premium-profile-avatar::after,
+.universal-profile-avatar::after {
+  right: -3px !important;
+  bottom: -3px !important;
+  width: 16px !important;
+  height: 16px !important;
+  border: 3px solid #fff !important;
+  border-radius: 50% !important;
+  background: #22c55e !important;
 }
