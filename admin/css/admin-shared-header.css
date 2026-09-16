@@ -335,3 +335,6 @@
     display: none;
   }
 }
+@media (min-width: 992px) {
+  .top-navbar .sidebar-toggle { display: none !important; }
+}
