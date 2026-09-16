@@ -21,7 +21,7 @@
       const id = idFor(row);
       if (!id || row.dataset.inlineReady) return;
       row.dataset.inlineReady = "true";
-      [[1,"email"],[2,"name"],[3,"company"]].forEach(([index, field]) => {
+      [[2,"email"],[3,"name"],[4,"company"]].forEach(([index, field]) => {
         const cell = row.cells[index];
         if (!cell) return;
         cell.classList.add("mlp-inline-edit");

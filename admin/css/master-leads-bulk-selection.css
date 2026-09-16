@@ -1,6 +1,0 @@
-.mlp-select-cell{width:44px!important;text-align:center!important;padding-left:8px!important;padding-right:8px!important}
-.mlp-select-cell input{width:17px;height:17px;cursor:pointer;accent-color:#096bf0;vertical-align:middle}
-.mlp-bulk-actions{display:flex;align-items:center;gap:10px;padding:5px 7px 5px 13px;border:1px solid #ffd5da;border-radius:11px;background:#fff6f7;color:#b92837;font-size:13px;white-space:nowrap}
-.mlp-bulk-delete{min-height:42px!important;padding:0 14px!important;border-color:#ffd0d6!important;background:#fff!important;color:#db3142!important;box-shadow:none!important}
-.mlp-bulk-delete i{margin-right:7px!important;font-size:14px!important}
-@media(max-width:1100px){.mlp-bulk-actions{width:100%;justify-content:space-between}}
