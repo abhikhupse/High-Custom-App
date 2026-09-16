@@ -195,6 +195,10 @@
     const nav = document.querySelector(".sidebar .nav-menu");
     if (!nav || nav.dataset.scopedNavigation === "true") return;
     const sidebar = nav.closest(".sidebar");
+    if (sidebar) {
+      sidebar.className = "sidebar";
+      sidebar.removeAttribute("style");
+    }
     const brand = sidebar?.querySelector(".sidebar-brand");
     if (brand) {
       brand.innerHTML = `<a href="${new URL("dashboard.html", adminRoot).pathname}" aria-label="High Custom Admin Panel"><img src="${new URL("images/high-custom-admin-panel-logo.png", adminRoot).href}" alt="High Custom Admin Panel" class="sidebar-logo"></a>`;
