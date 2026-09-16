@@ -28,7 +28,7 @@
     sidebarCss.id = "adminSharedSidebarCss";
     sidebarCss.rel = "stylesheet";
     // Versioned so every legacy static page receives the current shared shell.
-    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260916-2`;
+    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260916-3`;
     document.head.append(sidebarCss);
   }
 
