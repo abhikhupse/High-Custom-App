@@ -28,7 +28,7 @@
     sidebarCss.id = "adminSharedSidebarCss";
     sidebarCss.rel = "stylesheet";
     // Versioned so every legacy static page receives the current shared shell.
-    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260916-3`;
+    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260916-4`;
     document.head.append(sidebarCss);
   }
 
@@ -184,7 +184,8 @@
   // shared header replaces that legacy markup.
   document.addEventListener("click", (event) => {
     const item = event.target.closest(".dropdown-item, a");
-    if (!item || item.textContent.trim().toLowerCase() !== "integrations") return;
+    if (!item || item.textContent.trim().toLowerCase() !== "integrations")
+      return;
     event.preventDefault();
     window.location.assign(new URL("integrations.html", adminRoot).href);
   });
@@ -193,7 +194,14 @@
   // routes load data derived from the current JWT owner.
   const renderScopedNavigation = () => {
     const nav = document.querySelector(".sidebar .nav-menu");
-    if (!nav || nav.dataset.scopedNavigation === "true") return;
+    if (!nav) return;
+    if (
+      nav.dataset.scopedNavigation === "true" ||
+      nav.dataset.dashboardShellReady === "true" ||
+      nav.querySelector("[data-dashboard-submenu]")
+    ) {
+      return;
+    }
     const sidebar = nav.closest(".sidebar");
     if (sidebar) {
       sidebar.className = "sidebar";
@@ -253,7 +261,8 @@
     if (sidebar && !sidebar.querySelector(".sidebar-premium-footer")) {
       const footer = document.createElement("div");
       footer.className = "sidebar-premium-footer";
-      footer.innerHTML = "<strong>High Custom</strong><span>Build Relationships</span><span>Create Opportunities</span>";
+      footer.innerHTML =
+        "<strong>High Custom</strong><span>Build Relationships</span><span>Create Opportunities</span>";
       nav.insertAdjacentElement("afterend", footer);
     }
     nav.querySelectorAll("[data-target]").forEach((button) => {
@@ -272,13 +281,29 @@
   // page's old header or menu. Keep the shared shell authoritative instead
   // of allowing a second, page-specific chrome to appear after refresh.
   document.addEventListener("DOMContentLoaded", () => {
-    const header = document.querySelector(".top-navbar.universal-dashboard-header");
+    const header = document.querySelector(
+      ".top-navbar.universal-dashboard-header",
+    );
     const nav = document.querySelector(".sidebar .nav-menu");
     if (!header && !nav) return;
+    if (
+      nav &&
+      (nav.dataset.dashboardShellReady === "true" ||
+        nav.querySelector("[data-dashboard-submenu]"))
+    )
+      return;
     new MutationObserver(() => {
-      if (header && !header.querySelector(".universal-header-copy")) upgradeHeader();
-      if (nav && !nav.querySelector("#submenu-master")) {
-        delete nav.dataset.scopedNavigation;
+      if (header && !header.querySelector(".universal-header-copy"))
+        upgradeHeader();
+      const currentNav = document.querySelector(".sidebar .nav-menu");
+      if (
+        !currentNav ||
+        currentNav.dataset.dashboardShellReady === "true" ||
+        currentNav.querySelector("[data-dashboard-submenu]")
+      )
+        return;
+      if (currentNav && !currentNav.querySelector("#submenu-master")) {
+        delete currentNav.dataset.scopedNavigation;
         renderScopedNavigation();
       }
     }).observe(document.body, { childList: true, subtree: true });
@@ -294,45 +319,78 @@
     const path = url.pathname.toLowerCase();
     const interested = url.searchParams.get("status") === "interested";
     if (path.endsWith("/dashboard.html")) return ["dashboard", "viewDashboard"];
-    if (path.endsWith("/integrations.html")) return ["integrations", "viewIntegrations"];
+    if (path.endsWith("/integrations.html"))
+      return ["integrations", "viewIntegrations"];
     if (path.includes("/users/")) return ["users", "viewUsers"];
-    if (path.endsWith("/master/usermasterlist.html")) return ["allSequences", "viewAllUsersSequences"];
-    if (path.endsWith("/master/usersequencetable.html")) return ["allTrackingReport", "viewAllUsersTracking"];
-    if (path.endsWith("/leads/total-leads.html")) return interested ? ["allInterestedLeads", "viewAllInterestedLeads"] : ["allLeads", "viewAllUsersLeads"];
-    if (path.endsWith("/leads/index.html")) return interested ? ["interestedLeads", "viewInterestedLeads"] : ["leads", "viewLeads"];
-    if (path.endsWith("/master/master-list.html")) return ["sequences", "viewSequences"];
-    if (path.endsWith("/reports/campaign.html")) return ["trackingReport", "viewTrackingReport"];
-    if (path.includes("/social/") && path.includes("link-document")) return ["businessLink", "viewBusinessLink"];
+    if (path.endsWith("/master/usermasterlist.html"))
+      return ["allSequences", "viewAllUsersSequences"];
+    if (path.endsWith("/master/usersequencetable.html"))
+      return ["allTrackingReport", "viewAllUsersTracking"];
+    if (path.endsWith("/leads/total-leads.html"))
+      return interested
+        ? ["allInterestedLeads", "viewAllInterestedLeads"]
+        : ["allLeads", "viewAllUsersLeads"];
+    if (path.endsWith("/leads/index.html"))
+      return interested
+        ? ["interestedLeads", "viewInterestedLeads"]
+        : ["leads", "viewLeads"];
+    if (path.endsWith("/master/master-list.html"))
+      return ["sequences", "viewSequences"];
+    if (path.endsWith("/reports/campaign.html"))
+      return ["trackingReport", "viewTrackingReport"];
+    if (path.includes("/social/") && path.includes("link-document"))
+      return ["businessLink", "viewBusinessLink"];
     if (path.includes("/social/")) return ["socialLinks", "viewSocialLinks"];
     return null;
   };
   const denyPage = () => {
     document.body.replaceChildren();
     const notice = document.createElement("main");
-    notice.style.cssText = "min-height:100vh;display:grid;place-items:center;background:#f5f7fb;padding:24px;font:600 16px Arial,sans-serif;color:#10213d";
-    notice.innerHTML = '<section style="max-width:430px;text-align:center;background:#fff;padding:36px;border-radius:16px;box-shadow:0 12px 35px #15294a1c"><h1 style="margin:0 0 10px">Access denied</h1><p style="margin:0 0 22px;color:#61708a;font-weight:400">You do not have permission to open this page.</p><a href="' + new URL("dashboard.html", adminRoot).href + '" style="display:inline-block;background:#a8751f;color:#fff;text-decoration:none;padding:11px 17px;border-radius:8px">Go back</a></section>';
+    notice.style.cssText =
+      "min-height:100vh;display:grid;place-items:center;background:#f5f7fb;padding:24px;font:600 16px Arial,sans-serif;color:#10213d";
+    notice.innerHTML =
+      '<section style="max-width:430px;text-align:center;background:#fff;padding:36px;border-radius:16px;box-shadow:0 12px 35px #15294a1c"><h1 style="margin:0 0 10px">Access denied</h1><p style="margin:0 0 22px;color:#61708a;font-weight:400">You do not have permission to open this page.</p><a href="' +
+      new URL("dashboard.html", adminRoot).href +
+      '" style="display:inline-block;background:#a8751f;color:#fff;text-decoration:none;padding:11px 17px;border-radius:8px">Go back</a></section>';
     document.body.append(notice);
   };
   const applyPermissions = async () => {
     const token = localStorage.getItem("highCustomAdminToken");
     if (!token) return;
-    const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-    const apiBase = isLocal ? "http://localhost:3000/api" : (localStorage.getItem("highCustomApiBase") || "https://high-custom-app.onrender.com/api");
+    const isLocal = ["localhost", "127.0.0.1"].includes(
+      window.location.hostname,
+    );
+    const apiBase = isLocal
+      ? "http://localhost:3000/api"
+      : localStorage.getItem("highCustomApiBase") ||
+        "https://high-custom-app.onrender.com/api";
     try {
-      const response = await fetch(`${apiBase}/user/profile`, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } });
+      const response = await fetch(`${apiBase}/user/profile`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const payload = await response.json().catch(() => ({}));
       const user = payload?.user;
       if (!response.ok || !payload?.success || !user) return;
       localStorage.setItem("highCustomAdminUser", JSON.stringify(user));
-      const allowed = (requirement) => !requirement || (user.appRights?.[requirement[0]] === true && user.accessRights?.[requirement[1]] === true);
+      const allowed = (requirement) =>
+        !requirement ||
+        (user.appRights?.[requirement[0]] === true &&
+          user.accessRights?.[requirement[1]] === true);
       document.querySelectorAll(".sidebar a.nav-link[href]").forEach((link) => {
-        const requirement = pageRequirement(new URL(link.href, window.location.origin));
+        const requirement = pageRequirement(
+          new URL(link.href, window.location.origin),
+        );
         link.closest(".nav-item").hidden = !allowed(requirement);
       });
       document.querySelectorAll(".sidebar .sub-menu").forEach((menu) => {
         const children = [...menu.querySelectorAll(":scope > .nav-item")];
         const group = menu.closest(".nav-item");
-        if (group) group.hidden = children.length > 0 && children.every((child) => child.hidden);
+        if (group)
+          group.hidden =
+            children.length > 0 && children.every((child) => child.hidden);
       });
       if (!allowed(pageRequirement(new URL(window.location.href)))) denyPage();
     } catch (_) {
@@ -376,12 +434,16 @@
     const current = new URL(window.location.href);
     const links = [...document.querySelectorAll(".sidebar a.nav-link[href]")];
     links.forEach((link) => link.classList.remove("active"));
-    document.querySelectorAll(".sidebar [data-target]").forEach((button) =>
-      button.classList.remove("active-indicator"),
-    );
+    document
+      .querySelectorAll(".sidebar [data-target]")
+      .forEach((button) => button.classList.remove("active-indicator"));
     const match = links.find((link) => {
       const target = new URL(link.href, window.location.origin);
-      return target.pathname.replace(/\/$/, "") === current.pathname.replace(/\/$/, "") && target.search === current.search;
+      return (
+        target.pathname.replace(/\/$/, "") ===
+          current.pathname.replace(/\/$/, "") &&
+        target.search === current.search
+      );
     });
     if (!match) return;
     match.classList.add("active");
@@ -413,12 +475,26 @@
       const links = [...nav.querySelectorAll("a.nav-link[href]")];
       const expected = links.find((link) => {
         const target = new URL(link.href, window.location.origin);
-        return target.pathname.replace(/\/$/, "") === current.pathname.replace(/\/$/, "") && target.search === current.search;
+        return (
+          target.pathname.replace(/\/$/, "") ===
+            current.pathname.replace(/\/$/, "") &&
+          target.search === current.search
+        );
       });
-      if (expected && (!expected.classList.contains("active") || links.some((link) => link !== expected && link.classList.contains("active")))) {
+      if (
+        expected &&
+        (!expected.classList.contains("active") ||
+          links.some(
+            (link) => link !== expected && link.classList.contains("active"),
+          ))
+      ) {
         applyScopedActiveState();
       }
     });
-    observer.observe(nav, { attributes: true, subtree: true, attributeFilter: ["class"] });
+    observer.observe(nav, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["class"],
+    });
   });
 })();
