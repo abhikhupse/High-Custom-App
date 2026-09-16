@@ -267,6 +267,22 @@
   };
   renderScopedNavigation();
   document.body.classList.add("shared-navigation-ready");
+
+  // Legacy page scripts can still run after DOMContentLoaded and rewrite a
+  // page's old header or menu. Keep the shared shell authoritative instead
+  // of allowing a second, page-specific chrome to appear after refresh.
+  document.addEventListener("DOMContentLoaded", () => {
+    const header = document.querySelector(".top-navbar.universal-dashboard-header");
+    const nav = document.querySelector(".sidebar .nav-menu");
+    if (!header && !nav) return;
+    new MutationObserver(() => {
+      if (header && !header.querySelector(".universal-header-copy")) upgradeHeader();
+      if (nav && !nav.querySelector("#submenu-master")) {
+        delete nav.dataset.scopedNavigation;
+        renderScopedNavigation();
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
   // Pages begin with legacy chrome hidden. Reveal it only after the shared
   // navigation has replaced its content, preventing a refresh-time flash.
   document.documentElement.classList.add("hc-shell-ready");
