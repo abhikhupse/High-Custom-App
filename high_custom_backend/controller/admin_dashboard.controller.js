@@ -23,13 +23,23 @@ function userFilter(userId) {
 
 exports.getDashboard = async (req, res) => {
   try {
-    const selectedUser = userFilter(req.query.userId);
+    // Every active role can open the dashboard.  Company roles may choose a
+    // user, while own/assigned roles are always limited to their own data.
+    const canViewCompanyData =
+      req.user?.appRights?.allUserDashboard === true &&
+      ["all", "company"].includes(req.user?.dataScope);
+    const selectedUser = canViewCompanyData
+      ? userFilter(req.query.userId)
+      : userFilter(req.user?.id);
     const range = dateRange(req.query);
     const deliveryMatch = { ...selectedUser, ...(range && { createdAt: range }) };
     const leadMatch = { ...selectedUser, ...(range && { createdAt: range }) };
 
     const [users, deliveryStats, totalLeads, todayLeads, linkStats, platforms, buttons] = await Promise.all([
-      User.find({}).select("firstName lastName email employerCode").sort({ firstName: 1 }).lean(),
+      User.find(canViewCompanyData ? {} : { _id: req.user.id })
+        .select("firstName lastName email employerCode")
+        .sort({ firstName: 1 })
+        .lean(),
       Delivery.aggregate([
         { $match: deliveryMatch },
         { $group: {

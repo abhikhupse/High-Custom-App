@@ -1,4 +1,4 @@
-﻿import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../../services/business_type_api.dart';
 import '../../../services/business_link_settings_api.dart';
@@ -13,18 +13,14 @@ import 'create_sequence_preview.dart';
 // ============================================================
 
 class CreateSequenceForm extends StatefulWidget {
-  const CreateSequenceForm({
-    super.key,
-    this.sequence,
-  });
+  const CreateSequenceForm({super.key, this.sequence});
 
   final Map<String, dynamic>? sequence;
 
   bool get isEditing => sequence != null;
 
   @override
-  State<CreateSequenceForm> createState() =>
-      _CreateSequenceFormState();
+  State<CreateSequenceForm> createState() => _CreateSequenceFormState();
 }
 
 // ============================================================
@@ -94,50 +90,44 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // CONTROLLERS
   // ============================================================
 
-  final TextEditingController stepController =
-      TextEditingController();
+  final TextEditingController stepController = TextEditingController();
 
-  final TextEditingController gapDaysController =
-      TextEditingController();
+  final TextEditingController gapDaysController = TextEditingController();
 
-  final TextEditingController variantController =
-      TextEditingController();
+  final TextEditingController variantController = TextEditingController();
 
-  final TextEditingController subjectController =
-      TextEditingController();
+  final TextEditingController subjectController = TextEditingController();
 
-  final TextEditingController logoController =
-      TextEditingController();
+  final TextEditingController logoController = TextEditingController();
 
-  final TextEditingController heroImageController =
-      TextEditingController();
+  final TextEditingController heroImageController = TextEditingController();
 
-  final TextEditingController heroLinkController =
-      TextEditingController();
+  final TextEditingController heroLinkController = TextEditingController();
 
-  final TextEditingController contentController =
-      TextEditingController();
+  final TextEditingController contentController = TextEditingController();
 
-  final TextEditingController whatsappController =
-      TextEditingController();
+  final TextEditingController whatsappController = TextEditingController();
 
-  final TextEditingController ctaTextController =
-      TextEditingController();
+  final TextEditingController ctaTextController = TextEditingController();
 
-  final TextEditingController ctaUrlController =
-      TextEditingController();
+  final TextEditingController ctaUrlController = TextEditingController();
+
+  // The sequence can contain more than one saved Business Link. Keep the
+  // selected set here instead of collapsing it into the legacy primary CTA.
+  final List<Map<String, String>> selectedActionLinks = [];
 
   final TextEditingController attachmentNameController =
       TextEditingController();
 
-  final TextEditingController attachmentUrlController =
-      TextEditingController();
+  final TextEditingController attachmentUrlController = TextEditingController();
 
   final TextEditingController attachmentMimeController =
       TextEditingController();
 
   final TextEditingController attachmentSizeController =
       TextEditingController();
+
+  final FocusNode contentFocusNode = FocusNode();
 
   // ============================================================
   // BUSINESS TYPE
@@ -210,8 +200,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     subjectController.text = sequence['subject']?.toString() ?? '';
     contentController.text = sequence['content']?.toString() ?? '';
 
-    selectedBusinessType =
-        sequence['businessType']?.toString().trim() ?? '';
+    selectedBusinessType = sequence['businessType']?.toString().trim() ?? '';
 
     if (selectedBusinessType.isNotEmpty) {
       businessTypes.add(selectedBusinessType);
@@ -244,8 +233,23 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     final cta = _asMap(actionLinks['cta']);
 
     whatsappController.text = whatsapp['url']?.toString() ?? '';
-    ctaTextController.text = cta['text']?.toString() ?? '';
-    ctaUrlController.text = cta['url']?.toString() ?? '';
+    final ctaText = cta['text']?.toString().trim() ?? '';
+    final ctaUrl = cta['url']?.toString().trim() ?? '';
+    final storedLinks = _normaliseActionLinks(actionLinks['links']);
+    if (ctaText.isNotEmpty &&
+        RegExp(r'^https?://', caseSensitive: false).hasMatch(ctaUrl)) {
+      selectedActionLinks.add({
+        'label': ctaText,
+        'url': ctaUrl,
+        'type': 'website',
+      });
+    }
+    selectedActionLinks.addAll(
+      storedLinks.where(
+        (link) =>
+            !selectedActionLinks.any((saved) => saved['url'] == link['url']),
+      ),
+    );
 
     final tracking = _asMap(sequence['tracking']);
     trackingEnabled = tracking['enabled'] != false;
@@ -293,19 +297,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     final data = Map<String, dynamic>.from(rawData);
     final logoUrl = data['logoUrl']?.toString().trim() ?? '';
     final whatsappUrl = data['whatsappUrl']?.toString().trim() ?? '';
-    String ctaText = '';
-    String ctaUrl = '';
-    final savedLinks = data['actionLinks'];
-    if (savedLinks is List) {
-      for (final item in savedLinks) {
-        if (item is! Map) continue;
-        final url = item['url']?.toString().trim() ?? '';
-        if (!url.startsWith('https://') && !url.startsWith('http://')) continue;
-        ctaText = item['name']?.toString().trim() ?? 'Open Link';
-        ctaUrl = url;
-        break;
-      }
-    }
+    final savedActionLinks = _normaliseActionLinks(data['actionLinks']);
 
     setState(() {
       if (logoUrl.isNotEmpty) {
@@ -314,11 +306,45 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         logoController.text = logoUrl;
       }
       if (whatsappUrl.isNotEmpty) whatsappController.text = whatsappUrl;
-      if (ctaUrl.isNotEmpty) {
-        ctaTextController.text = ctaText;
-        ctaUrlController.text = ctaUrl;
-      }
+      selectedActionLinks
+        ..clear()
+        ..addAll(savedActionLinks);
     });
+  }
+
+  List<Map<String, String>> _normaliseActionLinks(dynamic rawLinks) {
+    if (rawLinks is! List) return [];
+    final uniqueUrls = <String>{};
+    final links = <Map<String, String>>[];
+    for (final raw in rawLinks) {
+      if (raw is! Map) continue;
+      final url = raw['url']?.toString().trim() ?? '';
+      if (!RegExp(r'^https?://', caseSensitive: false).hasMatch(url) ||
+          !uniqueUrls.add(url)) {
+        continue;
+      }
+      final label =
+          (raw['label'] ??
+                  raw['name'] ??
+                  raw['platform_name'] ??
+                  raw['type'] ??
+                  'Open Link')
+              .toString()
+              .trim();
+      final type = (raw['type'] ?? raw['platform'] ?? raw['name'] ?? '')
+          .toString()
+          .trim();
+      links.add({
+        'label': label.isEmpty ? 'Open Link' : label,
+        'url': url,
+        'type': type,
+      });
+    }
+    return links;
+  }
+
+  void _removeActionLink(int index) {
+    setState(() => selectedActionLinks.removeAt(index));
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
@@ -360,6 +386,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     attachmentUrlController.dispose();
     attachmentMimeController.dispose();
     attachmentSizeController.dispose();
+    contentFocusNode.dispose();
 
     super.dispose();
   }
@@ -392,20 +419,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(
-                  milliseconds: 220,
-                ),
+                duration: const Duration(milliseconds: 220),
                 child: SingleChildScrollView(
-                  key: ValueKey<int>(
-                    currentStep,
-                  ),
+                  key: ValueKey<int>(currentStep),
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(
-                    14,
-                    16,
-                    14,
-                    32,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 16, 14, 32),
                   child: _buildCurrentStep(),
                 ),
               ),
@@ -446,127 +464,104 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   Widget _buildStepper() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        14,
-        16,
-        14,
-        14,
-      ),
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
       decoration: const BoxDecoration(
         color: background,
-        border: Border(
-          bottom: BorderSide(
-            color: softBorder,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: softBorder)),
       ),
       child: Row(
-        children: List.generate(
-          stepTitles.length,
-          (index) {
-            final bool completed =
-                index < currentStep;
+        children: List.generate(stepTitles.length, (index) {
+          final bool completed = index < currentStep;
 
-            final bool active =
-                index == currentStep;
+          final bool active = index == currentStep;
 
-            return Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: completed
-                              ? () {
-                                  setState(() {
-                                    currentStep = index;
-                                  });
-                                }
-                              : null,
-                          child: AnimatedContainer(
-                            duration: const Duration(
-                              milliseconds: 200,
-                            ),
-                            width: 32,
-                            height: 32,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
+          return Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: completed
+                            ? () {
+                                setState(() {
+                                  currentStep = index;
+                                });
+                              }
+                            : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: completed
+                                ? green
+                                : active
+                                ? gold
+                                : fieldBackground,
+                            shape: BoxShape.circle,
+                            border: Border.all(
                               color: completed
                                   ? green
                                   : active
-                                      ? gold
-                                      : fieldBackground,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: completed
-                                    ? green
-                                    : active
-                                        ? gold
-                                        : borderColor,
-                              ),
+                                  ? gold
+                                  : borderColor,
                             ),
-                            child: completed
-                                ? const Icon(
-                                    Icons.check_rounded,
-                                    size: 16,
-                                    color: Colors.black,
-                                  )
-                                : Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      color: active
-                                          ? Colors.black
-                                          : secondaryTextColor,
-                                      fontWeight:
-                                          FontWeight.w800,
-                                      fontSize: 12,
-                                    ),
+                          ),
+                          child: completed
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 16,
+                                  color: Colors.black,
+                                )
+                              : Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    color: active
+                                        ? Colors.black
+                                        : secondaryTextColor,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
                                   ),
-                          ),
+                                ),
                         ),
-
-                        const SizedBox(height: 7),
-
-                        Text(
-                          stepTitles[index],
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: active
-                                ? gold
-                                : completed
-                                    ? textColor
-                                    : secondaryTextColor,
-                            fontSize: 9.5,
-                            fontWeight: active
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (index !=
-                      stepTitles.length - 1)
-                    Container(
-                      width: 16,
-                      height: 1,
-                      margin: const EdgeInsets.only(
-                        bottom: 22,
                       ),
-                      color: completed
-                          ? green
-                          : borderColor,
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
+
+                      const SizedBox(height: 7),
+
+                      Text(
+                        stepTitles[index],
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: active
+                              ? gold
+                              : completed
+                              ? textColor
+                              : secondaryTextColor,
+                          fontSize: 9.5,
+                          fontWeight: active
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (index != stepTitles.length - 1)
+                  Container(
+                    width: 16,
+                    height: 1,
+                    margin: const EdgeInsets.only(bottom: 22),
+                    color: completed ? green : borderColor,
+                  ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
@@ -581,8 +576,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         _stepHeader(
           icon: Icons.description_outlined,
           title: 'Basic Information',
-          subtitle:
-              'Set up your sequence details.',
+          subtitle: 'Set up your sequence details.',
         ),
 
         const SizedBox(height: 16),
@@ -590,23 +584,17 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // SEQUENCE DETAILS
         // ========================================================
-
         _buildCard(
           title: 'Sequence Details',
-          subtitle:
-              'Configure the main campaign information.',
+          subtitle: 'Configure the main campaign information.',
           icon: Icons.tune_rounded,
           child: Column(
             children: [
               // =================================================
               // STEP + GAP
               // =================================================
-
               LayoutBuilder(
-                builder: (
-                  context,
-                  constraints,
-                ) {
+                builder: (context, constraints) {
                   if (constraints.maxWidth < 330) {
                     return Column(
                       children: [
@@ -614,26 +602,21 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                           controller: stepController,
                           label: 'Step',
                           hint: '1',
-                          keyboardType:
-                              TextInputType.number,
+                          keyboardType: TextInputType.number,
                           inputFormatters: [
-                            FilteringTextInputFormatter
-                                .digitsOnly,
+                            FilteringTextInputFormatter.digitsOnly,
                           ],
                         ),
 
                         const SizedBox(height: 14),
 
                         _buildTextField(
-                          controller:
-                              gapDaysController,
+                          controller: gapDaysController,
                           label: 'Gap Days',
                           hint: '0',
-                          keyboardType:
-                              TextInputType.number,
+                          keyboardType: TextInputType.number,
                           inputFormatters: [
-                            FilteringTextInputFormatter
-                                .digitsOnly,
+                            FilteringTextInputFormatter.digitsOnly,
                           ],
                         ),
                       ],
@@ -641,20 +624,16 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   }
 
                   return Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildTextField(
-                          controller:
-                              stepController,
+                          controller: stepController,
                           label: 'Step',
                           hint: '1',
-                          keyboardType:
-                              TextInputType.number,
+                          keyboardType: TextInputType.number,
                           inputFormatters: [
-                            FilteringTextInputFormatter
-                                .digitsOnly,
+                            FilteringTextInputFormatter.digitsOnly,
                           ],
                         ),
                       ),
@@ -663,15 +642,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
                       Expanded(
                         child: _buildTextField(
-                          controller:
-                              gapDaysController,
+                          controller: gapDaysController,
                           label: 'Gap Days',
                           hint: '0',
-                          keyboardType:
-                              TextInputType.number,
+                          keyboardType: TextInputType.number,
                           inputFormatters: [
-                            FilteringTextInputFormatter
-                                .digitsOnly,
+                            FilteringTextInputFormatter.digitsOnly,
                           ],
                         ),
                       ),
@@ -685,14 +661,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               // =================================================
               // VARIANT
               // =================================================
-
               _buildTextField(
-                controller:
-                    variantController,
+                controller: variantController,
                 label: 'Variant',
                 hint: 'Example: A',
-                textCapitalization:
-                    TextCapitalization.characters,
+                textCapitalization: TextCapitalization.characters,
               ),
 
               const SizedBox(height: 16),
@@ -700,7 +673,6 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               // =================================================
               // BUSINESS TYPE
               // =================================================
-
               _buildBusinessTypeSelector(),
 
               const SizedBox(height: 16),
@@ -708,15 +680,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               // =================================================
               // SUBJECT
               // =================================================
-
               _buildTextField(
-                controller:
-                    subjectController,
+                controller: subjectController,
                 label: 'Email Subject',
-                hint:
-                    'Enter your email subject',
-                prefixIcon:
-                    Icons.subject_rounded,
+                hint: 'Enter your email subject',
+                prefixIcon: Icons.subject_rounded,
               ),
             ],
           ),
@@ -727,49 +695,47 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // BRAND
         // ========================================================
-
         _buildCard(
           title: 'Brand Identity',
-          subtitle:
-              'Upload your company logo or banner.',
+          subtitle: 'Upload your company logo or banner.',
           icon: Icons.business_outlined,
           child: Column(
             children: [
               _buildFilePicker(
-                label:
-                    'Company Logo / Banner',
-                value:
-                    logoController.text,
-                emptyText:
-                    'Upload logo or banner',
-                icon:
-                    Icons.cloud_upload_outlined,
-                onTap:
-                    _pickLogoFile,
+                label: 'Company Logo / Banner',
+                value: logoController.text,
+                emptyText: 'Upload logo or banner',
+                icon: Icons.cloud_upload_outlined,
+                onTap: _pickLogoFile,
               ),
+
+              if (logoController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 9),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _removeLogo,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                    label: const Text('Remove logo'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: red,
+                      backgroundColor: red.withOpacity(0.08),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9),
+                        side: BorderSide(color: red.withOpacity(0.35)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 16),
 
-              _buildDropdown(
-                label: 'Logo Position',
-                value:
-                    selectedLogoPosition,
-                items: const [
-                  'Left',
-                  'Center',
-                  'Right',
-                ],
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-
-                  setState(() {
-                    selectedLogoPosition =
-                        value;
-                  });
-                },
-              ),
+              _buildLogoPositionSelector(),
             ],
           ),
         ),
@@ -779,49 +745,59 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // HERO
         // ========================================================
-
         _buildCard(
           title: 'Hero Image',
-          subtitle:
-              'Add your campaign promotional image.',
+          subtitle: 'Add your campaign promotional image.',
           icon: Icons.image_outlined,
           child: Column(
             children: [
               _goldInfoBox(
-                title:
-                    'Recommended Size',
-                text:
-                    '1200 × 400 px • Maximum 2 MB',
+                title: 'Recommended Size',
+                text: '1200 × 400 px • Maximum 2 MB',
               ),
 
               const SizedBox(height: 14),
 
               _buildFilePicker(
-                label:
-                    'Hero Image',
-                value:
-                    heroImageController.text,
-                emptyText:
-                    'Upload hero image',
-                icon:
-                    Icons.add_photo_alternate_outlined,
-                onTap:
-                    _pickHeroImage,
+                label: 'Hero Image',
+                value: heroImageController.text,
+                emptyText: 'Upload hero image',
+                icon: Icons.add_photo_alternate_outlined,
+                onTap: _pickHeroImage,
               ),
+
+              if (heroImageController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 9),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _removeHeroImage,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                    label: const Text('Remove hero image'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: red,
+                      backgroundColor: red.withOpacity(0.08),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9),
+                        side: BorderSide(color: red.withOpacity(0.35)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 16),
 
               _buildTextField(
-                controller:
-                    heroLinkController,
-                label:
-                    'Hero Image Link',
-                hint:
-                    'https://example.com',
-                keyboardType:
-                    TextInputType.url,
-                prefixIcon:
-                    Icons.link_rounded,
+                controller: heroLinkController,
+                label: 'Hero Image Link',
+                hint: 'https://example.com',
+                keyboardType: TextInputType.url,
+                prefixIcon: Icons.link_rounded,
               ),
             ],
           ),
@@ -831,10 +807,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
         _navigationButtons(
           nextTitle: 'Continue',
-          nextIcon:
-              Icons.arrow_forward_rounded,
-          onNext:
-              _nextStep,
+          nextIcon: Icons.arrow_forward_rounded,
+          onNext: _nextStep,
         ),
       ],
     );
@@ -845,12 +819,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   Widget _buildBusinessTypeSelector() {
-    final bool hasType =
-        selectedBusinessType.trim().isNotEmpty;
+    final bool hasType = selectedBusinessType.trim().isNotEmpty;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Business Type',
@@ -864,23 +836,15 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 7),
 
         InkWell(
-          onTap: isLoading
-              ? null
-              : _showBusinessTypeSelector,
-          borderRadius:
-              BorderRadius.circular(10),
+          onTap: isLoading ? null : _showBusinessTypeSelector,
+          borderRadius: BorderRadius.circular(10),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
               color: fieldBackground,
-              borderRadius:
-                  BorderRadius.circular(10),
-              border: Border.all(
-                color: hasType
-                    ? gold
-                    : borderColor,
-              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: hasType ? gold : borderColor),
             ),
             child: Row(
               children: [
@@ -888,10 +852,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color:
-                        gold.withOpacity(0.09),
-                    borderRadius:
-                        BorderRadius.circular(9),
+                    color: gold.withOpacity(0.09),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   child: Icon(
                     hasType
@@ -906,23 +868,16 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        hasType
-                            ? selectedBusinessType
-                            : 'Add Business Type',
+                        hasType ? selectedBusinessType : 'Select Business Type',
                         maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: hasType
-                              ? textColor
-                              : gold,
+                          color: hasType ? textColor : gold,
                           fontSize: 12,
-                          fontWeight:
-                              FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
 
@@ -931,13 +886,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                       Text(
                         hasType
                             ? 'Business category for this sequence'
-                            : 'Create your own business category',
+                            : 'Choose a saved business category',
                         maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color:
-                              secondaryTextColor,
+                          color: secondaryTextColor,
                           fontSize: 9.5,
                         ),
                       ),
@@ -946,10 +899,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 ),
 
                 const Icon(
-                  Icons
-                      .keyboard_arrow_down_rounded,
-                  color:
-                      secondaryTextColor,
+                  Icons.keyboard_arrow_down_rounded,
+                  color: secondaryTextColor,
                 ),
               ],
             ),
@@ -964,153 +915,90 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   Future<void> _showBusinessTypeSelector() async {
-    String draftBusinessType = '';
-    String? validationMessage;
-
-    final String? selected =
-        await showModalBottomSheet<String>(
+    final String? selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor:
-          Colors.transparent,
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (
-            context,
-            sheetSetState,
-          ) {
+          builder: (context, sheetSetState) {
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(
-                  sheetContext,
-                ).viewInsets.bottom,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
               child: Container(
                 constraints: BoxConstraints(
-                  maxHeight:
-                      MediaQuery.of(
-                            sheetContext,
-                          ).size.height *
-                          0.82,
+                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.82,
                 ),
-                decoration:
-                    const BoxDecoration(
-                  color:
-                      Color(0xFF0B0E13),
-                  borderRadius:
-                      BorderRadius.vertical(
-                    top:
-                        Radius.circular(22),
-                  ),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0B0E13),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
                 ),
-                child:
-                    SingleChildScrollView(
-                  physics:
-                      const BouncingScrollPhysics(),
-                  padding:
-                      const EdgeInsets.fromLTRB(
-                    16,
-                    10,
-                    16,
-                    20,
-                  ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
                   child: Column(
-                    mainAxisSize:
-                        MainAxisSize.min,
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // =========================================
                       // HANDLE
                       // =========================================
-
                       Center(
                         child: Container(
                           width: 40,
                           height: 4,
-                          decoration:
-                              BoxDecoration(
-                            color:
-                                borderColor,
-                            borderRadius:
-                                BorderRadius.circular(
-                              20,
-                            ),
+                          decoration: BoxDecoration(
+                            color: borderColor,
+                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                       ),
 
-                      const SizedBox(
-                        height: 18,
-                      ),
+                      const SizedBox(height: 18),
 
                       // =========================================
                       // HEADER
                       // =========================================
-
                       Row(
                         children: [
                           Container(
                             width: 42,
                             height: 42,
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  gold.withOpacity(
-                                0.09,
-                              ),
-                              borderRadius:
-                                  BorderRadius.circular(
-                                10,
-                              ),
+                            decoration: BoxDecoration(
+                              color: gold.withOpacity(0.09),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            child:
-                                const Icon(
-                              Icons
-                                  .storefront_outlined,
+                            child: const Icon(
+                              Icons.storefront_outlined,
                               color: gold,
                               size: 20,
                             ),
                           ),
 
-                          const SizedBox(
-                            width: 10,
-                          ),
+                          const SizedBox(width: 10),
 
                           const Expanded(
-                            child:
-                                Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Business Type',
-                                  style:
-                                      TextStyle(
-                                    color:
-                                        textColor,
-                                    fontSize:
-                                        17,
-                                    fontWeight:
-                                        FontWeight
-                                            .w800,
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
 
-                                SizedBox(
-                                  height: 2,
-                                ),
+                                SizedBox(height: 2),
 
                                 Text(
-                                  'Choose an existing type or add your own.',
-                                  style:
-                                      TextStyle(
-                                    color:
-                                        secondaryTextColor,
-                                    fontSize:
-                                        10,
+                                  'Choose a saved type for this sequence.',
+                                  style: TextStyle(
+                                    color: secondaryTextColor,
+                                    fontSize: 10,
                                   ),
                                 ),
                               ],
@@ -1119,530 +1007,139 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                         ],
                       ),
 
-                      const SizedBox(
-                        height: 18,
-                      ),
+                      const SizedBox(height: 18),
 
                       // =========================================
                       // EXISTING TYPES
                       // =========================================
-
-                      if (businessTypes
-                          .isNotEmpty) ...[
+                      if (businessTypes.isNotEmpty) ...[
                         const Text(
                           'Saved Business Types',
-                          style:
-                              TextStyle(
-                            color:
-                                textColor,
-                            fontSize:
-                                11,
-                            fontWeight:
-                                FontWeight
-                                    .w700,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 9,
-                        ),
+                        const SizedBox(height: 9),
 
-                        ...businessTypes.map(
-                          (type) {
-                            final bool
-                                isSelected =
-                                selectedBusinessType ==
-                                    type;
+                        ...businessTypes.map((type) {
+                          final bool isSelected = selectedBusinessType == type;
 
-                            return Padding(
-                              padding:
-                                  const EdgeInsets
-                                      .only(
-                                bottom:
-                                    8,
-                              ),
-                              child:
-                                  InkWell(
-                                onTap:
-                                    () {
-                                  Navigator.of(
-                                    sheetContext,
-                                  ).pop(
-                                    type,
-                                  );
-                                },
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  11,
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.of(sheetContext).pop(type);
+                              },
+                              borderRadius: BorderRadius.circular(11),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(11),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? gold.withOpacity(0.08)
+                                      : fieldBackground,
+                                  borderRadius: BorderRadius.circular(11),
+                                  border: Border.all(
+                                    color: isSelected ? gold : borderColor,
+                                  ),
                                 ),
-                                child:
+                                child: Row(
+                                  children: [
                                     Container(
-                                  width:
-                                      double.infinity,
-                                  padding:
-                                      const EdgeInsets
-                                          .all(
-                                    11,
-                                  ),
-                                  decoration:
-                                      BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? gold.withOpacity(
-                                                0.08,
-                                              )
-                                            : fieldBackground,
-                                    borderRadius:
-                                        BorderRadius
-                                            .circular(
-                                      11,
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: gold.withOpacity(0.09),
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      child: const Icon(
+                                        Icons.storefront_outlined,
+                                        color: gold,
+                                        size: 18,
+                                      ),
                                     ),
-                                    border:
-                                        Border.all(
-                                      color:
-                                          isSelected
-                                              ? gold
-                                              : borderColor,
+
+                                    const SizedBox(width: 10),
+
+                                    Expanded(
+                                      child: Text(
+                                        type,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: textColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  child:
-                                      Row(
-                                    children: [
-                                      Container(
-                                        width:
-                                            38,
-                                        height:
-                                            38,
-                                        decoration:
-                                            BoxDecoration(
-                                          color:
-                                              gold.withOpacity(
-                                            0.09,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(
-                                            9,
-                                          ),
-                                        ),
-                                        child:
-                                            const Icon(
-                                          Icons
-                                              .storefront_outlined,
-                                          color:
-                                              gold,
-                                          size:
-                                              18,
-                                        ),
-                                      ),
 
-                                      const SizedBox(
-                                        width:
-                                            10,
+                                    if (isSelected)
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        color: gold,
+                                        size: 19,
                                       ),
-
-                                      Expanded(
-                                        child:
-                                            Text(
-                                          type,
-                                          maxLines:
-                                              1,
-                                          overflow:
-                                              TextOverflow.ellipsis,
-                                          style:
-                                              const TextStyle(
-                                            color:
-                                                textColor,
-                                            fontSize:
-                                                12,
-                                            fontWeight:
-                                                FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-
-                                      if (isSelected)
-                                        const Icon(
-                                          Icons
-                                              .check_circle_rounded,
-                                          color:
-                                              gold,
-                                          size:
-                                              19,
-                                        ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(
-                          height: 8,
-                        ),
-
-                        const Divider(
-                          color:
-                              softBorder,
-                          height: 1,
-                        ),
-
-                        const SizedBox(
-                          height: 16,
-                        ),
+                            ),
+                          );
+                        }),
                       ],
 
                       // =========================================
                       // EMPTY STATE
                       // =========================================
-
                       if (businessTypes.isEmpty)
                         Container(
-                          width:
-                              double.infinity,
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal:
-                                14,
-                            vertical:
-                                18,
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 18,
                           ),
-                          decoration:
-                              BoxDecoration(
-                            color:
-                                fieldBackground,
-                            borderRadius:
-                                BorderRadius.circular(
-                              11,
-                            ),
-                            border:
-                                Border.all(
-                              color:
-                                  borderColor,
-                            ),
+                          decoration: BoxDecoration(
+                            color: fieldBackground,
+                            borderRadius: BorderRadius.circular(11),
+                            border: Border.all(color: borderColor),
                           ),
-                          child:
-                              const Column(
+                          child: const Column(
                             children: [
                               Icon(
-                                Icons
-                                    .storefront_outlined,
-                                color:
-                                    secondaryTextColor,
-                                size:
-                                    27,
+                                Icons.storefront_outlined,
+                                color: secondaryTextColor,
+                                size: 27,
                               ),
 
-                              SizedBox(
-                                height:
-                                    7,
-                              ),
+                              SizedBox(height: 7),
 
                               Text(
-                                'No Business Type Added',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      textColor,
-                                  fontSize:
-                                      12,
-                                  fontWeight:
-                                      FontWeight.w700,
+                                'No Saved Business Types',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
 
-                              SizedBox(
-                                height:
-                                    3,
-                              ),
+                              SizedBox(height: 3),
 
                               Text(
-                                'Add your first business type below.',
-                                textAlign:
-                                    TextAlign.center,
-                                style:
-                                    TextStyle(
-                                  color:
-                                      secondaryTextColor,
-                                  fontSize:
-                                      9.5,
+                                'Add a business type from the Link page first.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 9.5,
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                      if (businessTypes
-                          .isEmpty)
-                        const SizedBox(
-                          height: 16,
-                        ),
-
-                      // =========================================
-                      // ADD TYPE
-                      // =========================================
-
-                      const Text(
-                        'Add Business Type',
-                        style:
-                            TextStyle(
-                          color:
-                              textColor,
-                          fontSize:
-                              11,
-                          fontWeight:
-                              FontWeight.w700,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 7,
-                      ),
-
-                      TextField(
-                        textCapitalization:
-                            TextCapitalization
-                                .words,
-                        cursorColor:
-                            gold,
-                        style:
-                            const TextStyle(
-                          color:
-                              textColor,
-                          fontSize:
-                              12,
-                        ),
-                        onChanged: (value) {
-                          draftBusinessType =
-                              value;
-
-                          if (validationMessage !=
-                              null) {
-                            sheetSetState(
-                              () {
-                                validationMessage =
-                                    null;
-                              },
-                            );
-                          }
-                        },
-                        decoration:
-                            InputDecoration(
-                          hintText:
-                              'Example: B2B',
-                          hintStyle:
-                              const TextStyle(
-                            color:
-                                hintColor,
-                            fontSize:
-                                10.5,
-                          ),
-                          prefixIcon:
-                              const Icon(
-                            Icons
-                                .add_business_outlined,
-                            color:
-                                secondaryTextColor,
-                            size:
-                                18,
-                          ),
-                          filled:
-                              true,
-                          fillColor:
-                              fieldBackground,
-                          contentPadding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal:
-                                12,
-                            vertical:
-                                12,
-                          ),
-                          border:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              10,
-                            ),
-                            borderSide:
-                                const BorderSide(
-                              color:
-                                  borderColor,
-                            ),
-                          ),
-                          enabledBorder:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              10,
-                            ),
-                            borderSide:
-                                const BorderSide(
-                              color:
-                                  borderColor,
-                            ),
-                          ),
-                          focusedBorder:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              10,
-                            ),
-                            borderSide:
-                                const BorderSide(
-                              color:
-                                  gold,
-                            ),
-                          ),
-                          errorText:
-                              validationMessage,
-                          errorStyle:
-                              const TextStyle(
-                            color:
-                                red,
-                            fontSize:
-                                9.5,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 11,
-                      ),
-
-                      // =========================================
-                      // ADD BUTTON
-                      // =========================================
-
-                      SizedBox(
-                        width:
-                            double.infinity,
-                        height:
-                            46,
-                        child:
-                            ElevatedButton.icon(
-                          onPressed:
-                              () async {
-                            final String
-                                value =
-                                draftBusinessType
-                                    .trim();
-
-                            if (value.isEmpty) {
-                              sheetSetState(
-                                () {
-                                  validationMessage =
-                                      'Please enter a business type';
-                                },
-                              );
-
-                              return;
-                            }
-
-                            if (value.length <
-                                2) {
-                              sheetSetState(
-                                () {
-                                  validationMessage =
-                                      'Business type is too short';
-                                },
-                              );
-
-                              return;
-                            }
-
-                            final int
-                                existingIndex =
-                                businessTypes
-                                    .indexWhere(
-                              (
-                                element,
-                              ) =>
-                                  element
-                                      .toLowerCase() ==
-                                  value
-                                      .toLowerCase(),
-                            );
-
-                            String
-                                finalValue;
-
-                            if (existingIndex != -1) {
-                              finalValue =
-                                  businessTypes[
-                                      existingIndex];
-                            } else {
-                              final response =
-                                  await BusinessTypeApi
-                                      .createBusinessType(
-                                value,
-                              );
-
-                              if (!sheetContext.mounted) {
-                                return;
-                              }
-
-                              if (response['success'] != true) {
-                                sheetSetState(
-                                  () {
-                                    validationMessage =
-                                        response['message']
-                                                ?.toString() ??
-                                            'Unable to add business type';
-                                  },
-                                );
-                                return;
-                              }
-
-                              finalValue =
-                                  value;
-                            }
-
-                            Navigator.of(
-                              sheetContext,
-                            ).pop(
-                              finalValue,
-                            );
-                          },
-                          icon:
-                              const Icon(
-                            Icons
-                                .add_rounded,
-                            size:
-                                18,
-                          ),
-                          label:
-                              const Text(
-                            'Add & Select Business Type',
-                            style:
-                                TextStyle(
-                              fontSize:
-                                  11.5,
-                              fontWeight:
-                                  FontWeight.w800,
-                            ),
-                          ),
-                          style:
-                              ElevatedButton
-                                  .styleFrom(
-                            backgroundColor:
-                                gold,
-                            foregroundColor:
-                                Colors.black,
-                            elevation:
-                                0,
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                10,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                      if (businessTypes.isEmpty) const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -1657,23 +1154,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       return;
     }
 
-    if (selected != null &&
-        selected.trim().isNotEmpty) {
-      setState(() {
-        final bool alreadyExists =
-            businessTypes.any(
-          (type) =>
-              type.toLowerCase() ==
-              selected.toLowerCase(),
-        );
-
-        if (!alreadyExists) {
-          businessTypes.add(selected);
-        }
-
-        selectedBusinessType =
-            selected;
-      });
+    if (selected != null && selected.trim().isNotEmpty) {
+      setState(() => selectedBusinessType = selected);
       await _applySavedBusinessDetails(selected);
     }
   }
@@ -1688,8 +1170,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         _stepHeader(
           icon: Icons.email_outlined,
           title: 'Email Content',
-          subtitle:
-              'Create and style your campaign email.',
+          subtitle: 'Create and style your campaign email.',
         ),
 
         const SizedBox(height: 16),
@@ -1697,19 +1178,15 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // EDITOR SETTINGS
         // ========================================================
-
         _buildCard(
           title: 'Editor Settings',
-          subtitle:
-              'Choose font and text formatting.',
-          icon:
-              Icons.text_fields_rounded,
+          subtitle: 'Choose font and text formatting.',
+          icon: Icons.text_fields_rounded,
           child: Column(
             children: [
-              _buildDropdown(
+              _buildEditorChoice(
                 label: 'Font',
-                value:
-                    selectedFont,
+                value: selectedFont,
                 items: const [
                   'Arial',
                   'Roboto',
@@ -1724,8 +1201,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   }
 
                   setState(() {
-                    selectedFont =
-                        value;
+                    selectedFont = value;
                   });
                 },
               ),
@@ -1735,21 +1211,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               // =================================================
               // MOBILE SAFE DROPDOWNS
               // =================================================
-
               LayoutBuilder(
-                builder: (
-                  context,
-                  constraints,
-                ) {
-                  if (constraints.maxWidth <
-                      320) {
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 320) {
                     return Column(
                       children: [
-                        _buildDropdown(
-                          label:
-                              'Font Size',
-                          value:
-                              selectedFontSize,
+                        _buildEditorChoice(
+                          label: 'Font Size',
+                          value: selectedFontSize,
                           items: const [
                             '12px',
                             '14px',
@@ -1760,31 +1229,22 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                             '28px',
                             '32px',
                           ],
-                          onChanged:
-                              (value) {
-                            if (value ==
-                                null) {
+                          onChanged: (value) {
+                            if (value == null) {
                               return;
                             }
 
-                            setState(
-                              () {
-                                selectedFontSize =
-                                    value;
-                              },
-                            );
+                            setState(() {
+                              selectedFontSize = value;
+                            });
                           },
                         ),
 
-                        const SizedBox(
-                          height: 14,
-                        ),
+                        const SizedBox(height: 14),
 
-                        _buildDropdown(
-                          label:
-                              'Text Color',
-                          value:
-                              selectedTextColor,
+                        _buildEditorChoice(
+                          label: 'Text Color',
+                          value: selectedTextColor,
                           items: const [
                             'Black',
                             'White',
@@ -1794,19 +1254,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                             'Green',
                             'Gold',
                           ],
-                          onChanged:
-                              (value) {
-                            if (value ==
-                                null) {
+                          onChanged: (value) {
+                            if (value == null) {
                               return;
                             }
 
-                            setState(
-                              () {
-                                selectedTextColor =
-                                    value;
-                              },
-                            );
+                            setState(() {
+                              selectedTextColor = value;
+                            });
                           },
                         ),
                       ],
@@ -1814,16 +1269,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   }
 
                   return Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child:
-                            _buildDropdown(
-                          label:
-                              'Font Size',
-                          value:
-                              selectedFontSize,
+                        child: _buildEditorChoice(
+                          label: 'Font Size',
+                          value: selectedFontSize,
                           items: const [
                             '12px',
                             '14px',
@@ -1834,34 +1285,24 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                             '28px',
                             '32px',
                           ],
-                          onChanged:
-                              (value) {
-                            if (value ==
-                                null) {
+                          onChanged: (value) {
+                            if (value == null) {
                               return;
                             }
 
-                            setState(
-                              () {
-                                selectedFontSize =
-                                    value;
-                              },
-                            );
+                            setState(() {
+                              selectedFontSize = value;
+                            });
                           },
                         ),
                       ),
 
-                      const SizedBox(
-                        width: 10,
-                      ),
+                      const SizedBox(width: 10),
 
                       Expanded(
-                        child:
-                            _buildDropdown(
-                          label:
-                              'Text Color',
-                          value:
-                              selectedTextColor,
+                        child: _buildEditorChoice(
+                          label: 'Text Color',
+                          value: selectedTextColor,
                           items: const [
                             'Black',
                             'White',
@@ -1871,25 +1312,42 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                             'Green',
                             'Gold',
                           ],
-                          onChanged:
-                              (value) {
-                            if (value ==
-                                null) {
+                          onChanged: (value) {
+                            if (value == null) {
                               return;
                             }
 
-                            setState(
-                              () {
-                                selectedTextColor =
-                                    value;
-                              },
-                            );
+                            setState(() {
+                              selectedTextColor = value;
+                            });
                           },
                         ),
                       ),
                     ],
                   );
                 },
+              ),
+
+              const SizedBox(height: 14),
+
+              _buildTextFormattingControls(),
+
+              const SizedBox(height: 10),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _clearEditorSettings,
+                  icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                  label: const Text('Clear settings'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: secondaryTextColor,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1900,16 +1358,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // MESSAGE
         // ========================================================
-
         _buildCard(
           title: 'Message',
-          subtitle:
-              'Write your email message.',
-          icon:
-              Icons.edit_note_rounded,
+          subtitle: 'Write your email message.',
+          icon: Icons.edit_note_rounded,
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildEditorToolbar(),
 
@@ -1918,71 +1372,34 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color:
-                      fieldBackground,
-                  borderRadius:
-                      BorderRadius.circular(
-                    12,
-                  ),
-                  border: Border.all(
-                    color:
-                        borderColor,
-                  ),
+                  color: fieldBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor),
                 ),
-                child:
-                    TextFormField(
-                  controller:
-                      contentController,
-                  minLines:
-                      10,
-                  maxLines:
-                      16,
-                  keyboardType:
-                      TextInputType.multiline,
-                  textCapitalization:
-                      TextCapitalization
-                          .sentences,
-                  cursorColor:
-                      gold,
-                  style:
-                      TextStyle(
-                    color:
-                        _selectedEditorColor(),
-                    fontSize:
-                        _selectedEditorSize(),
-                    fontWeight:
-                        isBold
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                    fontStyle:
-                        isItalic
-                            ? FontStyle.italic
-                            : FontStyle.normal,
-                    decoration:
-                        isUnderline
-                            ? TextDecoration.underline
-                            : TextDecoration.none,
+                child: TextFormField(
+                  controller: contentController,
+                  focusNode: contentFocusNode,
+                  minLines: 10,
+                  maxLines: 16,
+                  keyboardType: TextInputType.multiline,
+                  textCapitalization: TextCapitalization.sentences,
+                  cursorColor: gold,
+                  style: TextStyle(
+                    color: _selectedEditorColor(),
+                    fontSize: _selectedEditorSize(),
+                    fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                    fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+                    decoration: isUnderline
+                        ? TextDecoration.underline
+                        : TextDecoration.none,
                   ),
-                  decoration:
-                      const InputDecoration(
-                    hintText:
-                        'Write your email content here...',
-                    hintStyle:
-                        TextStyle(
-                      color:
-                          hintColor,
-                      fontSize:
-                          12,
-                    ),
-                    border:
-                        InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.all(
-                      14,
-                    ),
+                  decoration: const InputDecoration(
+                    hintText: 'Write your email content here...',
+                    hintStyle: TextStyle(color: hintColor, fontSize: 12),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(14),
                   ),
-                  onChanged:
-                      (_) {
+                  onChanged: (_) {
                     setState(() {});
                   },
                 ),
@@ -1990,34 +1407,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
               const SizedBox(height: 11),
 
-              const Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.auto_awesome_rounded,
-                    size: 15,
-                    color: gold,
-                  ),
-
-                  SizedBox(width: 7),
-
-                  Expanded(
-                    child: Text(
-                      'Variables: {{firstName}}, {{lastName}}, {{email}}',
-                      style:
-                          TextStyle(
-                        color:
-                            secondaryTextColor,
-                        fontSize:
-                            10.5,
-                        height:
-                            1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _buildEmailVariablePicker(),
             ],
           ),
         ),
@@ -2027,120 +1417,78 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // ATTACHMENT
         // ========================================================
-
         _buildCard(
           title: 'Attachment',
-          subtitle:
-              'Attach a file to your email.',
-          icon:
-              Icons.attach_file_rounded,
+          subtitle: 'Attach a file to your email.',
+          icon: Icons.attach_file_rounded,
           child: Column(
             children: [
               _buildFilePicker(
-                label:
-                    'Attachment File',
-                value:
-                    attachmentNameController
-                        .text,
-                emptyText:
-                    'Upload attachment',
-                icon:
-                    Icons.upload_file_outlined,
-                onTap:
-                    _pickAttachmentFile,
+                label: 'Attachment File',
+                value: attachmentNameController.text,
+                emptyText: 'Upload attachment',
+                icon: Icons.upload_file_outlined,
+                onTap: _pickAttachmentFile,
               ),
 
-              if (attachmentNameController
-                  .text
-                  .trim()
-                  .isNotEmpty) ...[
-                const SizedBox(
-                  height: 12,
-                ),
+              if (attachmentNameController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 12),
 
                 Container(
-                  width:
-                      double.infinity,
-                  padding:
-                      const EdgeInsets.all(
-                    12,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: fieldBackground,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor),
                   ),
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        fieldBackground,
-                    borderRadius:
-                        BorderRadius.circular(
-                      10,
-                    ),
-                    border:
-                        Border.all(
-                      color:
-                          borderColor,
-                    ),
-                  ),
-                  child:
-                      Row(
+                  child: Row(
                     children: [
                       const Icon(
-                        Icons
-                            .description_outlined,
-                        color:
-                            gold,
-                        size:
-                            19,
+                        Icons.description_outlined,
+                        color: gold,
+                        size: 19,
                       ),
 
-                      const SizedBox(
-                        width: 9,
-                      ),
+                      const SizedBox(width: 9),
 
                       Expanded(
-                        child:
-                            Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              attachmentNameController
-                                  .text,
-                              maxLines:
-                                  1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style:
-                                  const TextStyle(
-                                color:
-                                    textColor,
-                                fontSize:
-                                    11.5,
-                                fontWeight:
-                                    FontWeight.w600,
+                              attachmentNameController.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: textColor,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
 
-                            const SizedBox(
-                              height:
-                                  2,
-                            ),
+                            const SizedBox(height: 2),
 
                             Text(
-                              attachmentMimeController
-                                      .text
-                                      .trim()
-                                      .isEmpty
+                              attachmentMimeController.text.trim().isEmpty
                                   ? 'Attachment'
-                                  : attachmentMimeController
-                                      .text,
-                              style:
-                                  const TextStyle(
-                                color:
-                                    secondaryTextColor,
-                                fontSize:
-                                    9.5,
+                                  : attachmentMimeController.text,
+                              style: const TextStyle(
+                                color: secondaryTextColor,
+                                fontSize: 9.5,
                               ),
                             ),
                           ],
+                        ),
+                      ),
+
+                      IconButton(
+                        onPressed: _removeAttachment,
+                        tooltip: 'Remove attachment',
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: red,
+                          size: 19,
                         ),
                       ),
                     ],
@@ -2156,12 +1504,9 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         _navigationButtons(
           backTitle: 'Back',
           nextTitle: 'Continue',
-          nextIcon:
-              Icons.arrow_forward_rounded,
-          onBack:
-              _previousStep,
-          onNext:
-              _nextStep,
+          nextIcon: Icons.arrow_forward_rounded,
+          onBack: _previousStep,
+          onNext: _nextStep,
         ),
       ],
     );
@@ -2175,12 +1520,9 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     return Column(
       children: [
         _stepHeader(
-          icon:
-              Icons.ads_click_rounded,
-          title:
-              'Action Links',
-          subtitle:
-              'Add CTA buttons and campaign actions.',
+          icon: Icons.ads_click_rounded,
+          title: 'Action Links',
+          subtitle: 'Add CTA buttons and campaign actions.',
         ),
 
         const SizedBox(height: 16),
@@ -2188,43 +1530,109 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // PRIMARY CTA
         // ========================================================
-
         _buildCard(
-          title:
-              'Primary CTA',
-          subtitle:
-              'Add your main campaign button.',
-          icon:
-              Icons.touch_app_outlined,
-          child:
-              Column(
+          title: 'Primary CTA',
+          subtitle: 'Add your main campaign button.',
+          icon: Icons.touch_app_outlined,
+          child: Column(
             children: [
+              if (selectedActionLinks.isNotEmpty) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Saved action links',
+                    style: TextStyle(
+                      color: secondaryTextColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...selectedActionLinks.asMap().entries.map((entry) {
+                  final link = entry.value;
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 9),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                    decoration: BoxDecoration(
+                      color: purple.withOpacity(0.055),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: purple.withOpacity(0.18)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.link_rounded, color: purple, size: 19),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                link['label'] ?? 'Open Link',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                link['url'] ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Remove link',
+                          onPressed: () => _removeActionLink(entry.key),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Color(0xFFD92D20),
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const Divider(color: softBorder, height: 26),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Add primary CTA',
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               _buildTextField(
-                controller:
-                    ctaTextController,
-                label:
-                    'Button Text',
-                hint:
-                    'Example: Shop Now',
-                prefixIcon:
-                    Icons.ads_click_outlined,
+                controller: ctaTextController,
+                label: 'Button Text',
+                hint: 'Example: Shop Now',
+                prefixIcon: Icons.ads_click_outlined,
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               _buildTextField(
-                controller:
-                    ctaUrlController,
-                label:
-                    'Button URL',
-                hint:
-                    'https://example.com',
-                keyboardType:
-                    TextInputType.url,
-                prefixIcon:
-                    Icons.link_rounded,
+                controller: ctaUrlController,
+                label: 'Button URL',
+                hint: 'https://example.com',
+                keyboardType: TextInputType.url,
+                prefixIcon: Icons.link_rounded,
               ),
             ],
           ),
@@ -2235,26 +1643,16 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // WHATSAPP LINK
         // ========================================================
-
         _buildCard(
-          title:
-              'WhatsApp',
-          subtitle:
-              'Add a WhatsApp communication link.',
-          icon:
-              Icons.chat_outlined,
-          child:
-              _buildTextField(
-            controller:
-                whatsappController,
-            label:
-                'WhatsApp Link',
-            hint:
-                'https://wa.me/919999999999',
-            keyboardType:
-                TextInputType.url,
-            prefixIcon:
-                Icons.chat_bubble_outline,
+          title: 'WhatsApp',
+          subtitle: 'Add a WhatsApp communication link.',
+          icon: Icons.chat_outlined,
+          child: _buildTextField(
+            controller: whatsappController,
+            label: 'WhatsApp Link',
+            hint: 'https://wa.me/919999999999',
+            keyboardType: TextInputType.url,
+            prefixIcon: Icons.chat_bubble_outline,
           ),
         ),
 
@@ -2263,89 +1661,49 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // CAMPAIGN SETTINGS
         // ========================================================
-
         _buildCard(
-          title:
-              'Campaign Settings',
-          subtitle:
-              'Configure status, tracking and scheduling.',
-          icon:
-              Icons.settings_outlined,
-          child:
-              Column(
+          title: 'Campaign Settings',
+          subtitle: 'Configure status, tracking and scheduling.',
+          icon: Icons.settings_outlined,
+          child: Column(
             children: [
               _buildDropdown(
-                label:
-                    'Status',
-                value:
-                    selectedStatus,
-                items: const [
-                  'draft',
-                  'scheduled',
-                  'active',
-                  'paused',
-                ],
-                onChanged:
-                    (value) {
-                  if (value ==
-                      null) {
+                label: 'Status',
+                value: selectedStatus,
+                items: const ['draft', 'scheduled', 'active', 'paused'],
+                onChanged: (value) {
+                  if (value == null) {
                     return;
                   }
 
                   setState(() {
-                    selectedStatus =
-                        value;
+                    selectedStatus = value;
                   });
                 },
               ),
 
-              const SizedBox(
-                height: 14,
-              ),
+              const SizedBox(height: 14),
 
               _buildSchedulePicker(),
 
-              if (scheduledDateTime !=
-                  null) ...[
-                const SizedBox(
-                  height: 6,
-                ),
+              if (scheduledDateTime != null) ...[
+                const SizedBox(height: 6),
 
                 Align(
-                  alignment:
-                      Alignment.centerRight,
-                  child:
-                      TextButton.icon(
-                    onPressed:
-                        () {
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
                       setState(() {
-                        scheduledDateTime =
-                            null;
-                        if (selectedStatus ==
-                            'scheduled') {
-                          selectedStatus =
-                              'draft';
+                        scheduledDateTime = null;
+                        if (selectedStatus == 'scheduled') {
+                          selectedStatus = 'draft';
                         }
                       });
                     },
-                    icon:
-                        const Icon(
-                      Icons.close,
-                      color:
-                          red,
-                      size:
-                          15,
-                    ),
-                    label:
-                        const Text(
+                    icon: const Icon(Icons.close, color: red, size: 15),
+                    label: const Text(
                       'Clear Schedule',
-                      style:
-                          TextStyle(
-                        color:
-                            red,
-                        fontSize:
-                            11,
-                      ),
+                      style: TextStyle(color: red, fontSize: 11),
                     ),
                   ),
                 ),
@@ -2357,16 +1715,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 18),
 
         _navigationButtons(
-          backTitle:
-              'Back',
-          nextTitle:
-              'Review Sequence',
-          nextIcon:
-              Icons.arrow_forward_rounded,
-          onBack:
-              _previousStep,
-          onNext:
-              _nextStep,
+          backTitle: 'Back',
+          nextTitle: 'Review Sequence',
+          nextIcon: Icons.arrow_forward_rounded,
+          onBack: _previousStep,
+          onNext: _nextStep,
         ),
       ],
     );
@@ -2380,12 +1733,9 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     return Column(
       children: [
         _stepHeader(
-          icon:
-              Icons.fact_check_outlined,
-          title:
-              'Review & Publish',
-          subtitle:
-              'Review your sequence before publishing.',
+          icon: Icons.fact_check_outlined,
+          title: 'Review & Publish',
+          subtitle: 'Review your sequence before publishing.',
         ),
 
         const SizedBox(height: 16),
@@ -2393,109 +1743,64 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // OVERVIEW
         // ========================================================
-
         _reviewCard(
-          icon:
-              Icons.description_outlined,
-          iconColor:
-              gold,
-          title:
-              'Sequence Overview',
-          editStep:
-              0,
-          child:
-              Column(
+          icon: Icons.description_outlined,
+          iconColor: gold,
+          title: 'Sequence Overview',
+          editStep: 0,
+          child: Column(
             children: [
               _responsiveReviewRow(
-                first:
-                    _overviewItem(
-                  icon:
-                      Icons.layers_outlined,
-                  title:
-                      'Step',
-                  value:
-                      stepController.text.trim().isEmpty
-                          ? '-'
-                          : stepController.text.trim(),
+                first: _overviewItem(
+                  icon: Icons.layers_outlined,
+                  title: 'Step',
+                  value: stepController.text.trim().isEmpty
+                      ? '-'
+                      : stepController.text.trim(),
                 ),
-                second:
-                    _overviewItem(
-                  icon:
-                      Icons.schedule_outlined,
-                  title:
-                      'Gap Days',
+                second: _overviewItem(
+                  icon: Icons.schedule_outlined,
+                  title: 'Gap Days',
                   value:
                       '${gapDaysController.text.trim().isEmpty ? '0' : gapDaysController.text.trim()} Days',
                 ),
               ),
 
-              const Divider(
-                color:
-                    softBorder,
-                height:
-                    28,
-              ),
+              const Divider(color: softBorder, height: 28),
 
               _responsiveReviewRow(
-                first:
-                    _overviewItem(
-                  icon:
-                      Icons.alt_route_outlined,
-                  title:
-                      'Variant',
-                  value:
-                      variantController.text.trim().isEmpty
-                          ? '-'
-                          : variantController.text.trim(),
+                first: _overviewItem(
+                  icon: Icons.alt_route_outlined,
+                  title: 'Variant',
+                  value: variantController.text.trim().isEmpty
+                      ? '-'
+                      : variantController.text.trim(),
                 ),
-                second:
-                    _overviewItem(
-                  icon:
-                      Icons.storefront_outlined,
-                  title:
-                      'Business Type',
-                  value:
-                      selectedBusinessType.trim().isEmpty
-                          ? '-'
-                          : selectedBusinessType,
+                second: _overviewItem(
+                  icon: Icons.storefront_outlined,
+                  title: 'Business Type',
+                  value: selectedBusinessType.trim().isEmpty
+                      ? '-'
+                      : selectedBusinessType,
                 ),
               ),
 
-              const Divider(
-                color:
-                    softBorder,
-                height:
-                    28,
-              ),
+              const Divider(color: softBorder, height: 28),
 
               _responsiveReviewRow(
-                first:
-                    _overviewItem(
-                  icon:
-                      Icons.circle,
-                  iconColor:
-                      _statusColor(),
-                  title:
-                      'Status',
-                  value:
-                      _capitalize(
-                    selectedStatus,
-                  ),
-                  valueColor:
-                      _statusColor(),
+                first: _overviewItem(
+                  icon: Icons.circle,
+                  iconColor: _statusColor(),
+                  title: 'Status',
+                  value: _capitalize(selectedStatus),
+                  valueColor: _statusColor(),
                 ),
-                second:
-                    _overviewItem(
-                  icon:
-                      Icons.calendar_month_outlined,
-                  title:
-                      'Schedule',
-                  value:
-                      scheduledDateTime == null
-                          ? 'Not scheduled'
-                          : _formatDateTime(
-                              scheduledDateTime!,
-                            ),
+                second: _overviewItem(
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Schedule',
+                  value: scheduledDateTime == null
+                      ? 'Not scheduled'
+                      : _formatDateTime(scheduledDateTime!),
                 ),
               ),
             ],
@@ -2507,95 +1812,51 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // EMAIL CONTENT
         // ========================================================
-
         _reviewCard(
-          icon:
-              Icons.email_outlined,
-          iconColor:
-              purpleLight,
-          title:
-              'Email Content',
-          editStep:
-              1,
-          child:
-              Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          icon: Icons.email_outlined,
+          iconColor: purpleLight,
+          title: 'Email Content',
+          editStep: 1,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Subject',
-                style:
-                    TextStyle(
-                  color:
-                      secondaryTextColor,
-                  fontSize:
-                      10.5,
-                ),
+                style: TextStyle(color: secondaryTextColor, fontSize: 10.5),
               ),
 
-              const SizedBox(
-                height: 5,
-              ),
+              const SizedBox(height: 5),
 
               Text(
-                subjectController.text
-                        .trim()
-                        .isEmpty
+                subjectController.text.trim().isEmpty
                     ? 'No subject'
-                    : subjectController.text
-                        .trim(),
-                style:
-                    const TextStyle(
-                  color:
-                      textColor,
-                  fontSize:
-                      13.5,
-                  fontWeight:
-                      FontWeight.w700,
+                    : subjectController.text.trim(),
+                style: const TextStyle(
+                  color: textColor,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
-              const Divider(
-                color:
-                    softBorder,
-                height:
-                    28,
-              ),
+              const Divider(color: softBorder, height: 28),
 
               const Text(
                 'Message',
-                style:
-                    TextStyle(
-                  color:
-                      secondaryTextColor,
-                  fontSize:
-                      10.5,
-                ),
+                style: TextStyle(color: secondaryTextColor, fontSize: 10.5),
               ),
 
-              const SizedBox(
-                height: 7,
-              ),
+              const SizedBox(height: 7),
 
               Text(
-                contentController.text
-                        .trim()
-                        .isEmpty
+                contentController.text.trim().isEmpty
                     ? 'No email content'
-                    : contentController.text
-                        .trim(),
-                maxLines:
-                    7,
-                overflow:
-                    TextOverflow.ellipsis,
-                style:
-                    const TextStyle(
-                  color:
-                      textColor,
-                  fontSize:
-                      12,
-                  height:
-                      1.5,
+                    : contentController.text.trim(),
+                maxLines: 7,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: textColor,
+                  fontSize: 12,
+                  height: 1.5,
                 ),
               ),
             ],
@@ -2607,52 +1868,46 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // ACTION LINKS
         // ========================================================
-
         _reviewCard(
-          icon:
-              Icons.link_rounded,
-          iconColor:
-              purpleLight,
-          title:
-              'Action Links',
-          editStep:
-              2,
-          child:
-              Column(
+          icon: Icons.link_rounded,
+          iconColor: purpleLight,
+          title: 'Action Links',
+          editStep: 2,
+          child: Column(
             children: [
+              if (selectedActionLinks.isNotEmpty)
+                ...selectedActionLinks.map(
+                  (link) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _reviewLinkRow(
+                      label: 'Saved CTA',
+                      title: link['label'] ?? 'Open Link',
+                      url: link['url'] ?? '-',
+                    ),
+                  ),
+                )
+              else
+                _reviewLinkRow(
+                  label: 'Primary CTA',
+                  title: ctaTextController.text.trim().isEmpty
+                      ? 'Not configured'
+                      : ctaTextController.text.trim(),
+                  url: ctaUrlController.text.trim().isEmpty
+                      ? '-'
+                      : ctaUrlController.text.trim(),
+                ),
+
+              const Divider(color: softBorder, height: 28),
+
               _reviewLinkRow(
-                label:
-                    'Primary CTA',
-                title:
-                    ctaTextController.text.trim().isEmpty
-                        ? 'Not configured'
-                        : ctaTextController.text.trim(),
-                url:
-                    ctaUrlController.text.trim().isEmpty
-                        ? '-'
-                        : ctaUrlController.text.trim(),
+                label: 'WhatsApp',
+                title: whatsappController.text.trim().isEmpty
+                    ? 'Not configured'
+                    : 'WhatsApp Link',
+                url: whatsappController.text.trim().isEmpty
+                    ? '-'
+                    : whatsappController.text.trim(),
               ),
-
-              const Divider(
-                color:
-                    softBorder,
-                height:
-                    28,
-              ),
-
-              _reviewLinkRow(
-                label:
-                    'WhatsApp',
-                title:
-                    whatsappController.text.trim().isEmpty
-                        ? 'Not configured'
-                        : 'WhatsApp Link',
-                url:
-                    whatsappController.text.trim().isEmpty
-                        ? '-'
-                        : whatsappController.text.trim(),
-              ),
-
             ],
           ),
         ),
@@ -2662,14 +1917,12 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         // ========================================================
         // EMAIL PREVIEW
         // ========================================================
-
         _buildReviewPreviewCard(),
 
         const SizedBox(height: 14),
 
         _goldInfoBox(
-          title:
-              'Ready to Publish',
+          title: 'Ready to Publish',
           text:
               'Review your campaign carefully. Once published, the sequence will be available for your automated email workflow.',
         ),
@@ -2677,22 +1930,11 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         const SizedBox(height: 18),
 
         _navigationButtons(
-          backTitle:
-              'Back',
-          nextTitle:
-              widget.isEditing
-                  ? 'Update Sequence'
-                  : 'Publish Sequence',
-          nextIcon:
-              widget.isEditing
-                  ? Icons.save_rounded
-                  : Icons.send_rounded,
-          onBack:
-              _previousStep,
-          onNext:
-              isLoading
-                  ? null
-                  : _createSequence,
+          backTitle: 'Back',
+          nextTitle: widget.isEditing ? 'Update Sequence' : 'Publish Sequence',
+          nextIcon: widget.isEditing ? Icons.save_rounded : Icons.send_rounded,
+          onBack: _previousStep,
+          onNext: isLoading ? null : _createSequence,
         ),
       ],
     );
@@ -2702,39 +1944,21 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // RESPONSIVE REVIEW ROW
   // ============================================================
 
-  Widget _responsiveReviewRow({
-    required Widget first,
-    required Widget second,
-  }) {
+  Widget _responsiveReviewRow({required Widget first, required Widget second}) {
     return LayoutBuilder(
-      builder: (
-        context,
-        constraints,
-      ) {
-        if (constraints.maxWidth <
-            300) {
-          return Column(
-            children: [
-              first,
-              const SizedBox(height: 16),
-              second,
-            ],
-          );
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 300) {
+          return Column(children: [first, const SizedBox(height: 16), second]);
         }
 
         return Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: first,
-            ),
+            Expanded(child: first),
 
             const SizedBox(width: 8),
 
-            Expanded(
-              child: second,
-            ),
+            Expanded(child: second),
           ],
         );
       },
@@ -2748,77 +1972,44 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   Widget _buildReviewPreviewCard() {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            cardColor,
-        borderRadius:
-            BorderRadius.circular(16),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
       ),
-      child:
-          Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width:
-                    42,
-                height:
-                    42,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      gold.withOpacity(
-                    0.10,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    10,
-                  ),
-                  border:
-                      Border.all(
-                    color:
-                        gold.withOpacity(
-                      0.22,
-                    ),
-                  ),
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: gold.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: gold.withOpacity(0.22)),
                 ),
-                child:
-                    const Icon(
+                child: const Icon(
                   Icons.visibility_outlined,
-                  color:
-                      gold,
-                  size:
-                      20,
+                  color: gold,
+                  size: 20,
                 ),
               ),
 
               const SizedBox(width: 11),
 
               const Expanded(
-                child:
-                    Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Email Preview',
-                      style:
-                          TextStyle(
-                        color:
-                            textColor,
-                        fontSize:
-                            15,
-                        fontWeight:
-                            FontWeight.w800,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
 
@@ -2826,28 +2017,18 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
                     Text(
                       'Preview your final email.',
-                      style:
-                          TextStyle(
-                        color:
-                            secondaryTextColor,
-                        fontSize:
-                            10,
-                      ),
+                      style: TextStyle(color: secondaryTextColor, fontSize: 10),
                     ),
                   ],
                 ),
               ),
 
               IconButton(
-                onPressed:
-                    _showEmailPreview,
-                icon:
-                    const Icon(
+                onPressed: _showEmailPreview,
+                icon: const Icon(
                   Icons.open_in_full_rounded,
-                  color:
-                      gold,
-                  size:
-                      19,
+                  color: gold,
+                  size: 19,
                 ),
               ),
             ],
@@ -2855,97 +2036,55 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
           const SizedBox(height: 14),
 
-          const Divider(
-            height:
-                1,
-            color:
-                softBorder,
-          ),
+          const Divider(height: 1, color: softBorder),
 
           const SizedBox(height: 14),
 
           Container(
-            width:
-                double.infinity,
-            clipBehavior:
-                Clip.antiAlias,
-            decoration:
-                BoxDecoration(
-              color:
-                  Colors.white,
-              borderRadius:
-                  BorderRadius.circular(
-                12,
-              ),
+            width: double.infinity,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ===============================================
                 // SUBJECT
                 // ===============================================
-
                 Container(
-                  padding:
-                      const EdgeInsets.all(
-                    12,
-                  ),
-                  decoration:
-                      const BoxDecoration(
-                    color:
-                        Color(0xFFF8FAFC),
-                    border:
-                        Border(
-                      bottom:
-                          BorderSide(
-                        color:
-                            Color(0xFFE5E7EB),
-                      ),
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFE5E7EB)),
                     ),
                   ),
-                  child:
-                      Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'EMAIL PREVIEW',
-                        style:
-                            TextStyle(
-                          color:
-                              Color(0xFF7C8491),
-                          fontSize:
-                              8,
-                          fontWeight:
-                              FontWeight.w700,
+                        style: TextStyle(
+                          color: Color(0xFF7C8491),
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
 
-                      const SizedBox(
-                        height: 5,
-                      ),
+                      const SizedBox(height: 5),
 
                       Text(
-                        subjectController.text
-                                .trim()
-                                .isEmpty
+                        subjectController.text.trim().isEmpty
                             ? 'Your email subject'
-                            : subjectController.text
-                                .trim(),
-                        maxLines:
-                            2,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(
-                          color:
-                              Color(0xFF111827),
-                          fontSize:
-                              12,
-                          fontWeight:
-                              FontWeight.w800,
+                            : subjectController.text.trim(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -2955,142 +2094,83 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                 // ===============================================
                 // BODY
                 // ===============================================
-
                 Padding(
-                  padding:
-                      const EdgeInsets.all(
-                    16,
-                  ),
-                  child:
-                      Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        contentController.text
-                                .trim()
-                                .isEmpty
+                        contentController.text.trim().isEmpty
                             ? 'Your email content will appear here.'
-                            : contentController.text
-                                .trim(),
-                        maxLines:
-                            8,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            TextStyle(
-                          color:
-                              _previewTextColor(),
-                          fontSize:
-                              _previewFontSize(),
-                          height:
-                              1.5,
-                          fontWeight:
-                              isBold
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                          fontStyle:
-                              isItalic
-                                  ? FontStyle.italic
-                                  : FontStyle.normal,
-                          decoration:
-                              isUnderline
-                                  ? TextDecoration.underline
-                                  : TextDecoration.none,
+                            : contentController.text.trim(),
+                        maxLines: 8,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _previewTextColor(),
+                          fontSize: _previewFontSize(),
+                          height: 1.5,
+                          fontWeight: isBold
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          fontStyle: isItalic
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                          decoration: isUnderline
+                              ? TextDecoration.underline
+                              : TextDecoration.none,
                         ),
                       ),
 
-                      if (ctaTextController
-                          .text
-                          .trim()
-                          .isNotEmpty) ...[
-                        const SizedBox(
-                          height: 18,
-                        ),
+                      if (ctaTextController.text.trim().isNotEmpty) ...[
+                        const SizedBox(height: 18),
 
                         Center(
-                          child:
-                              Container(
-                            constraints:
-                                const BoxConstraints(
-                              maxWidth:
-                                  220,
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 220),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 22,
+                              vertical: 10,
                             ),
-                            padding:
-                                const EdgeInsets.symmetric(
-                              horizontal:
-                                  22,
-                              vertical:
-                                  10,
+                            decoration: BoxDecoration(
+                              color: gold,
+                              borderRadius: BorderRadius.circular(7),
                             ),
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  gold,
-                              borderRadius:
-                                  BorderRadius.circular(
-                                7,
-                              ),
-                            ),
-                            child:
-                                Text(
-                              ctaTextController.text
-                                  .trim(),
-                              maxLines:
-                                  1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              textAlign:
-                                  TextAlign.center,
-                              style:
-                                  const TextStyle(
-                                color:
-                                    Colors.black,
-                                fontSize:
-                                    10.5,
-                                fontWeight:
-                                    FontWeight.w800,
+                            child: Text(
+                              ctaTextController.text.trim(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
                         ),
                       ],
 
-                      if (whatsappController
-                          .text
-                          .trim()
-                          .isNotEmpty) ...[
-                        const SizedBox(
-                          height:
-                              16,
-                        ),
+                      if (whatsappController.text.trim().isNotEmpty) ...[
+                        const SizedBox(height: 16),
 
                         const Center(
-                          child:
-                              Row(
-                            mainAxisSize:
-                                MainAxisSize.min,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.chat_outlined,
-                                color:
-                                    Color(0xFF168447),
-                                size:
-                                    15,
+                                color: Color(0xFF168447),
+                                size: 15,
                               ),
 
                               SizedBox(width: 5),
 
                               Text(
                                 'Contact on WhatsApp',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      Color(0xFF168447),
-                                  fontSize:
-                                      9.5,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                style: TextStyle(
+                                  color: Color(0xFF168447),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -3107,39 +2187,17 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
           const SizedBox(height: 14),
 
           SizedBox(
-            width:
-                double.infinity,
-            height:
-                44,
-            child:
-                OutlinedButton.icon(
-              onPressed:
-                  _showEmailPreview,
-              icon:
-                  const Icon(
-                Icons.visibility_outlined,
-                size:
-                    17,
-              ),
-              label:
-                  const Text(
-                'Open Full Email Preview',
-              ),
-              style:
-                  OutlinedButton.styleFrom(
-                foregroundColor:
-                    gold,
-                side:
-                    const BorderSide(
-                  color:
-                      borderColor,
-                ),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    9,
-                  ),
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: _showEmailPreview,
+              icon: const Icon(Icons.visibility_outlined, size: 17),
+              label: const Text('Open Full Email Preview'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: gold,
+                side: const BorderSide(color: borderColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
                 ),
               ),
             ),
@@ -3156,150 +2214,81 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   void _showEmailPreview() {
     showModalBottomSheet<void>(
       context: context,
-      isScrollControlled:
-          true,
-      useSafeArea:
-          true,
-      backgroundColor:
-          Colors.transparent,
-      builder:
-          (sheetContext) {
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
         return Container(
-          height:
-              MediaQuery.of(sheetContext)
-                      .size
-                      .height *
-                  0.92,
-          decoration:
-              const BoxDecoration(
-            color:
-                background,
-            borderRadius:
-                BorderRadius.vertical(
-              top:
-                  Radius.circular(
-                22,
-              ),
-            ),
+          height: MediaQuery.of(sheetContext).size.height * 0.92,
+          decoration: const BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
           ),
-          child:
-              Column(
+          child: Column(
             children: [
-              const SizedBox(
-                height: 9,
-              ),
+              const SizedBox(height: 9),
 
               Container(
-                width:
-                    40,
-                height:
-                    4,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      borderColor,
-                  borderRadius:
-                      BorderRadius.circular(
-                    20,
-                  ),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: borderColor,
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
 
               Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(
-                  16,
-                  12,
-                  8,
-                  10,
-                ),
-                child:
-                    Row(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
+                child: Row(
                   children: [
                     const Expanded(
-                      child:
-                          Text(
+                      child: Text(
                         'Email Preview',
-                        style:
-                            TextStyle(
-                          color:
-                              textColor,
-                          fontSize:
-                              17,
-                          fontWeight:
-                              FontWeight.w800,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
 
                     IconButton(
-                      onPressed:
-                          () {
-                        Navigator.of(
-                          sheetContext,
-                        ).pop();
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
                       },
-                      icon:
-                          const Icon(
+                      icon: const Icon(
                         Icons.close_rounded,
-                        color:
-                            secondaryTextColor,
+                        color: secondaryTextColor,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const Divider(
-                height:
-                    1,
-                color:
-                    softBorder,
-              ),
+              const Divider(height: 1, color: softBorder),
 
               Expanded(
-                child:
-                    SingleChildScrollView(
-                  physics:
-                      const BouncingScrollPhysics(),
-                  padding:
-                      const EdgeInsets.all(
-                    14,
-                  ),
-                  child:
-                      CreateSequencePreview(
-                    subjectController:
-                        subjectController,
-                    logoController:
-                        logoController,
-                    heroImageController:
-                        heroImageController,
-                    heroLinkController:
-                        heroLinkController,
-                    emailContentController:
-                        contentController,
-                    whatsappController:
-                        whatsappController,
-                    ctaTextController:
-                        ctaTextController,
-                    ctaUrlController:
-                        ctaUrlController,
-                    attachmentNameController:
-                        attachmentNameController,
-                    selectedLogoPosition:
-                        selectedLogoPosition,
-                    selectedFont:
-                        selectedFont,
-                    selectedTextColor:
-                        selectedTextColor,
-                    selectedFontSize:
-                        selectedFontSize,
-                    isBold:
-                        isBold,
-                    isItalic:
-                        isItalic,
-                    isUnderline:
-                        isUnderline,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(14),
+                  child: CreateSequencePreview(
+                    subjectController: subjectController,
+                    logoController: logoController,
+                    heroImageController: heroImageController,
+                    heroLinkController: heroLinkController,
+                    emailContentController: contentController,
+                    whatsappController: whatsappController,
+                    ctaTextController: ctaTextController,
+                    ctaUrlController: ctaUrlController,
+                    actionLinks: selectedActionLinks,
+                    attachmentNameController: attachmentNameController,
+                    selectedLogoPosition: selectedLogoPosition,
+                    selectedFont: selectedFont,
+                    selectedTextColor: selectedTextColor,
+                    selectedFontSize: selectedFontSize,
+                    isBold: isBold,
+                    isItalic: isItalic,
+                    isUnderline: isUnderline,
                   ),
                 ),
               ),
@@ -3320,99 +2309,49 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required String subtitle,
   }) {
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.all(
-        16,
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            cardColor,
-        borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
-      ),
-      child:
-          Row(
+      child: Row(
         children: [
           Container(
-            width:
-                46,
-            height:
-                46,
-            decoration:
-                BoxDecoration(
-              color:
-                  gold.withOpacity(
-                0.10,
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                12,
-              ),
-              border:
-                  Border.all(
-                color:
-                    gold.withOpacity(
-                  0.22,
-                ),
-              ),
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: gold.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: gold.withOpacity(0.22)),
             ),
-            child:
-                Icon(
-              icon,
-              color:
-                  gold,
-              size:
-                  22,
-            ),
+            child: Icon(icon, color: gold, size: 22),
           ),
 
-          const SizedBox(
-            width: 12,
-          ),
+          const SizedBox(width: 12),
 
           Expanded(
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style:
-                      const TextStyle(
-                    color:
-                        textColor,
-                    fontSize:
-                        17,
-                    fontWeight:
-                        FontWeight.w800,
+                  style: const TextStyle(
+                    color: textColor,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
 
-                const SizedBox(
-                  height: 3,
-                ),
+                const SizedBox(height: 3),
 
                 Text(
                   subtitle,
-                  style:
-                      const TextStyle(
-                    color:
-                        secondaryTextColor,
-                    fontSize:
-                        10.5,
-                    height:
-                        1.3,
+                  style: const TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 10.5,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -3434,96 +2373,50 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required Widget child,
   }) {
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.all(
-        16,
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            cardColor,
-        borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
-      ),
-      child:
-          Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width:
-                    39,
-                height:
-                    39,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      purple.withOpacity(
-                    0.10,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    10,
-                  ),
+                width: 39,
+                height: 39,
+                decoration: BoxDecoration(
+                  color: purple.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child:
-                    Icon(
-                  icon,
-                  color:
-                      purpleLight,
-                  size:
-                      19,
-                ),
+                child: Icon(icon, color: purpleLight, size: 19),
               ),
 
-              const SizedBox(
-                width:
-                    10,
-              ),
+              const SizedBox(width: 10),
 
               Expanded(
-                child:
-                    Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style:
-                          const TextStyle(
-                        color:
-                            textColor,
-                        fontSize:
-                            14,
-                        fontWeight:
-                            FontWeight.w800,
+                      style: const TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
 
-                    const SizedBox(
-                      height:
-                          2,
-                    ),
+                    const SizedBox(height: 2),
 
                     Text(
                       subtitle,
-                      style:
-                          const TextStyle(
-                        color:
-                            secondaryTextColor,
-                        fontSize:
-                            9.5,
+                      style: const TextStyle(
+                        color: secondaryTextColor,
+                        fontSize: 9.5,
                       ),
                     ),
                   ],
@@ -3532,10 +2425,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
             ],
           ),
 
-          const SizedBox(
-            height:
-                17,
-          ),
+          const SizedBox(height: 17),
 
           child,
         ],
@@ -3555,105 +2445,53 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required Widget child,
   }) {
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.all(
-        16,
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            cardColor,
-        borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
-      ),
-      child:
-          Column(
+      child: Column(
         children: [
           Row(
             children: [
               Container(
-                width:
-                    38,
-                height:
-                    38,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      iconColor.withOpacity(
-                    0.10,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    9,
-                  ),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                child:
-                    Icon(
-                  icon,
-                  color:
-                      iconColor,
-                  size:
-                      19,
-                ),
+                child: Icon(icon, color: iconColor, size: 19),
               ),
 
-              const SizedBox(
-                width:
-                    10,
-              ),
+              const SizedBox(width: 10),
 
               Expanded(
-                child:
-                    Text(
+                child: Text(
                   title,
-                  style:
-                      const TextStyle(
-                    color:
-                        textColor,
-                    fontSize:
-                        14,
-                    fontWeight:
-                        FontWeight.w800,
+                  style: const TextStyle(
+                    color: textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
 
               TextButton.icon(
-                onPressed:
-                    () {
+                onPressed: () {
                   setState(() {
-                    currentStep =
-                        editStep;
+                    currentStep = editStep;
                   });
                 },
-                icon:
-                    const Icon(
-                  Icons.edit_outlined,
-                  color:
-                      gold,
-                  size:
-                      14,
-                ),
-                label:
-                    const Text(
+                icon: const Icon(Icons.edit_outlined, color: gold, size: 14),
+                label: const Text(
                   'Edit',
-                  style:
-                      TextStyle(
-                    color:
-                        gold,
-                    fontSize:
-                        10,
-                    fontWeight:
-                        FontWeight.w700,
+                  style: TextStyle(
+                    color: gold,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -3662,12 +2500,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
           const SizedBox(height: 14),
 
-          const Divider(
-            height:
-                1,
-            color:
-                softBorder,
-          ),
+          const Divider(height: 1, color: softBorder),
 
           const SizedBox(height: 15),
 
@@ -3689,60 +2522,34 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     Color? valueColor,
   }) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          color:
-              iconColor ??
-                  secondaryTextColor,
-          size:
-              17,
-        ),
+        Icon(icon, color: iconColor ?? secondaryTextColor, size: 17),
 
-        const SizedBox(
-          width:
-              8,
-        ),
+        const SizedBox(width: 8),
 
         Expanded(
-          child:
-              Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style:
-                    const TextStyle(
-                  color:
-                      secondaryTextColor,
-                  fontSize:
-                      9.5,
+                style: const TextStyle(
+                  color: secondaryTextColor,
+                  fontSize: 9.5,
                 ),
               ),
 
-              const SizedBox(
-                height:
-                    3,
-              ),
+              const SizedBox(height: 3),
 
               Text(
                 value,
-                maxLines:
-                    2,
-                overflow:
-                    TextOverflow.ellipsis,
-                style:
-                    TextStyle(
-                  color:
-                      valueColor ??
-                          textColor,
-                  fontSize:
-                      11.5,
-                  fontWeight:
-                      FontWeight.w700,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: valueColor ?? textColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -3762,77 +2569,43 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required String url,
   }) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
-          Icons.link_rounded,
-          color:
-              gold,
-          size:
-              18,
-        ),
+        const Icon(Icons.link_rounded, color: gold, size: 18),
 
-        const SizedBox(
-          width:
-              9,
-        ),
+        const SizedBox(width: 9),
 
         Expanded(
-          child:
-              Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style:
-                    const TextStyle(
-                  color:
-                      secondaryTextColor,
-                  fontSize:
-                      9.5,
+                style: const TextStyle(
+                  color: secondaryTextColor,
+                  fontSize: 9.5,
                 ),
               ),
 
-              const SizedBox(
-                height:
-                    3,
-              ),
+              const SizedBox(height: 3),
 
               Text(
                 title,
-                style:
-                    const TextStyle(
-                  color:
-                      textColor,
-                  fontSize:
-                      11.5,
-                  fontWeight:
-                      FontWeight.w700,
+                style: const TextStyle(
+                  color: textColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
-              if (url !=
-                  '-') ...[
-                const SizedBox(
-                  height:
-                      3,
-                ),
+              if (url != '-') ...[
+                const SizedBox(height: 3),
 
                 Text(
                   url,
-                  maxLines:
-                      2,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(
-                    color:
-                        gold,
-                    fontSize:
-                        9.5,
-                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: gold, fontSize: 9.5),
                 ),
               ],
             ],
@@ -3846,87 +2619,43 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // GOLD INFO BOX
   // ============================================================
 
-  Widget _goldInfoBox({
-    required String title,
-    required String text,
-  }) {
+  Widget _goldInfoBox({required String title, required String text}) {
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.all(
-        13,
+      width: double.infinity,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: gold.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: gold.withOpacity(0.25)),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            gold.withOpacity(
-          0.07,
-        ),
-        borderRadius:
-            BorderRadius.circular(
-          11,
-        ),
-        border:
-            Border.all(
-          color:
-              gold.withOpacity(
-            0.25,
-          ),
-        ),
-      ),
-      child:
-          Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_outline_rounded,
-            color:
-                gold,
-            size:
-                18,
-          ),
+          const Icon(Icons.info_outline_rounded, color: gold, size: 18),
 
-          const SizedBox(
-            width:
-                9,
-          ),
+          const SizedBox(width: 9),
 
           Expanded(
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style:
-                      const TextStyle(
-                    color:
-                        gold,
-                    fontSize:
-                        11,
-                    fontWeight:
-                        FontWeight.w800,
+                  style: const TextStyle(
+                    color: gold,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
 
-                const SizedBox(
-                  height:
-                      3,
-                ),
+                const SizedBox(height: 3),
 
                 Text(
                   text,
-                  style:
-                      const TextStyle(
-                    color:
-                        secondaryTextColor,
-                    fontSize:
-                        9.5,
-                    height:
-                        1.4,
+                  style: const TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 9.5,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -3948,122 +2677,55 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     IconData? prefixIcon,
-    TextCapitalization textCapitalization =
-        TextCapitalization.none,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                11,
-            fontWeight:
-                FontWeight.w600,
+          style: const TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
 
-        const SizedBox(
-          height:
-              7,
-        ),
+        const SizedBox(height: 7),
 
         TextFormField(
-          controller:
-              controller,
-          keyboardType:
-              keyboardType,
-          inputFormatters:
-              inputFormatters,
-          textCapitalization:
-              textCapitalization,
-          cursorColor:
-              gold,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                12.5,
-          ),
-          onChanged:
-              (_) {
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          textCapitalization: textCapitalization,
+          cursorColor: gold,
+          style: const TextStyle(color: textColor, fontSize: 12.5),
+          onChanged: (_) {
             setState(() {});
           },
-          decoration:
-              InputDecoration(
-            hintText:
-                hint,
-            hintStyle:
-                const TextStyle(
-              color:
-                  hintColor,
-              fontSize:
-                  11,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: hintColor, fontSize: 11),
+            prefixIcon: prefixIcon == null
+                ? null
+                : Icon(prefixIcon, color: secondaryTextColor, size: 17),
+            filled: true,
+            fillColor: fieldBackground,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 13,
             ),
-            prefixIcon:
-                prefixIcon == null
-                    ? null
-                    : Icon(
-                        prefixIcon,
-                        color:
-                            secondaryTextColor,
-                        size:
-                            17,
-                      ),
-            filled:
-                true,
-            fillColor:
-                fieldBackground,
-            contentPadding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  12,
-              vertical:
-                  13,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: borderColor),
             ),
-            border:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    borderColor,
-              ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: borderColor),
             ),
-            enabledBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    borderColor,
-              ),
-            ),
-            focusedBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    gold,
-                width:
-                    1.2,
-              ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: gold, width: 1.2),
             ),
           ),
         ),
@@ -4075,6 +2737,239 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // DROPDOWN
   // ============================================================
 
+  Widget _buildEditorChoice({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final IconData icon = switch (label) {
+      'Font' => Icons.font_download_outlined,
+      'Font Size' => Icons.format_size_rounded,
+      _ => Icons.palette_outlined,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 7),
+        InkWell(
+          onTap: () async {
+            final selected = await showModalBottomSheet<String>(
+              context: context,
+              backgroundColor: Colors.transparent,
+              builder: (sheetContext) => Container(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
+                decoration: const BoxDecoration(
+                  color: cardColor2,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: borderColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Choose $label',
+                        style: const TextStyle(
+                          color: textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 9,
+                        runSpacing: 9,
+                        children: items.map((item) {
+                          final isSelected = item == value;
+                          return InkWell(
+                            onTap: () => Navigator.of(sheetContext).pop(item),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 11,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? gold.withOpacity(0.14)
+                                    : fieldBackground,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? gold : borderColor,
+                                ),
+                              ),
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? textColor
+                                      : secondaryTextColor,
+                                  fontSize: 12,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (selected != null) onChanged(selected);
+          },
+          borderRadius: BorderRadius.circular(11),
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            decoration: BoxDecoration(
+              color: fieldBackground,
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: gold.withOpacity(0.72), width: 1.1),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: gold, size: 18),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: textColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: secondaryTextColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoPositionSelector() {
+    const positions = <String, IconData>{
+      'Left': Icons.format_align_left_rounded,
+      'Center': Icons.format_align_center_rounded,
+      'Right': Icons.format_align_right_rounded,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Logo Position',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: fieldBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: gold.withOpacity(0.72), width: 1.2),
+          ),
+          child: Row(
+            children: positions.entries.map((entry) {
+              final isSelected = selectedLogoPosition == entry.key;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: InkWell(
+                    onTap: () =>
+                        setState(() => selectedLogoPosition = entry.key),
+                    borderRadius: BorderRadius.circular(8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 170),
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? gold.withOpacity(0.14)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? gold.withOpacity(0.60)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            entry.value,
+                            size: 17,
+                            color: isSelected ? gold : secondaryTextColor,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            entry.key,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? textColor
+                                  : secondaryTextColor,
+                              fontSize: 9.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Choose how the logo appears in the email header.',
+          style: TextStyle(color: secondaryTextColor, fontSize: 9.5),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDropdown({
     required String label,
     required String value,
@@ -4082,114 +2977,57 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required ValueChanged<String?> onChanged,
   }) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                11,
-            fontWeight:
-                FontWeight.w600,
+          style: const TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
 
-        const SizedBox(
-          height:
-              7,
-        ),
+        const SizedBox(height: 7),
 
         DropdownButtonFormField<String>(
-          value:
-              value,
-          isExpanded:
-              true,
-          dropdownColor:
-              cardColor2,
-          icon:
-              const Icon(
+          value: value,
+          isExpanded: true,
+          dropdownColor: cardColor2,
+          icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
-            color:
-                secondaryTextColor,
+            color: secondaryTextColor,
           ),
-          items:
-              items.map(
-            (item) {
-              return DropdownMenuItem<String>(
-                value:
-                    item,
-                child:
-                    Text(
-                  item,
-                  maxLines:
-                      1,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(
-                    color:
-                        textColor,
-                    fontSize:
-                        11,
-                  ),
-                ),
-              );
-            },
-          ).toList(),
-          onChanged:
-              onChanged,
-          decoration:
-              InputDecoration(
-            filled:
-                true,
-            fillColor:
-                fieldBackground,
-            contentPadding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  10,
-              vertical:
-                  5,
+          items: items.map((item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: textColor, fontSize: 11),
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: fieldBackground,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 5,
             ),
-            border:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    borderColor,
-              ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: borderColor),
             ),
-            enabledBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    borderColor,
-              ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: borderColor),
             ),
-            focusedBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              borderSide:
-                  const BorderSide(
-                color:
-                    gold,
-              ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: gold),
             ),
           ),
         ),
@@ -4208,146 +3046,73 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final bool hasFile =
-        value.trim().isNotEmpty;
+    final bool hasFile = value.trim().isNotEmpty;
 
-    final String displayName =
-        hasFile
-            ? value
-                .split('\\')
-                .last
-                .split('/')
-                .last
-            : emptyText;
+    final String displayName = hasFile
+        ? value.split('\\').last.split('/').last
+        : emptyText;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style:
-              const TextStyle(
-            color:
-                textColor,
-            fontSize:
-                11,
-            fontWeight:
-                FontWeight.w600,
+          style: const TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
 
-        const SizedBox(
-          height:
-              7,
-        ),
+        const SizedBox(height: 7),
 
         InkWell(
-          onTap:
-              onTap,
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
-          child:
-              Container(
-            width:
-                double.infinity,
-            padding:
-                const EdgeInsets.all(
-              11,
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: fieldBackground,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: hasFile ? gold : borderColor),
             ),
-            decoration:
-                BoxDecoration(
-              color:
-                  fieldBackground,
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-              border:
-                  Border.all(
-                color:
-                    hasFile
-                        ? gold
-                        : borderColor,
-              ),
-            ),
-            child:
-                Row(
+            child: Row(
               children: [
                 Container(
-                  width:
-                      38,
-                  height:
-                      38,
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        gold.withOpacity(
-                      0.09,
-                    ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      9,
-                    ),
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: gold.withOpacity(0.09),
+                    borderRadius: BorderRadius.circular(9),
                   ),
-                  child:
-                      Icon(
-                    icon,
-                    color:
-                        gold,
-                    size:
-                        18,
-                  ),
+                  child: Icon(icon, color: gold, size: 18),
                 ),
 
-                const SizedBox(
-                  width:
-                      10,
-                ),
+                const SizedBox(width: 10),
 
                 Expanded(
-                  child:
-                      Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         displayName,
-                        maxLines:
-                            1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            TextStyle(
-                          color:
-                              hasFile
-                                  ? textColor
-                                  : secondaryTextColor,
-                          fontSize:
-                              11,
-                          fontWeight:
-                              hasFile
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: hasFile ? textColor : secondaryTextColor,
+                          fontSize: 11,
+                          fontWeight: hasFile
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
 
-                      const SizedBox(
-                        height:
-                            2,
-                      ),
+                      const SizedBox(height: 2),
 
                       const Text(
                         'Tap to browse',
-                        style:
-                            TextStyle(
-                          color:
-                              hintColor,
-                          fontSize:
-                              9,
-                        ),
+                        style: TextStyle(color: hintColor, fontSize: 9),
                       ),
                     ],
                   ),
@@ -4355,10 +3120,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
                 const Icon(
                   Icons.upload_rounded,
-                  color:
-                      secondaryTextColor,
-                  size:
-                      17,
+                  color: secondaryTextColor,
+                  size: 17,
                 ),
               ],
             ),
@@ -4372,126 +3135,247 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // EDITOR TOOLBAR
   // ============================================================
 
+  Widget _buildTextFormattingControls() {
+    Widget option({
+      required String label,
+      required IconData icon,
+      required bool selected,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(9),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            height: 47,
+            decoration: BoxDecoration(
+              color: selected ? gold.withOpacity(0.13) : fieldBackground,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                color: selected ? gold.withOpacity(0.75) : borderColor,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 17,
+                  color: selected ? gold : secondaryTextColor,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? textColor : secondaryTextColor,
+                    fontSize: 10,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Text Style',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Row(
+          children: [
+            option(
+              label: 'Bold',
+              icon: Icons.format_bold_rounded,
+              selected: isBold,
+              onTap: () => setState(() => isBold = !isBold),
+            ),
+            const SizedBox(width: 8),
+            option(
+              label: 'Italic',
+              icon: Icons.format_italic_rounded,
+              selected: isItalic,
+              onTap: () => setState(() => isItalic = !isItalic),
+            ),
+            const SizedBox(width: 8),
+            option(
+              label: 'Underline',
+              icon: Icons.format_underlined_rounded,
+              selected: isUnderline,
+              onTap: () => setState(() => isUnderline = !isUnderline),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _clearEditorSettings() {
+    setState(() {
+      selectedFont = 'Arial';
+      selectedFontSize = '16px';
+      selectedTextColor = 'Black';
+      isBold = false;
+      isItalic = false;
+      isUnderline = false;
+    });
+  }
+
+  Widget _buildEmailVariablePicker() {
+    const variables = <({String label, String value, IconData icon})>[
+      (label: 'First name', value: '{{firstName}}', icon: Icons.person_outline),
+      (label: 'Company', value: '{{company}}', icon: Icons.business_outlined),
+      (label: 'Last name', value: '{{lastName}}', icon: Icons.badge_outlined),
+      (label: 'Email', value: '{{email}}', icon: Icons.alternate_email_rounded),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: purple.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: purple.withOpacity(0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 15, color: purpleLight),
+              SizedBox(width: 7),
+              Text(
+                'Personalise your email',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Tap a variable to insert it',
+                style: TextStyle(color: secondaryTextColor, fontSize: 9.5),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: variables.map((variable) {
+              return InkWell(
+                onTap: () => _insertEmailVariable(variable.value),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: fieldBackground,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(variable.icon, color: purpleLight, size: 14),
+                      const SizedBox(width: 5),
+                      Text(
+                        variable.value,
+                        style: const TextStyle(
+                          color: textColor,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _insertEmailVariable(String variable) {
+    final currentText = contentController.text;
+    final selection = contentController.selection;
+    final start = selection.isValid && selection.start >= 0
+        ? selection.start
+        : currentText.length;
+    final end = selection.isValid && selection.end >= 0
+        ? selection.end
+        : currentText.length;
+    final updatedText = currentText.replaceRange(start, end, variable);
+
+    contentController.value = TextEditingValue(
+      text: updatedText,
+      selection: TextSelection.collapsed(offset: start + variable.length),
+    );
+    contentFocusNode.requestFocus();
+    setState(() {});
+  }
+
   Widget _buildEditorToolbar() {
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal:
-            5,
-        vertical:
-            5,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: fieldBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            fieldBackground,
-        borderRadius:
-            BorderRadius.circular(
-          10,
-        ),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
-      ),
-      child:
-          Row(
+      child: Row(
         children: [
-          _toolbarButton(
-            icon:
-                Icons.format_bold,
-            active:
-                isBold,
-            onPressed:
-                () {
-              setState(() {
-                isBold =
-                    !isBold;
-              });
-            },
+          const Icon(Icons.edit_note_rounded, color: purpleLight, size: 18),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Email message',
+              style: TextStyle(
+                color: secondaryTextColor,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-
-          _toolbarButton(
-            icon:
-                Icons.format_italic,
-            active:
-                isItalic,
-            onPressed:
-                () {
-              setState(() {
-                isItalic =
-                    !isItalic;
-              });
-            },
-          ),
-
-          _toolbarButton(
-            icon:
-                Icons.format_underlined,
-            active:
-                isUnderline,
-            onPressed:
-                () {
-              setState(() {
-                isUnderline =
-                    !isUnderline;
-              });
-            },
-          ),
-
-          const Spacer(),
 
           InkWell(
-            onTap:
-                () {
+            onTap: () {
               contentController.clear();
 
               setState(() {});
             },
-            borderRadius:
-                BorderRadius.circular(
-              7,
-            ),
-            child:
-                const Padding(
-              padding:
-                  EdgeInsets.symmetric(
-                horizontal:
-                    7,
-                vertical:
-                    8,
-              ),
-              child:
-                  Row(
-                mainAxisSize:
-                    MainAxisSize.min,
+            borderRadius: BorderRadius.circular(7),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.delete_outline,
-                    color:
-                        red,
-                    size:
-                        15,
-                  ),
+                  Icon(Icons.delete_outline, color: red, size: 15),
 
-                  SizedBox(
-                    width:
-                        4,
-                  ),
+                  SizedBox(width: 4),
 
                   Text(
                     'Clear',
-                    style:
-                        TextStyle(
-                      color:
-                          red,
-                      fontSize:
-                          10,
-                      fontWeight:
-                          FontWeight.w600,
+                    style: TextStyle(
+                      color: red,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -4503,172 +3387,63 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     );
   }
 
-  Widget _toolbarButton({
-    required IconData icon,
-    required bool active,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      margin:
-          const EdgeInsets.only(
-        right:
-            4,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            active
-                ? gold.withOpacity(
-                    0.12,
-                  )
-                : Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(
-          7,
-        ),
-      ),
-      child:
-          IconButton(
-        constraints:
-            const BoxConstraints(
-          minWidth:
-              34,
-          minHeight:
-              34,
-        ),
-        padding:
-            EdgeInsets.zero,
-        onPressed:
-            onPressed,
-        icon:
-            Icon(
-          icon,
-          color:
-              active
-                  ? gold
-                  : secondaryTextColor,
-          size:
-              18,
-        ),
-      ),
-    );
-  }
-
   // ============================================================
   // TRACKING
   // ============================================================
 
   Widget _buildTrackingSwitch() {
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal:
-            11,
-        vertical:
-            8,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+        color: fieldBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            fieldBackground,
-        borderRadius:
-            BorderRadius.circular(
-          10,
-        ),
-        border:
-            Border.all(
-          color:
-              borderColor,
-        ),
-      ),
-      child:
-          Row(
+      child: Row(
         children: [
           Container(
-            width:
-                38,
-            height:
-                38,
-            decoration:
-                BoxDecoration(
-              color:
-                  gold.withOpacity(
-                0.09,
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                9,
-              ),
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: gold.withOpacity(0.09),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child:
-                const Icon(
-              Icons.analytics_outlined,
-              color:
-                  gold,
-              size:
-                  18,
-            ),
+            child: const Icon(Icons.analytics_outlined, color: gold, size: 18),
           ),
 
-          const SizedBox(
-            width:
-                9,
-          ),
+          const SizedBox(width: 9),
 
           const Expanded(
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Enable Tracking',
-                  style:
-                      TextStyle(
-                    color:
-                        textColor,
-                    fontSize:
-                        11.5,
-                    fontWeight:
-                        FontWeight.w700,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
 
-                SizedBox(
-                  height:
-                      2,
-                ),
+                SizedBox(height: 2),
 
                 Text(
                   'Track email opens',
-                  style:
-                      TextStyle(
-                    color:
-                        secondaryTextColor,
-                    fontSize:
-                        9,
-                  ),
+                  style: TextStyle(color: secondaryTextColor, fontSize: 9),
                 ),
               ],
             ),
           ),
 
           Switch.adaptive(
-            value:
-                trackingEnabled,
-            activeColor:
-                gold,
-            activeTrackColor:
-                gold.withOpacity(
-              0.28,
-            ),
-            onChanged:
-                (value) {
+            value: trackingEnabled,
+            activeColor: gold,
+            activeTrackColor: gold.withOpacity(0.28),
+            onChanged: (value) {
               setState(() {
-                trackingEnabled =
-                    value;
+                trackingEnabled = value;
               });
             },
           ),
@@ -4683,126 +3458,64 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
   Widget _buildSchedulePicker() {
     return InkWell(
-      onTap:
-          _selectDateTime,
-      borderRadius:
-          BorderRadius.circular(
-        10,
-      ),
-      child:
-          Container(
-        width:
-            double.infinity,
-        padding:
-            const EdgeInsets.all(
-          11,
+      onTap: _selectDateTime,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: fieldBackground,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
         ),
-        decoration:
-            BoxDecoration(
-          color:
-              fieldBackground,
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
-          border:
-              Border.all(
-            color:
-                borderColor,
-          ),
-        ),
-        child:
-            Row(
+        child: Row(
           children: [
             Container(
-              width:
-                  38,
-              height:
-                  38,
-              decoration:
-                  BoxDecoration(
-                color:
-                    gold.withOpacity(
-                  0.09,
-                ),
-                borderRadius:
-                    BorderRadius.circular(
-                  9,
-                ),
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: gold.withOpacity(0.09),
+                borderRadius: BorderRadius.circular(9),
               ),
-              child:
-                  const Icon(
+              child: const Icon(
                 Icons.calendar_month_outlined,
-                color:
-                    gold,
-                size:
-                    18,
+                color: gold,
+                size: 18,
               ),
             ),
 
-            const SizedBox(
-              width:
-                  9,
-            ),
+            const SizedBox(width: 9),
 
             Expanded(
-              child:
-                  Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Scheduled Date & Time',
-                    style:
-                        TextStyle(
-                      color:
-                          secondaryTextColor,
-                      fontSize:
-                          9,
-                    ),
+                    style: TextStyle(color: secondaryTextColor, fontSize: 9),
                   ),
 
-                  const SizedBox(
-                    height:
-                        3,
-                  ),
+                  const SizedBox(height: 3),
 
                   Text(
-                    scheduledDateTime ==
-                            null
+                    scheduledDateTime == null
                         ? 'Select date and time'
-                        : _formatDateTime(
-                            scheduledDateTime!,
-                          ),
-                    maxLines:
-                        2,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        TextStyle(
-                      color:
-                          scheduledDateTime ==
-                                  null
-                              ? hintColor
-                              : textColor,
-                      fontSize:
-                          11,
-                      fontWeight:
-                          scheduledDateTime ==
-                                  null
-                              ? FontWeight.w400
-                              : FontWeight.w600,
+                        : _formatDateTime(scheduledDateTime!),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheduledDateTime == null ? hintColor : textColor,
+                      fontSize: 11,
+                      fontWeight: scheduledDateTime == null
+                          ? FontWeight.w400
+                          : FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const Icon(
-              Icons.chevron_right_rounded,
-              color:
-                  secondaryTextColor,
-            ),
+            const Icon(Icons.chevron_right_rounded, color: secondaryTextColor),
           ],
         ),
       ),
@@ -4824,145 +3537,70 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       children: [
         if (onBack != null) ...[
           Expanded(
-            child:
-                SizedBox(
-              height:
-                  48,
-              child:
-                  OutlinedButton.icon(
-                onPressed:
-                    onBack,
-                icon:
-                    const Icon(
-                  Icons.arrow_back_rounded,
-                  size:
-                      17,
+            child: SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 17),
+                label: Text(
+                  backTitle ?? 'Back',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                label:
-                    Text(
-                  backTitle ??
-                      'Back',
-                  maxLines:
-                      1,
-                  overflow:
-                      TextOverflow.ellipsis,
-                ),
-                style:
-                    OutlinedButton.styleFrom(
-                  foregroundColor:
-                      textColor,
-                  backgroundColor:
-                      cardColor,
-                  side:
-                      const BorderSide(
-                    color:
-                        borderColor,
-                  ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      11,
-                    ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: textColor,
+                  backgroundColor: cardColor,
+                  side: const BorderSide(color: borderColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
                   ),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(
-            width:
-                10,
-          ),
+          const SizedBox(width: 10),
         ],
 
         Expanded(
-          child:
-              Container(
-            height:
-                48,
-            decoration:
-                BoxDecoration(
-              gradient:
-                  const LinearGradient(
-                colors: [
-                  Color(0xFFF0BA4F),
-                  Color(0xFFD99A25),
-                ],
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF0BA4F), Color(0xFFD99A25)],
               ),
-              borderRadius:
-                  BorderRadius.circular(
-                11,
-              ),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child:
-                ElevatedButton.icon(
-              onPressed:
-                  onNext,
-              icon:
-                  isLoading &&
-                          currentStep ==
-                              3
-                      ? const SizedBox(
-                          width:
-                              16,
-                          height:
-                              16,
-                          child:
-                              CircularProgressIndicator(
-                            strokeWidth:
-                                2,
-                            color:
-                                Colors.black,
-                          ),
-                        )
-                      : Icon(
-                          nextIcon,
-                          size:
-                              17,
-                        ),
-              label:
-                  Text(
-                isLoading &&
-                        currentStep ==
-                            3
-                    ? 'Publishing...'
-                    : nextTitle,
-                maxLines:
-                    1,
-                overflow:
-                    TextOverflow.ellipsis,
-                style:
-                    const TextStyle(
-                  fontWeight:
-                      FontWeight.w800,
-                  fontSize:
-                      11,
+            child: ElevatedButton.icon(
+              onPressed: onNext,
+              icon: isLoading && currentStep == 3
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
+                    )
+                  : Icon(nextIcon, size: 17),
+              label: Text(
+                isLoading && currentStep == 3 ? 'Publishing...' : nextTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
                 ),
               ),
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    Colors.transparent,
-                disabledBackgroundColor:
-                    Colors.transparent,
-                shadowColor:
-                    Colors.transparent,
-                foregroundColor:
-                    Colors.black,
-                disabledForegroundColor:
-                    Colors.black54,
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal:
-                      8,
-                ),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    11,
-                  ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.black,
+                disabledForegroundColor: Colors.black54,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
                 ),
               ),
             ),
@@ -4986,14 +3624,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     }
 
     if (currentStep == 1) {
-      if (contentController.text
-          .trim()
-          .isEmpty) {
-        _showMessage(
-          'Please enter email content.',
-          isError:
-              true,
-        );
+      if (contentController.text.trim().isEmpty) {
+        _showMessage('Please enter email content.', isError: true);
 
         return;
       }
@@ -5025,70 +3657,36 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   bool _validateBasicStep() {
-    final int? step =
-        int.tryParse(
-      stepController.text.trim(),
-    );
+    final int? step = int.tryParse(stepController.text.trim());
 
-    final int? gap =
-        int.tryParse(
-      gapDaysController.text.trim(),
-    );
+    final int? gap = int.tryParse(gapDaysController.text.trim());
 
-    if (step == null ||
-        step <= 0) {
-      _showMessage(
-        'Please enter a valid step.',
-        isError:
-            true,
-      );
+    if (step == null || step <= 0) {
+      _showMessage('Please enter a valid step.', isError: true);
 
       return false;
     }
 
-    if (gap == null ||
-        gap < 0) {
-      _showMessage(
-        'Please enter valid gap days.',
-        isError:
-            true,
-      );
+    if (gap == null || gap < 0) {
+      _showMessage('Please enter valid gap days.', isError: true);
 
       return false;
     }
 
-    if (variantController.text
-        .trim()
-        .isEmpty) {
-      _showMessage(
-        'Variant is required.',
-        isError:
-            true,
-      );
+    if (variantController.text.trim().isEmpty) {
+      _showMessage('Variant is required.', isError: true);
 
       return false;
     }
 
-    if (selectedBusinessType
-        .trim()
-        .isEmpty) {
-      _showMessage(
-        'Please add and select a business type.',
-        isError:
-            true,
-      );
+    if (selectedBusinessType.trim().isEmpty) {
+      _showMessage('Please select a saved business type.', isError: true);
 
       return false;
     }
 
-    if (subjectController.text
-        .trim()
-        .isEmpty) {
-      _showMessage(
-        'Email subject is required.',
-        isError:
-            true,
-      );
+    if (subjectController.text.trim().isEmpty) {
+      _showMessage('Email subject is required.', isError: true);
 
       return false;
     }
@@ -5100,23 +3698,26 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // PICK LOGO
   // ============================================================
 
+  void _removeLogo() {
+    setState(() {
+      _logoBytes = null;
+      _logoFilename = null;
+      logoController.clear();
+    });
+  }
+
   Future<void> _pickLogoFile() async {
-    final result =
-        await FilePicker.pickFiles(
-      type:
-          FileType.image,
-      withData:
-          true,
-      allowMultiple:
-          false,
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      withData: true,
+      allowMultiple: false,
     );
 
     if (result.isEmpty) {
       return;
     }
 
-    final file =
-        result.first;
+    final file = result.first;
     final bytes = await file.readAsBytes();
 
     if (!mounted) {
@@ -5126,9 +3727,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     setState(() {
       _logoBytes = bytes;
       _logoFilename = file.name;
-      logoController.text =
-          file.path ??
-              file.name;
+      logoController.text = file.path ?? file.name;
     });
   }
 
@@ -5136,32 +3735,31 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // PICK HERO
   // ============================================================
 
+  void _removeHeroImage() {
+    setState(() {
+      _heroImageBytes = null;
+      _heroImageFilename = null;
+      heroImageController.clear();
+      heroLinkController.clear();
+    });
+  }
+
   Future<void> _pickHeroImage() async {
-    final result =
-        await FilePicker.pickFiles(
-      type:
-          FileType.image,
-      withData:
-          true,
-      allowMultiple:
-          false,
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      withData: true,
+      allowMultiple: false,
     );
 
     if (result.isEmpty) {
       return;
     }
 
-    final file =
-        result.first;
+    final file = result.first;
     final bytes = await file.readAsBytes();
 
-    if (bytes.length >
-        2 * 1024 * 1024) {
-      _showMessage(
-        'Hero image must be less than 2 MB.',
-        isError:
-            true,
-      );
+    if (bytes.length > 2 * 1024 * 1024) {
+      _showMessage('Hero image must be less than 2 MB.', isError: true);
 
       return;
     }
@@ -5173,9 +3771,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     setState(() {
       _heroImageBytes = bytes;
       _heroImageFilename = file.name;
-      heroImageController.text =
-          file.path ??
-              file.name;
+      heroImageController.text = file.path ?? file.name;
     });
   }
 
@@ -5183,23 +3779,28 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // PICK ATTACHMENT
   // ============================================================
 
+  void _removeAttachment() {
+    setState(() {
+      _attachmentBytes = null;
+      attachmentNameController.clear();
+      attachmentUrlController.clear();
+      attachmentMimeController.clear();
+      attachmentSizeController.clear();
+    });
+  }
+
   Future<void> _pickAttachmentFile() async {
-    final result =
-        await FilePicker.pickFiles(
-      type:
-          FileType.any,
-      withData:
-          true,
-      allowMultiple:
-          false,
+    final result = await FilePicker.pickFiles(
+      type: FileType.any,
+      withData: true,
+      allowMultiple: false,
     );
 
     if (result.isEmpty) {
       return;
     }
 
-    final file =
-        result.first;
+    final file = result.first;
     final bytes = await file.readAsBytes();
 
     if (!mounted) {
@@ -5208,20 +3809,13 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
 
     setState(() {
       _attachmentBytes = bytes;
-      attachmentNameController.text =
-          file.name;
+      attachmentNameController.text = file.name;
 
-      attachmentUrlController.text =
-          file.path ??
-              '';
+      attachmentUrlController.text = file.path ?? '';
 
-      attachmentMimeController.text =
-          _getMimeType(
-        file.extension,
-      );
+      attachmentMimeController.text = _getMimeType(file.extension);
 
-      attachmentSizeController.text =
-          bytes.length.toString();
+      attachmentSizeController.text = bytes.length.toString();
     });
   }
 
@@ -5229,11 +3823,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // MIME
   // ============================================================
 
-  String _getMimeType(
-    String? extension,
-  ) {
-    switch (extension
-        ?.toLowerCase()) {
+  String _getMimeType(String? extension) {
+    switch (extension?.toLowerCase()) {
       case 'pdf':
         return 'application/pdf';
 
@@ -5269,96 +3860,55 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   Future<void> _selectDateTime() async {
-    final now =
-        DateTime.now();
+    final now = DateTime.now();
 
-    final selectedDate =
-        await showDatePicker(
-      context:
-          context,
-      initialDate:
-          scheduledDateTime ??
-              now,
-      firstDate:
-          DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ),
-      lastDate:
-          DateTime(
-        now.year + 5,
-      ),
-      builder:
-          (
-        context,
-        child,
-      ) {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: scheduledDateTime ?? now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 5),
+      builder: (context, child) {
         return Theme(
-          data:
-              Theme.of(context).copyWith(
-            colorScheme:
-                const ColorScheme.dark(
-              primary:
-                  gold,
-              surface:
-                  cardColor2,
-              onSurface:
-                  white,
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: gold,
+              surface: cardColor2,
+              onSurface: white,
             ),
           ),
-          child:
-              child!,
+          child: child!,
         );
       },
     );
 
-    if (selectedDate == null ||
-        !mounted) {
+    if (selectedDate == null || !mounted) {
       return;
     }
 
-    final selectedTime =
-        await showTimePicker(
-      context:
-          context,
-      initialTime:
-          scheduledDateTime != null
-              ? TimeOfDay.fromDateTime(
-                  scheduledDateTime!,
-                )
-              : TimeOfDay.now(),
-      builder:
-          (
-        context,
-        child,
-      ) {
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: scheduledDateTime != null
+          ? TimeOfDay.fromDateTime(scheduledDateTime!)
+          : TimeOfDay.now(),
+      builder: (context, child) {
         return Theme(
-          data:
-              Theme.of(context).copyWith(
-            colorScheme:
-                const ColorScheme.dark(
-              primary:
-                  gold,
-              surface:
-                  cardColor2,
-              onSurface:
-                  white,
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: gold,
+              surface: cardColor2,
+              onSurface: white,
             ),
           ),
-          child:
-              child!,
+          child: child!,
         );
       },
     );
 
-    if (selectedTime == null ||
-        !mounted) {
+    if (selectedTime == null || !mounted) {
       return;
     }
 
-    final DateTime newDate =
-        DateTime(
+    final DateTime newDate = DateTime(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
@@ -5366,23 +3916,15 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       selectedTime.minute,
     );
 
-    if (newDate.isBefore(
-      DateTime.now(),
-    )) {
-      _showMessage(
-        'Please select a future date and time.',
-        isError:
-            true,
-      );
+    if (newDate.isBefore(DateTime.now())) {
+      _showMessage('Please select a future date and time.', isError: true);
 
       return;
     }
 
     setState(() {
-      scheduledDateTime =
-          newDate;
-      selectedStatus =
-          'scheduled';
+      scheduledDateTime = newDate;
+      selectedStatus = 'scheduled';
     });
   }
 
@@ -5401,14 +3943,8 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       return;
     }
 
-    if (contentController.text
-        .trim()
-        .isEmpty) {
-      _showMessage(
-        'Email content is required.',
-        isError:
-            true,
-      );
+    if (contentController.text.trim().isEmpty) {
+      _showMessage('Email content is required.', isError: true);
 
       setState(() {
         currentStep = 1;
@@ -5417,27 +3953,16 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
       return;
     }
 
-    final int? step =
-        int.tryParse(
-      stepController.text.trim(),
-    );
+    final int? step = int.tryParse(stepController.text.trim());
 
-    final int? gapDays =
-        int.tryParse(
-      gapDaysController.text.trim(),
-    );
+    final int? gapDays = int.tryParse(gapDaysController.text.trim());
 
-    if (step == null ||
-        gapDays == null) {
+    if (step == null || gapDays == null) {
       return;
     }
 
-    if (selectedStatus == 'scheduled' &&
-        scheduledDateTime == null) {
-      _showMessage(
-        'Please select a scheduled date and time.',
-        isError: true,
-      );
+    if (selectedStatus == 'scheduled' && scheduledDateTime == null) {
+      _showMessage('Please select a scheduled date and time.', isError: true);
 
       setState(() {
         currentStep = 3;
@@ -5447,15 +3972,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
     }
 
     setState(() {
-      isLoading =
-          true;
+      isLoading = true;
     });
 
     try {
       final sequenceId =
           widget.sequence?['_id']?.toString() ??
-              widget.sequence?['id']?.toString() ??
-              '';
+          widget.sequence?['id']?.toString() ??
+          '';
 
       final result = widget.isEditing
           ? await SequenceApi.updateSequence(
@@ -5484,132 +4008,106 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
               attachmentUrl: attachmentUrlController.text.trim(),
               attachmentBytes: _attachmentBytes,
               attachmentMimeType: attachmentMimeController.text.trim(),
-              attachmentSize: int.tryParse(
-                    attachmentSizeController.text.trim(),
-                  ) ??
-                  0,
+              attachmentSize:
+                  int.tryParse(attachmentSizeController.text.trim()) ?? 0,
               whatsapp: whatsappController.text.trim(),
               ctaText: ctaTextController.text.trim(),
               ctaUrl: ctaUrlController.text.trim(),
+              actionLinks: selectedActionLinks,
               trackingEnabled: trackingEnabled,
               status: selectedStatus,
-              scheduledAt:
-                  scheduledDateTime?.toUtc().toIso8601String(),
+              scheduledAt: scheduledDateTime?.toUtc().toIso8601String(),
             )
           : await SequenceApi.createSequence(
-        step:
-            step,
+              step: step,
 
-        gapDays:
-            gapDays,
+              gapDays: gapDays,
 
-        variant:
-            variantController.text.trim(),
+              variant: variantController.text.trim(),
 
-        businessType:
-            selectedBusinessType.trim(),
+              businessType: selectedBusinessType.trim(),
 
-        subject:
-            subjectController.text.trim(),
+              subject: subjectController.text.trim(),
 
-        logoUrl:
-            logoController.text.trim().isEmpty
-                ? null
-                : logoController.text.trim(),
+              logoUrl: logoController.text.trim().isEmpty
+                  ? null
+                  : logoController.text.trim(),
 
-        logoPosition:
-            selectedLogoPosition,
+              logoPosition: selectedLogoPosition,
 
-        logoBytes:
-            _logoBytes,
+              logoBytes: _logoBytes,
 
-        logoFilename:
-            _logoFilename,
+              logoFilename: _logoFilename,
 
-        heroImageUrl:
-            heroImageController.text.trim().isEmpty
-                ? null
-                : heroImageController.text.trim(),
+              heroImageUrl: heroImageController.text.trim().isEmpty
+                  ? null
+                  : heroImageController.text.trim(),
 
-        heroImageLink:
-            heroLinkController.text.trim().isEmpty
-                ? null
-                : heroLinkController.text.trim(),
+              heroImageLink: heroLinkController.text.trim().isEmpty
+                  ? null
+                  : heroLinkController.text.trim(),
 
-        heroImageBytes:
-            _heroImageBytes,
+              heroImageBytes: _heroImageBytes,
 
-        heroImageFilename:
-            _heroImageFilename,
+              heroImageFilename: _heroImageFilename,
 
-        content:
-            contentController.text,
+              content: contentController.text,
 
-        font:
-            selectedFont,
+              font: selectedFont,
 
-        fontSize:
-            selectedFontSize,
+              fontSize: selectedFontSize,
 
-        textColor:
-            selectedTextColor,
+              textColor: selectedTextColor,
 
-        bold:
-            isBold,
+              bold: isBold,
 
-        italic:
-            isItalic,
+              italic: isItalic,
 
-        underline:
-            isUnderline,
+              underline: isUnderline,
 
-        attachmentName:
-            attachmentNameController.text.trim().isEmpty
-                ? null
-                : attachmentNameController.text.trim(),
+              attachmentName: attachmentNameController.text.trim().isEmpty
+                  ? null
+                  : attachmentNameController.text.trim(),
 
-        attachmentUrl:
-            attachmentUrlController.text.trim().isEmpty
-                ? null
-                : attachmentUrlController.text.trim(),
+              attachmentUrl: attachmentUrlController.text.trim().isEmpty
+                  ? null
+                  : attachmentUrlController.text.trim(),
 
-        attachmentMimeType:
-            attachmentMimeController.text.trim().isEmpty
-                ? null
-                : attachmentMimeController.text.trim(),
+              attachmentMimeType: attachmentMimeController.text.trim().isEmpty
+                  ? null
+                  : attachmentMimeController.text.trim(),
 
-        attachmentBytes:
-            _attachmentBytes,
+              attachmentBytes: _attachmentBytes,
 
-        attachmentSize:
-            int.tryParse(
-                  attachmentSizeController.text.trim(),
-                ) ??
-                0,
+              attachmentSize:
+                  int.tryParse(attachmentSizeController.text.trim()) ?? 0,
 
-        whatsapp:
-            whatsappController.text.trim().isEmpty
-                ? null
-                : whatsappController.text.trim(),
+              whatsapp: whatsappController.text.trim().isEmpty
+                  ? null
+                  : whatsappController.text.trim(),
 
-        trackingEnabled:
-            trackingEnabled,
+              ctaText: ctaTextController.text.trim().isEmpty
+                  ? null
+                  : ctaTextController.text.trim(),
 
-        status:
-            selectedStatus,
+              ctaUrl: ctaUrlController.text.trim().isEmpty
+                  ? null
+                  : ctaUrlController.text.trim(),
 
-        scheduledAt:
-            scheduledDateTime
-                ?.toUtc()
-                .toIso8601String(),
-      );
+              actionLinks: selectedActionLinks,
+
+              trackingEnabled: trackingEnabled,
+
+              status: selectedStatus,
+
+              scheduledAt: scheduledDateTime?.toUtc().toIso8601String(),
+            );
 
       if (!mounted) {
         return;
       }
 
-      if (result['success'] ==
-          true) {
+      if (result['success'] == true) {
         _showMessage(
           result['message']?.toString() ??
               (widget.isEditing
@@ -5617,29 +4115,24 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
                   : 'Sequence created successfully.'),
         );
 
-        await Future.delayed(
-          const Duration(
-            milliseconds:
-                450,
-          ),
-        );
+        await Future.delayed(const Duration(milliseconds: 450));
 
         if (!mounted) {
           return;
         }
 
-        Navigator.pop(
-          context,
-          true,
-        );
+        if (widget.isEditing) {
+          Navigator.pop(context, true);
+        } else {
+          _clearSavedSequenceForm();
+        }
       } else {
         _showMessage(
           result['message']?.toString() ??
               (widget.isEditing
                   ? 'Unable to update sequence.'
                   : 'Unable to create sequence.'),
-          isError:
-              true,
+          isError: true,
         );
       }
     } catch (e) {
@@ -5647,19 +4140,60 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         return;
       }
 
-      _showMessage(
-        'Something went wrong: $e',
-        isError:
-            true,
-      );
+      _showMessage('Something went wrong: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() {
-          isLoading =
-              false;
+          isLoading = false;
         });
       }
     }
+  }
+
+  // A newly saved sequence must not remain in the editor or its live preview.
+  // The preview reads these same controllers, so clearing them here resets both
+  // areas together without navigating away from the Create screen.
+  void _clearSavedSequenceForm() {
+    _formKey.currentState?.reset();
+    for (final controller in [
+      stepController,
+      gapDaysController,
+      variantController,
+      subjectController,
+      logoController,
+      heroImageController,
+      heroLinkController,
+      contentController,
+      whatsappController,
+      ctaTextController,
+      ctaUrlController,
+      attachmentNameController,
+      attachmentUrlController,
+      attachmentMimeController,
+      attachmentSizeController,
+    ]) {
+      controller.clear();
+    }
+    setState(() {
+      _logoBytes = null;
+      _logoFilename = null;
+      _heroImageBytes = null;
+      _heroImageFilename = null;
+      _attachmentBytes = null;
+      selectedActionLinks.clear();
+      selectedBusinessType = '';
+      selectedLogoPosition = 'Center';
+      selectedFont = 'Arial';
+      selectedFontSize = '16px';
+      selectedTextColor = 'Black';
+      selectedStatus = 'active';
+      trackingEnabled = true;
+      isBold = false;
+      isItalic = false;
+      isUnderline = false;
+      scheduledDateTime = null;
+      currentStep = 0;
+    });
   }
 
   // ============================================================
@@ -5672,9 +4206,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         return Colors.white;
 
       case 'Gray':
-        return const Color(
-          0xFF9CA3AF,
-        );
+        return const Color(0xFF9CA3AF);
 
       case 'Red':
         return Colors.redAccent;
@@ -5701,14 +4233,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   Color _previewTextColor() {
     switch (selectedTextColor) {
       case 'White':
-        return const Color(
-          0xFF111827,
-        );
+        return const Color(0xFF111827);
 
       case 'Gray':
-        return const Color(
-          0xFF667085,
-        );
+        return const Color(0xFF667085);
 
       case 'Red':
         return Colors.red;
@@ -5717,14 +4245,10 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
         return Colors.blue;
 
       case 'Green':
-        return const Color(
-          0xFF188847,
-        );
+        return const Color(0xFF188847);
 
       case 'Gold':
-        return const Color(
-          0xFFB8860B,
-        );
+        return const Color(0xFFB8860B);
 
       case 'Black':
       default:
@@ -5772,8 +4296,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // ============================================================
 
   double _previewFontSize() {
-    final size =
-        _selectedEditorSize();
+    final size = _selectedEditorSize();
 
     if (size >= 24) {
       return 14;
@@ -5810,9 +4333,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // CAPITALIZE
   // ============================================================
 
-  String _capitalize(
-    String value,
-  ) {
+  String _capitalize(String value) {
     if (value.isEmpty) {
       return value;
     }
@@ -5824,40 +4345,14 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // FORMAT DATE
   // ============================================================
 
-  String _formatDateTime(
-    DateTime dateTime,
-  ) {
-    final day =
-        dateTime.day
-            .toString()
-            .padLeft(
-              2,
-              '0',
-            );
+  String _formatDateTime(DateTime dateTime) {
+    final day = dateTime.day.toString().padLeft(2, '0');
 
-    final month =
-        dateTime.month
-            .toString()
-            .padLeft(
-              2,
-              '0',
-            );
+    final month = dateTime.month.toString().padLeft(2, '0');
 
-    final hour =
-        dateTime.hour
-            .toString()
-            .padLeft(
-              2,
-              '0',
-            );
+    final hour = dateTime.hour.toString().padLeft(2, '0');
 
-    final minute =
-        dateTime.minute
-            .toString()
-            .padLeft(
-              2,
-              '0',
-            );
+    final minute = dateTime.minute.toString().padLeft(2, '0');
 
     return '$day/$month/${dateTime.year} $hour:$minute';
   }
@@ -5866,10 +4361,7 @@ class _CreateSequenceFormState extends State<CreateSequenceForm> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message, {
-    bool isError = false,
-  }) {
+  void _showMessage(String message, {bool isError = false}) {
     if (!mounted) {
       return;
     }

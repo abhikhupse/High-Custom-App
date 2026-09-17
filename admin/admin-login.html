@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>High Custom Admin Login</title>
-  <link rel="icon" type="image/png" href="images/company-logo.png">
+  <link rel="icon" type="image/png" href="images/company-logo-1.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,6 +40,7 @@
     .error { min-height: 18px; margin: 12px 2px 0; color: #ff8f8f; text-align: center; font-size: 13px; }
     @media (max-width: 700px) { body { overflow: auto; } .login-card { padding: 34px 24px 29px; border-radius: 25px; } .hexagon.one,.hexagon.three { width: 360px; height: 310px; top: 8%; } .hexagon.two,.hexagon.four { display: none; } .hexagon.one { left: -175px; } .hexagon.three { right: -175px; } }
   </style>
+
 </head>
 <body>
   <div class="hexagon one"></div><div class="hexagon two"></div><div class="hexagon three"></div><div class="hexagon four"></div>
@@ -92,6 +93,20 @@
           throw new Error(accessPayload.message || 'Unable to open the admin dashboard. Please try again.');
         }
         localStorage.setItem('highCustomAdminToken', payload.token);
+        // Cache the authenticated user's actual role and rights before the
+        // first workspace page opens. This prevents the sidebar from briefly
+        // rendering a previous user's Admin navigation during page changes.
+        try {
+          const profileResponse = await fetch(`${apiBase}/user/profile`, { headers: { Accept: 'application/json', Authorization: `Bearer ${payload.token}` } });
+          const profilePayload = await profileResponse.json().catch(() => ({}));
+          if (profileResponse.ok && profilePayload.success && profilePayload.user) {
+            localStorage.setItem('highCustomAdminUser', JSON.stringify(profilePayload.user));
+          } else {
+            localStorage.removeItem('highCustomAdminUser');
+          }
+        } catch (_) {
+          localStorage.removeItem('highCustomAdminUser');
+        }
         window.location.replace('index.html');
       } catch (exception) { error.textContent = exception.message || 'Unable to sign in.'; }
       finally { button.disabled = false; button.innerHTML = '<i class="fas fa-gem"></i>&nbsp; SIGN IN &nbsp;<i class="fas fa-arrow-right"></i>'; }

@@ -14,6 +14,13 @@ router.get(
   controller.get,
 );
 router.put(
+  "/logo-preference",
+  auth,
+  requireAppRight("businessLink"),
+  requireAccessRight("editBusinessLink"),
+  controller.setLogoPreference,
+);
+router.put(
   "/",
   auth,
   requireAppRight("businessLink"),

@@ -4,6 +4,8 @@ const {
 } = require("../utils/emailMessage");
 const { google } = require("googleapis");
 const { promises: dns } = require("node:dns");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const GMAIL_INTEGRATION = require("../model/gmail_integration.model");
 const {
@@ -28,6 +30,74 @@ const PROVIDER_LOOKUP_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const senderCopyLabelCache = new Map();
 const senderCopyLabelPromiseCache = new Map();
 const recipientProviderCache = new Map();
+
+function localUploadPath(assetUrl, directory) {
+  try {
+    const pathname = new URL(String(assetUrl || "")).pathname;
+    const filename = path.basename(pathname);
+    if (!filename || filename === "." || filename === path.sep) return null;
+    const candidate = path.resolve(
+      __dirname,
+      "..",
+      "uploads",
+      directory,
+      filename,
+    );
+    const uploadDirectory = path.resolve(__dirname, "..", "uploads", directory);
+    return candidate.startsWith(uploadDirectory + path.sep) &&
+      fs.existsSync(candidate)
+      ? candidate
+      : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function prepareInlineSequenceImages(sequence = {}) {
+  const renderSequence = {
+    ...sequence,
+    brand: { ...(sequence.brand || {}) },
+    heroImage: { ...(sequence.heroImage || {}) },
+    attachment: { ...(sequence.attachment || {}) },
+  };
+  const attachments = [];
+  const addInlineImage = (url, directory, cid, property) => {
+    const filePath = localUploadPath(url, directory);
+    if (!filePath) return;
+    attachments.push({ path: filePath, cid, contentDisposition: "inline" });
+    renderSequence[property === "logoUrl" ? "brand" : "heroImage"][property] =
+      `cid:${cid}`;
+  };
+  addInlineImage(
+    sequence.brand?.logoUrl,
+    "brand",
+    "sequence-brand-logo",
+    "logoUrl",
+  );
+  addInlineImage(sequence.heroImage?.url, "hero", "sequence-hero-image", "url");
+
+  // A real MIME attachment produces Gmail's native file card with Download
+  // and Save to Drive actions. It is more reliable than a URL to a local file.
+  const attachmentPath = localUploadPath(
+    sequence.attachment?.url,
+    "attachments",
+  );
+  if (attachmentPath) {
+    attachments.push({
+      path: attachmentPath,
+      filename:
+        String(sequence.attachment?.name || "").trim() ||
+        path.basename(attachmentPath),
+      contentDisposition: "attachment",
+    });
+    renderSequence.attachment = {
+      ...renderSequence.attachment,
+      enabled: false,
+      url: null,
+    };
+  }
+  return { renderSequence, attachments };
+}
 
 function recipientDomain(email) {
   const normalized = String(email || "")
@@ -484,8 +554,12 @@ async function sendGmailSequenceEmail({
   // BUILD HTML
   // ==========================================================
 
+  // Local uploads are not reachable from a recipient's phone through the
+  // public Render URL. Package them inside the Gmail MIME message instead.
+  const { renderSequence, attachments } = prepareInlineSequenceImages(sequence);
+
   const { text, html } = buildSequenceBodies({
-    sequence,
+    sequence: renderSequence,
     lead: {
       ...lead,
       email: leadEmail,
@@ -507,6 +581,7 @@ async function sendGmailSequenceEmail({
     to: leadEmail,
     subject: replaceLeadPlaceholders(sequence.subject || "", lead),
     html,
+    attachments,
   });
 
   // ==========================================================

@@ -675,7 +675,11 @@ exports.getUserDetails = async (req, res) => {
         employerCode: user.employerCode,
         email: user.email,
         phone: user.phone,
+        // `role` is the role actually stored on this account. Keep the
+        // permission-resolved value separately so profile screens can show
+        // the real account role without guessing from rights or email.
         role: user.role,
+        effectiveRole: req.user?.role || user.role,
         // Always return the server-calculated values.  Web and mobile must
         // never infer permissions from a role or from stale local storage.
         appRights: req.user.appRights || {},

@@ -5,6 +5,7 @@ const auth = require("../middleware/auth.middleware");
 const requireAdmin = require("../middleware/admin.middleware");
 const {
   requireAppRight,
+  requireAnyAppRight,
   requireAccessRight,
 } = require("../middleware/user-access");
 
@@ -24,12 +25,12 @@ const router = express.Router();
 // ADMIN DASHBOARD
 // ============================================================
 
-// Keep true Admin dashboard restricted to Admin.
+// Any active role can open its dashboard.  The controller limits data by the
+// authenticated user's scope, while the two rights checks control visibility.
 router.get(
   "/dashboard",
   auth,
-  requireAdmin,
-  requireAppRight("dashboard"),
+  requireAnyAppRight("ownDashboard", "allUserDashboard"),
   requireAccessRight("viewDashboard"),
   dashboardController.getDashboard,
 );

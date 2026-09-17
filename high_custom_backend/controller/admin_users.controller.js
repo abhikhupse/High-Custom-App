@@ -60,7 +60,9 @@ function normalizeRole(role) {
   return role === "User" ? "Employee" : role || "Employee";
 }
 
-const CORE_ROLES = ["Admin", "HR", "Employee"];
+// Keep each role as its own value.  In particular, Sub Admin must never be
+// converted to Admin: the saved role is also what the user sees after login.
+const CORE_ROLES = ["Admin", "Sub Admin", "HR", "Employee"];
 
 async function isAllowedRole(role) {
   if (CORE_ROLES.includes(role)) return true;
@@ -114,7 +116,7 @@ exports.list = async (req, res, next) => {
     // Admin + HR are allowed. The primary Admin may be configured through
     // ADMIN_EMAILS while their legacy database role is still "User".
     if (
-      !["Admin", "HR"].includes(effectiveAccountRole(req.account)) &&
+      !["Admin", "Sub Admin", "HR"].includes(effectiveAccountRole(req.account)) &&
       !isConfiguredAdmin(req.account?.email)
     ) {
       return res.status(403).json({
@@ -140,7 +142,8 @@ exports.list = async (req, res, next) => {
       }
 
       const rolePriority = {
-        Admin: 3,
+        Admin: 4,
+        "Sub Admin": 3,
         HR: 2,
         Employee: 1,
       };
@@ -336,15 +339,10 @@ exports.update = async (req, res, next) => {
         return fail("The primary Administrator role cannot be changed.", 403);
       }
 
+      // Save the selected role exactly as selected.  Rights and data scope
+      // belong to the account, so changing only the role must not overwrite
+      // any existing customised access settings.
       changes.role = role;
-
-      const defaults = getRolePermissions(role);
-
-      changes.dataScope = defaults.dataScope;
-
-      changes.appRights = defaults.appRights;
-
-      changes.accessRights = defaults.accessRights;
     }
 
     // ========================================================

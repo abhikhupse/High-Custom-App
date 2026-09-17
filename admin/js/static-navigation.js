@@ -27,8 +27,7 @@
     const sidebarCss = document.createElement("link");
     sidebarCss.id = "adminSharedSidebarCss";
     sidebarCss.rel = "stylesheet";
-    // Versioned so every legacy static page receives the current shared shell.
-    sidebarCss.href = `${new URL("css/admin-shared-sidebar.css", getAdminRoot()).href}?v=20260916-4`;
+    sidebarCss.href = `${new URL("css/admin-sidebar-clean.css", getAdminRoot()).href}?v=20260917-1`;
     document.head.append(sidebarCss);
   }
 
@@ -44,7 +43,28 @@
   // A logout control is injected on every Admin workspace page.  Keeping it
   // here means the behaviour is identical for Master, Links, Leads, Social
   // Links and both report pages.
-  const signOut = () => {
+  const signOut = async () => {
+    const token = localStorage.getItem("highCustomAdminToken");
+    const isLocal = ["localhost", "127.0.0.1"].includes(
+      window.location.hostname,
+    );
+    const apiBase = isLocal
+      ? "http://localhost:3000/api"
+      : localStorage.getItem("highCustomApiBase") ||
+        "https://high-custom-app.onrender.com/api";
+    // Logout should never leave the user stuck if the server is unavailable.
+    // The browser session is cleared in either case.
+    if (token) {
+      try {
+        await fetch(`${apiBase}/user/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          keepalive: true,
+        });
+      } catch (_) {
+        // Local logout still completes below.
+      }
+    }
     localStorage.removeItem("highCustomAdminToken");
     localStorage.removeItem("highCustomAdminUser");
     window.location.replace(new URL("admin-login.html", adminRoot).href);
@@ -83,7 +103,10 @@
       [saved.firstName, saved.lastName].filter(Boolean).join(" ") ||
       saved.name ||
       "Admin";
-    const role = saved.role === "User" ? "Admin" : saved.role || "Admin";
+    // Cached data is only a temporary placeholder; keep its real role until
+    // /user/profile refreshes it from the authenticated backend account.
+    const savedRole = String(saved.role || "User").trim();
+    const role = savedRole === "Admin" ? "Administrator" : savedRole;
     const initials =
       name
         .split(/\s+/)
@@ -174,9 +197,10 @@
       const avatarBadge = profile.querySelector("[data-shared-profile-avatar]");
 
       if (nameElement) nameElement.textContent = name;
-      if (roleElement)
-        roleElement.textContent =
-          user.role === "User" ? "Admin" : user.role || "Admin";
+      if (roleElement) {
+        const storedRole = String(user.role || "User").trim();
+        roleElement.textContent = storedRole === "Admin" ? "Administrator" : storedRole;
+      }
 
       if (avatarBadge) avatarBadge.textContent = initials;
 
@@ -188,6 +212,19 @@
   upgradeHeader();
   addLogoutControl();
   hydrateHeaderProfile();
+  // Some legacy pages also register a jQuery #logoutBtn handler with a dummy
+  // URL. Capture the click first so the shared, authenticated logout wins.
+  document.addEventListener(
+    "click",
+    (event) => {
+      const logout = event.target.closest("#logoutBtn, #adminGlobalLogout");
+      if (!logout) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      signOut();
+    },
+    true,
+  );
   // Legacy templates contain their own profile dropdown markup. Keep this
   // single route handler so the Integrations item works before or after the
   // shared header replaces that legacy markup.
@@ -207,7 +244,7 @@
     if (nav.dataset.scopedNavigation === "true") return;
     const sidebar = nav.closest(".sidebar");
     if (sidebar) {
-      sidebar.className = "sidebar";
+      sidebar.className = "sidebar hc-sidebar";
       sidebar.removeAttribute("style");
     }
     const brand = sidebar?.querySelector(".sidebar-brand");
@@ -222,50 +259,27 @@
       `<li class="nav-item"><button type="button" class="nav-link w-100 border-0 bg-transparent text-start" data-target="${id}" aria-expanded="true"><i class="fas ${icon}"></i><span class="menu-text">${label}</span><i class="fas fa-chevron-down arrow open"></i></button><ul class="sub-menu open" id="${id}">${children}</ul></li>`;
     nav.innerHTML = [
       link("Dashboard", "fa-house", "dashboard.html"),
-      group(
-        "submenu-admin",
-        "Admin",
-        "fa-user-shield",
-        [
-          link("Users", "fa-user", "users/index.html"),
-          link("Sequences", "fa-layer-group", "master/userMasterList.html"),
-          link("Leads", "fa-users", "Leads/total-leads.html?scope=admin"),
-          link(
-            "Interested Leads",
-            "fa-bullseye",
-            "Leads/total-leads.html?scope=admin&status=interested",
-          ),
-          link(
-            "All Tracking Report",
-            "fa-chart-column",
-            "master/UserSequenceTable.html",
-          ),
-        ].join(""),
-      ),
-      group(
-        "submenu-master",
-        "Master",
-        "fa-database",
-        [
-          link("Social Link", "fa-share-nodes", "social/index.html"),
-          link("Link", "fa-link", "social/link-document.html"),
-          link("Leads", "fa-users", "Leads/index.html"),
-          link("Sequences", "fa-layer-group", "master/master-list.html"),
-          link("Tracking Report", "fa-chart-line", "reports/campaign.html"),
-          link(
-            "Interested Leads",
-            "fa-bullseye",
-            "Leads/index.html?status=interested",
-          ),
-        ].join(""),
-      ),
+      group("submenu-admin", "Admin", "fa-user-shield", [
+        link("Users", "fa-user", "users/index.html"),
+        link("Sequences", "fa-layer-group", "master/userMasterList.html"),
+        link("Leads", "fa-users", "Leads/total-leads.html?scope=admin"),
+        link("Interested Leads", "fa-bullseye", "Leads/total-leads.html?scope=admin&status=interested"),
+        link("All Tracking Report", "fa-chart-column", "master/UserSequenceTable.html"),
+      ].join("")),
+      group("submenu-master", "Master", "fa-database", [
+        link("Social Link", "fa-share-nodes", "social/index.html"),
+        link("Link", "fa-link", "social/link-document.html"),
+        link("Leads", "fa-users", "Leads/index.html"),
+        link("Sequences", "fa-layer-group", "master/master-list.html"),
+        link("Tracking Report", "fa-chart-line", "reports/campaign.html"),
+        link("Interested Leads", "fa-bullseye", "Leads/index.html?status=interested"),
+      ].join("")),
     ].join("");
     nav.dataset.scopedNavigation = "true";
     if (sidebar && !sidebar.querySelector(".sidebar-premium-footer")) {
       const footer = document.createElement("div");
       footer.className = "sidebar-premium-footer";
-      footer.innerHTML =
-        "<strong>High Custom</strong><span>Build Relationships</span><span>Create Opportunities</span>";
+      footer.innerHTML = "<strong>High Custom</strong><span>Build Relationships</span><span>Create Opportunities</span>";
       nav.insertAdjacentElement("afterend", footer);
     }
     nav.querySelectorAll("[data-target]").forEach((button) => {
@@ -280,18 +294,12 @@
   renderScopedNavigation();
   document.body.classList.add("shared-navigation-ready");
 
-  // Legacy page scripts can still run after DOMContentLoaded and rewrite a
-  // page's old header or menu. Keep the shared shell authoritative instead
-  // of allowing a second, page-specific chrome to appear after refresh.
   document.addEventListener("DOMContentLoaded", () => {
-    const header = document.querySelector(
-      ".top-navbar.universal-dashboard-header",
-    );
+    const header = document.querySelector(".top-navbar.universal-dashboard-header");
     const nav = document.querySelector(".sidebar .nav-menu");
     if (!header && !nav) return;
     new MutationObserver(() => {
-      if (header && !header.querySelector(".universal-header-copy"))
-        upgradeHeader();
+      if (header && !header.querySelector(".universal-header-copy")) upgradeHeader();
       const currentNav = document.querySelector(".sidebar .nav-menu");
       if (!currentNav) return;
       if (currentNav && !currentNav.querySelector("#submenu-master")) {
@@ -300,17 +308,13 @@
       }
     }).observe(document.body, { childList: true, subtree: true });
   });
-  // Pages begin with legacy chrome hidden. Reveal it only after the shared
-  // navigation has replaced its content, preventing a refresh-time flash.
-  document.documentElement.classList.add("hc-shell-ready");
-
   // One permission source for every static Admin page.  The API calculates
   // effective role defaults plus user-specific overrides, so UI visibility
   // and backend enforcement use the same keys.
   const pageRequirement = (url) => {
     const path = url.pathname.toLowerCase();
     const interested = url.searchParams.get("status") === "interested";
-    if (path.endsWith("/dashboard.html")) return ["dashboard", "viewDashboard"];
+    if (path.endsWith("/dashboard.html")) return [["ownDashboard", "allUserDashboard"], "viewDashboard"];
     if (path.endsWith("/integrations.html"))
       return ["integrations", "viewIntegrations"];
     if (path.includes("/users/")) return ["users", "viewUsers"];
@@ -346,9 +350,53 @@
       '" style="display:inline-block;background:#a8751f;color:#fff;text-decoration:none;padding:11px 17px;border-radius:8px">Go back</a></section>';
     document.body.append(notice);
   };
+  const applyUserPermissions = (user) => {
+    const allowed = (requirement) => {
+      if (!requirement) return true;
+      const [appRequirement, accessRequirement] = requirement;
+      const hasAppRight = Array.isArray(appRequirement)
+        ? appRequirement.some((right) => user.appRights?.[right] === true)
+        : user.appRights?.[appRequirement] === true;
+      return hasAppRight && user.accessRights?.[accessRequirement] === true;
+    };
+    document.querySelectorAll(".sidebar a.nav-link[href]").forEach((link) => {
+      const requirement = pageRequirement(
+        new URL(link.href, window.location.origin),
+      );
+      link.closest(".nav-item").hidden = !allowed(requirement);
+    });
+    document.querySelectorAll(".sidebar .sub-menu").forEach((menu) => {
+      const children = [...menu.querySelectorAll(":scope > .nav-item")];
+      const group = menu.closest(".nav-item");
+      if (group)
+        group.hidden =
+          children.length > 0 && children.every((child) => child.hidden);
+    });
+    return allowed;
+  };
+
   const applyPermissions = async () => {
+    const revealShell = () =>
+      document.documentElement.classList.add("hc-shell-ready");
     const token = localStorage.getItem("highCustomAdminToken");
-    if (!token) return;
+    if (!token) {
+      revealShell();
+      return;
+    }
+    // The login flow stores the signed-in user's profile. Apply those rights
+    // synchronously so navigation remains stable while the fresh request runs.
+    try {
+      const cachedUser = JSON.parse(
+        localStorage.getItem("highCustomAdminUser") || "null",
+      );
+      if (cachedUser?.appRights && cachedUser?.accessRights) {
+        applyUserPermissions(cachedUser);
+        revealShell();
+      }
+    } catch (_) {
+      // A malformed old cache is ignored and the authenticated request below
+      // becomes the source of truth.
+    }
     const isLocal = ["localhost", "127.0.0.1"].includes(
       window.location.hostname,
     );
@@ -367,30 +415,20 @@
       const user = payload?.user;
       if (!response.ok || !payload?.success || !user) return;
       localStorage.setItem("highCustomAdminUser", JSON.stringify(user));
-      const allowed = (requirement) =>
-        !requirement ||
-        (user.appRights?.[requirement[0]] === true &&
-          user.accessRights?.[requirement[1]] === true);
-      document.querySelectorAll(".sidebar a.nav-link[href]").forEach((link) => {
-        const requirement = pageRequirement(
-          new URL(link.href, window.location.origin),
-        );
-        link.closest(".nav-item").hidden = !allowed(requirement);
-      });
-      document.querySelectorAll(".sidebar .sub-menu").forEach((menu) => {
-        const children = [...menu.querySelectorAll(":scope > .nav-item")];
-        const group = menu.closest(".nav-item");
-        if (group)
-          group.hidden =
-            children.length > 0 && children.every((child) => child.hidden);
-      });
+      const allowed = applyUserPermissions(user);
       if (!allowed(pageRequirement(new URL(window.location.href)))) denyPage();
     } catch (_) {
       // Existing backend route protection remains the security boundary if a
       // temporary connection failure prevents the visual update.
+    } finally {
+      // Do not expose the generated navigation until its permissions have
+      // been applied. This prevents restricted groups such as Admin from
+      // flashing briefly while the profile request is in progress.
+      revealShell();
     }
   };
   applyPermissions();
+
 
   // Each route above is explicit. Do not remap by menu label: Admin and Master
   // intentionally contain duplicate labels such as Leads and Sequences.

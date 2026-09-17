@@ -49,7 +49,13 @@
         ? "bg-success"
         : "bg-secondary"
     }">${esc(value || "Pending")}</span>`;
-  const sequenceState = { page: 1, limit: 10, rows: [], canDelete: false, canEdit: false };
+  const sequenceState = {
+    page: 1,
+    limit: 10,
+    rows: [],
+    canDelete: false,
+    canEdit: false,
+  };
   const leadState = { page: 1, limit: 10, rows: [] };
   const initials = (value) =>
     String(value || "A")
@@ -428,7 +434,8 @@
       const currentUser = users.find(
         (user) => String(user._id) === String(usersResponse.currentUserId),
       );
-      sequenceState.canDelete = currentUser?.accessRights?.deleteSequence === true;
+      sequenceState.canDelete =
+        currentUser?.accessRights?.deleteSequence === true;
       sequenceState.canEdit = currentUser?.accessRights?.editSequence === true;
       const options = users
         .map((user) => {

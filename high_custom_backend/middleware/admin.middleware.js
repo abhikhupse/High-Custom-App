@@ -28,7 +28,9 @@ module.exports = (req, res, next) => {
   // DATABASE ADMIN
   // ========================================================
 
-  const isRoleAdmin = role === "Admin";
+  // Sub Admin is an Admin Panel role too.  Fine-grained app and access
+  // rights are enforced by the route middleware that runs after this check.
+  const isRoleAdmin = role === "Admin" || role === "Sub Admin";
 
   if (!isConfiguredAdmin && !isRoleAdmin) {
     return res.status(403).json({

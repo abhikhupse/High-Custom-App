@@ -1,7 +1,12 @@
 const { Queue } = require("bullmq");
 const { createRedisConnection } = require("../config/redis");
 
-const EMAIL_QUEUE_NAME = "high-custom-email";
+// Allow a deployment to use its own sender queue. This prevents an older
+// worker from another running environment from consuming a local job and
+// sending an outdated email template.
+const EMAIL_QUEUE_NAME =
+  String(process.env.EMAIL_QUEUE_NAME || "high-custom-email").trim() ||
+  "high-custom-email";
 const emailQueueConnection = createRedisConnection();
 
 const emailQueue = new Queue(EMAIL_QUEUE_NAME, {

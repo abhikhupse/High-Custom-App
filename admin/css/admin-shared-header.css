@@ -281,6 +281,33 @@
   width: 20px;
 }
 
+/* The sequence editor is intentionally Bootstrap-free.  Keep the profile
+   menu fully styled and functional there as well as on Bootstrap pages. */
+.universal-profile-menu { position: relative; }
+.universal-profile-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1200;
+  margin: 0;
+  list-style: none;
+  background: #fff;
+}
+.universal-profile-dropdown.show { display: block; }
+.universal-profile-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #17233b;
+  text-decoration: none;
+}
+.universal-profile-dropdown .dropdown-divider {
+  margin: 5px 2px;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+}
+
 /* Premium signed-in profile control shared by every non-dashboard page. */
 .universal-profile-menu {
   padding: 4px 6px 4px 12px;

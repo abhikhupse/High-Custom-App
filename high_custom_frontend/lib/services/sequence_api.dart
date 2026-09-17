@@ -11,13 +11,11 @@ class SequenceApi {
   static final String _apiRoot = ApiConfig.baseUrl;
   static final String baseUrl = '$_apiRoot/sequence';
 
-  static const FlutterSecureStorage _storage =
-      FlutterSecureStorage();
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static bool _isRemoteUrl(String value) {
     final uri = Uri.tryParse(value.trim());
-    return uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https');
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
   }
 
   static MediaType _mediaTypeForFilename(String? filename) {
@@ -92,9 +90,7 @@ class SequenceApi {
     final file = File(cleanPath);
     if (!await file.exists()) return;
 
-    request.files.add(
-      await http.MultipartFile.fromPath(fieldName, cleanPath),
-    );
+    request.files.add(await http.MultipartFile.fromPath(fieldName, cleanPath));
   }
 
   // ============================================================
@@ -102,16 +98,11 @@ class SequenceApi {
   // ============================================================
 
   static Future<String?> _getToken() async {
-    final token = await _storage.read(
-      key: 'auth_token',
-    );
+    final token = await _storage.read(key: 'auth_token');
 
-    final legacyToken = await _storage.read(
-      key: 'token',
-    );
+    final legacyToken = await _storage.read(key: 'token');
 
-    final activeToken =
-        (token ?? legacyToken ?? '').trim();
+    final activeToken = (token ?? legacyToken ?? '').trim();
 
     if (activeToken.isEmpty) {
       return null;
@@ -125,13 +116,9 @@ class SequenceApi {
   // ============================================================
 
   static Future<void> _clearToken() async {
-    await _storage.delete(
-      key: 'auth_token',
-    );
+    await _storage.delete(key: 'auth_token');
 
-    await _storage.delete(
-      key: 'token',
-    );
+    await _storage.delete(key: 'token');
   }
 
   // ============================================================
@@ -172,6 +159,9 @@ class SequenceApi {
     int attachmentSize = 0,
 
     String? whatsapp,
+    String? ctaText,
+    String? ctaUrl,
+    List<Map<String, String>> actionLinks = const [],
 
     bool trackingEnabled = true,
 
@@ -179,9 +169,7 @@ class SequenceApi {
 
     String? scheduledAt,
   }) async {
-    final url = Uri.parse(
-      '$baseUrl/create-sequence',
-    );
+    final url = Uri.parse('$baseUrl/create-sequence');
 
     try {
       final activeToken = await _getToken();
@@ -189,8 +177,7 @@ class SequenceApi {
       if (activeToken == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
           'sessionExpired': true,
         };
       }
@@ -199,26 +186,43 @@ class SequenceApi {
       // CLEAN OPTIONAL VALUES
       // ========================================================
 
-      final cleanLogoUrl =
-          logoUrl?.trim() ?? '';
+      final cleanLogoUrl = logoUrl?.trim() ?? '';
 
-      final cleanHeroImageUrl =
-          heroImageUrl?.trim() ?? '';
+      final cleanHeroImageUrl = heroImageUrl?.trim() ?? '';
 
-      final cleanHeroImageLink =
-          heroImageLink?.trim() ?? '';
+      final cleanHeroImageLink = heroImageLink?.trim() ?? '';
 
-      final cleanAttachmentName =
-          attachmentName?.trim() ?? '';
+      final cleanAttachmentName = attachmentName?.trim() ?? '';
 
-      final cleanAttachmentUrl =
-          attachmentUrl?.trim() ?? '';
+      final cleanAttachmentUrl = attachmentUrl?.trim() ?? '';
 
-      final cleanAttachmentMimeType =
-          attachmentMimeType?.trim() ?? '';
+      final cleanAttachmentMimeType = attachmentMimeType?.trim() ?? '';
 
-      final cleanWhatsapp =
-          whatsapp?.trim() ?? '';
+      final cleanWhatsapp = whatsapp?.trim() ?? '';
+      final cleanCtaText = ctaText?.trim() ?? '';
+      final cleanCtaUrl = ctaUrl?.trim() ?? '';
+      final savedActionLinks = actionLinks
+          .where(
+            (link) =>
+                RegExp(
+                  r'^https?://',
+                  caseSensitive: false,
+                ).hasMatch((link['url'] ?? '').trim()) &&
+                (link['label'] ?? '').trim().isNotEmpty,
+          )
+          .toList();
+      final hasManualCta = cleanCtaText.isNotEmpty && cleanCtaUrl.isNotEmpty;
+      final effectiveCta = hasManualCta
+          ? {'text': cleanCtaText, 'url': cleanCtaUrl}
+          : (savedActionLinks.isNotEmpty
+                ? {
+                    'text': savedActionLinks.first['label']!.trim(),
+                    'url': savedActionLinks.first['url']!.trim(),
+                  }
+                : {'text': '', 'url': ''});
+      final secondaryActionLinks = hasManualCta
+          ? savedActionLinks
+          : savedActionLinks.skip(1).toList();
 
       // ========================================================
       // REQUEST BODY
@@ -245,7 +249,6 @@ class SequenceApi {
         // ------------------------------------------------------
         // EDITOR
         // ------------------------------------------------------
-
         'editor': {
           'font': font ?? 'Arial',
           'fontSize': fontSize ?? '16px',
@@ -258,10 +261,7 @@ class SequenceApi {
         // ------------------------------------------------------
         // TRACKING
         // ------------------------------------------------------
-
-        'tracking': {
-          'enabled': true,
-        },
+        'tracking': {'enabled': true},
 
         'status': status,
       };
@@ -288,9 +288,7 @@ class SequenceApi {
       if (cleanHeroImageUrl.isNotEmpty) {
         requestBody['heroImage'] = {
           'url': cleanHeroImageUrl,
-          'link': cleanHeroImageLink.isNotEmpty
-              ? cleanHeroImageLink
-              : null,
+          'link': cleanHeroImageLink.isNotEmpty ? cleanHeroImageLink : null,
         };
       }
 
@@ -301,17 +299,12 @@ class SequenceApi {
       // ========================================================
 
       final bool hasAttachment =
-          cleanAttachmentUrl.isNotEmpty ||
-          cleanAttachmentName.isNotEmpty;
+          cleanAttachmentUrl.isNotEmpty || cleanAttachmentName.isNotEmpty;
 
       if (hasAttachment) {
         requestBody['attachment'] = {
-          'name': cleanAttachmentName.isNotEmpty
-              ? cleanAttachmentName
-              : null,
-          'url': cleanAttachmentUrl.isNotEmpty
-              ? cleanAttachmentUrl
-              : null,
+          'name': cleanAttachmentName.isNotEmpty ? cleanAttachmentName : null,
+          'url': cleanAttachmentUrl.isNotEmpty ? cleanAttachmentUrl : null,
           'mimeType': cleanAttachmentMimeType.isNotEmpty
               ? cleanAttachmentMimeType
               : null,
@@ -320,47 +313,45 @@ class SequenceApi {
       }
 
       // ========================================================
-      // WHATSAPP
+      // ACTION LINKS
       //
       // ONLY SEND IF ACTUALLY PROVIDED
       // ========================================================
 
-      if (cleanWhatsapp.isNotEmpty) {
-        requestBody['actionLinks'] = {
-          'whatsapp': cleanWhatsapp,
-        };
-      }
+      // Always submit the complete action state. This lets the backend tell
+      // the difference between “no default link selected” and a link the user
+      // deliberately removed, matching the web Create Sequence behaviour.
+      requestBody['actionLinks'] = {
+        'whatsapp': {'enabled': cleanWhatsapp.isNotEmpty, 'url': cleanWhatsapp},
+        'cta': {
+          'enabled':
+              effectiveCta['text']!.isNotEmpty &&
+              effectiveCta['url']!.isNotEmpty,
+          'text': effectiveCta['text'],
+          'url': effectiveCta['url'],
+        },
+        'links': secondaryActionLinks,
+      };
 
       // ========================================================
       // SCHEDULED AT
       // ========================================================
 
-      if (scheduledAt != null &&
-          scheduledAt.trim().isNotEmpty) {
-        requestBody['scheduledAt'] =
-            scheduledAt.trim();
+      if (scheduledAt != null && scheduledAt.trim().isNotEmpty) {
+        requestBody['scheduledAt'] = scheduledAt.trim();
       }
 
       // ========================================================
       // DEBUG
       // ========================================================
 
-      debugPrint(
-        '================================================',
-      );
+      debugPrint('================================================');
 
-      debugPrint(
-        'CREATE SEQUENCE REQUEST',
-      );
+      debugPrint('CREATE SEQUENCE REQUEST');
 
-      debugPrint(
-        const JsonEncoder.withIndent('  ')
-            .convert(requestBody),
-      );
+      debugPrint(const JsonEncoder.withIndent('  ').convert(requestBody));
 
-      debugPrint(
-        '================================================',
-      );
+      debugPrint('================================================');
 
       // ========================================================
       // REQUEST
@@ -374,14 +365,24 @@ class SequenceApi {
 
       _addMultipartFields(request, requestBody);
       await _addLocalFile(
-        request, 'brandLogo', cleanLogoUrl, logoBytes, logoFilename,
+        request,
+        'brandLogo',
+        cleanLogoUrl,
+        logoBytes,
+        logoFilename,
       );
       await _addLocalFile(
-        request, 'heroImage', cleanHeroImageUrl, heroImageBytes,
+        request,
+        'heroImage',
+        cleanHeroImageUrl,
+        heroImageBytes,
         heroImageFilename,
       );
       await _addLocalFile(
-        request, 'attachment', cleanAttachmentUrl, attachmentBytes,
+        request,
+        'attachment',
+        cleanAttachmentUrl,
+        attachmentBytes,
         cleanAttachmentName,
       );
 
@@ -408,20 +409,14 @@ class SequenceApi {
       // DECODE
       // ========================================================
 
-      final data = _decodeResponse(
-        response.body,
-      );
+      final data = _decodeResponse(response.body);
 
       // ========================================================
       // SUCCESS
       // ========================================================
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, ...data};
       }
 
       // ========================================================
@@ -433,9 +428,7 @@ class SequenceApi {
 
         return {
           'success': false,
-          'message':
-              data['message'] ??
-                  'Session expired. Please login again.',
+          'message': data['message'] ?? 'Session expired. Please login again.',
           'sessionExpired': true,
         };
       }
@@ -446,20 +439,15 @@ class SequenceApi {
 
       return {
         'success': false,
-        'message':
-            data['message'] ??
-                'Unable to create sequence.',
+        'message': data['message'] ?? 'Unable to create sequence.',
         'errors': data['errors'],
       };
     } catch (e) {
-      debugPrint(
-        'CREATE SEQUENCE ERROR: $e',
-      );
+      debugPrint('CREATE SEQUENCE ERROR: $e');
 
       return {
         'success': false,
-        'message':
-            'Unable to connect to the server.',
+        'message': 'Unable to connect to the server.',
         'error': e.toString(),
       };
     }
@@ -499,6 +487,7 @@ class SequenceApi {
     String? whatsapp,
     String? ctaText,
     String? ctaUrl,
+    List<Map<String, String>> actionLinks = const [],
     bool trackingEnabled = true,
     String status = 'active',
     String? scheduledAt,
@@ -509,8 +498,7 @@ class SequenceApi {
       if (activeToken == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
           'sessionExpired': true,
         };
       }
@@ -518,11 +506,33 @@ class SequenceApi {
       final cleanSequenceId = sequenceId.trim();
 
       if (cleanSequenceId.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Sequence ID is required.',
-        };
+        return {'success': false, 'message': 'Sequence ID is required.'};
       }
+
+      final savedActionLinks = actionLinks
+          .where(
+            (link) =>
+                RegExp(
+                  r'^https?://',
+                  caseSensitive: false,
+                ).hasMatch((link['url'] ?? '').trim()) &&
+                (link['label'] ?? '').trim().isNotEmpty,
+          )
+          .toList();
+      final cleanCtaText = ctaText?.trim() ?? '';
+      final cleanCtaUrl = ctaUrl?.trim() ?? '';
+      final hasManualCta = cleanCtaText.isNotEmpty && cleanCtaUrl.isNotEmpty;
+      final effectiveCta = hasManualCta
+          ? {'text': cleanCtaText, 'url': cleanCtaUrl}
+          : (savedActionLinks.isNotEmpty
+                ? {
+                    'text': savedActionLinks.first['label']!.trim(),
+                    'url': savedActionLinks.first['url']!.trim(),
+                  }
+                : {'text': '', 'url': ''});
+      final secondaryActionLinks = hasManualCta
+          ? savedActionLinks
+          : savedActionLinks.skip(1).toList();
 
       final requestBody = <String, dynamic>{
         'step': step,
@@ -557,36 +567,41 @@ class SequenceApi {
         },
         'actionLinks': {
           'whatsapp': whatsapp?.trim() ?? '',
-          'cta': {
-            'text': ctaText?.trim() ?? '',
-            'url': ctaUrl?.trim() ?? '',
-          },
+          'cta': effectiveCta,
+          'links': secondaryActionLinks,
         },
-        'tracking': {
-          'enabled': true,
-        },
+        'tracking': {'enabled': true},
         'status': status,
         'scheduledAt': scheduledAt,
       };
 
-      final request = http.MultipartRequest(
-        'PUT',
-        Uri.parse('$baseUrl/$cleanSequenceId'),
-      )..headers.addAll({
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $activeToken',
-        });
+      final request =
+          http.MultipartRequest('PUT', Uri.parse('$baseUrl/$cleanSequenceId'))
+            ..headers.addAll({
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $activeToken',
+            });
 
       _addMultipartFields(request, requestBody);
       await _addLocalFile(
-        request, 'brandLogo', logoUrl, logoBytes, logoFilename,
+        request,
+        'brandLogo',
+        logoUrl,
+        logoBytes,
+        logoFilename,
       );
       await _addLocalFile(
-        request, 'heroImage', heroImageUrl, heroImageBytes,
+        request,
+        'heroImage',
+        heroImageUrl,
+        heroImageBytes,
         heroImageFilename,
       );
       await _addLocalFile(
-        request, 'attachment', attachmentUrl, attachmentBytes,
+        request,
+        'attachment',
+        attachmentUrl,
+        attachmentBytes,
         attachmentName,
       );
 
@@ -601,10 +616,7 @@ class SequenceApi {
       final data = _decodeResponse(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
+        return {'success': true, ...data};
       }
 
       if (response.statusCode == 401) {
@@ -612,8 +624,7 @@ class SequenceApi {
 
         return {
           'success': false,
-          'message': data['message'] ??
-              'Session expired. Please login again.',
+          'message': data['message'] ?? 'Session expired. Please login again.',
           'sessionExpired': true,
         };
       }
@@ -648,32 +659,23 @@ class SequenceApi {
       if (activeToken == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
           'sessionExpired': true,
         };
       }
 
-      final queryParameters =
-          <String, String>{};
+      final queryParameters = <String, String>{};
 
       if (startDate != null) {
-        queryParameters['startDate'] =
-            _formatDateForApi(startDate);
+        queryParameters['startDate'] = _formatDateForApi(startDate);
       }
 
       if (endDate != null) {
-        queryParameters['endDate'] =
-            _formatDateForApi(endDate);
+        queryParameters['endDate'] = _formatDateForApi(endDate);
       }
 
-      final uri = Uri.parse(
-        '$baseUrl/tracking-summary',
-      ).replace(
-        queryParameters:
-            queryParameters.isEmpty
-                ? null
-                : queryParameters,
+      final uri = Uri.parse('$baseUrl/tracking-summary').replace(
+        queryParameters: queryParameters.isEmpty ? null : queryParameters,
       );
 
       final response = await http
@@ -681,13 +683,10 @@ class SequenceApi {
             uri,
             headers: {
               'Accept': 'application/json',
-              'Authorization':
-                  'Bearer $activeToken',
+              'Authorization': 'Bearer $activeToken',
             },
           )
-          .timeout(
-            const Duration(seconds: 20),
-          );
+          .timeout(const Duration(seconds: 20));
 
       debugPrint(
         'TRACKING SUMMARY STATUS: '
@@ -699,16 +698,10 @@ class SequenceApi {
         '${response.body}',
       );
 
-      final data = _decodeResponse(
-        response.body,
-      );
+      final data = _decodeResponse(response.body);
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, ...data};
       }
 
       if (response.statusCode == 401) {
@@ -716,29 +709,22 @@ class SequenceApi {
 
         return {
           'success': false,
-          'message':
-              data['message'] ??
-                  'Session expired. Please login again.',
+          'message': data['message'] ?? 'Session expired. Please login again.',
           'sessionExpired': true,
         };
       }
 
       return {
         'success': false,
-        'message':
-            data['message'] ??
-                'Unable to fetch tracking summary.',
+        'message': data['message'] ?? 'Unable to fetch tracking summary.',
         'errors': data['errors'],
       };
     } catch (e) {
-      debugPrint(
-        'GET TRACKING SUMMARY ERROR: $e',
-      );
+      debugPrint('GET TRACKING SUMMARY ERROR: $e');
 
       return {
         'success': false,
-        'message':
-            'Unable to connect to the server.',
+        'message': 'Unable to connect to the server.',
         'error': e.toString(),
       };
     }
@@ -760,8 +746,7 @@ class SequenceApi {
       if (activeToken == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
           'sessionExpired': true,
         };
       }
@@ -772,37 +757,26 @@ class SequenceApi {
       };
 
       if (search.trim().isNotEmpty) {
-        queryParameters['search'] =
-            search.trim();
+        queryParameters['search'] = search.trim();
       }
 
       if (status.trim().isNotEmpty) {
-        queryParameters['status'] =
-            status.trim();
+        queryParameters['status'] = status.trim();
       }
 
-      final uri = Uri.parse(
-        baseUrl,
-      ).replace(
-        queryParameters: queryParameters,
-      );
+      final uri = Uri.parse(baseUrl).replace(queryParameters: queryParameters);
 
-      debugPrint(
-        'GET SEQUENCES URL: $uri',
-      );
+      debugPrint('GET SEQUENCES URL: $uri');
 
       final response = await http
           .get(
             uri,
             headers: {
               'Accept': 'application/json',
-              'Authorization':
-                  'Bearer $activeToken',
+              'Authorization': 'Bearer $activeToken',
             },
           )
-          .timeout(
-            const Duration(seconds: 20),
-          );
+          .timeout(const Duration(seconds: 20));
 
       debugPrint(
         'GET SEQUENCES STATUS: '
@@ -814,16 +788,10 @@ class SequenceApi {
         '${response.body}',
       );
 
-      final data = _decodeResponse(
-        response.body,
-      );
+      final data = _decodeResponse(response.body);
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, ...data};
       }
 
       if (response.statusCode == 401) {
@@ -831,29 +799,22 @@ class SequenceApi {
 
         return {
           'success': false,
-          'message':
-              data['message'] ??
-                  'Session expired. Please login again.',
+          'message': data['message'] ?? 'Session expired. Please login again.',
           'sessionExpired': true,
         };
       }
 
       return {
         'success': false,
-        'message':
-            data['message'] ??
-                'Unable to fetch sequences.',
+        'message': data['message'] ?? 'Unable to fetch sequences.',
         'errors': data['errors'],
       };
     } catch (e) {
-      debugPrint(
-        'GET SEQUENCES ERROR: $e',
-      );
+      debugPrint('GET SEQUENCES ERROR: $e');
 
       return {
         'success': false,
-        'message':
-            'Unable to connect to the server.',
+        'message': 'Unable to connect to the server.',
         'error': e.toString(),
       };
     }
@@ -872,8 +833,7 @@ class SequenceApi {
       if (activeToken == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
           'sessionExpired': true,
         };
       }
@@ -881,15 +841,10 @@ class SequenceApi {
       final cleanSequenceId = sequenceId.trim();
 
       if (cleanSequenceId.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Sequence ID is required.',
-        };
+        return {'success': false, 'message': 'Sequence ID is required.'};
       }
 
-      final uri = Uri.parse(
-        '$baseUrl/$cleanSequenceId',
-      );
+      final uri = Uri.parse('$baseUrl/$cleanSequenceId');
 
       final response = await http
           .delete(
@@ -899,26 +854,16 @@ class SequenceApi {
               'Authorization': 'Bearer $activeToken',
             },
           )
-          .timeout(
-            const Duration(seconds: 20),
-          );
+          .timeout(const Duration(seconds: 20));
 
-      debugPrint(
-        'DELETE SEQUENCE STATUS: ${response.statusCode}',
-      );
+      debugPrint('DELETE SEQUENCE STATUS: ${response.statusCode}');
 
-      debugPrint(
-        'DELETE SEQUENCE RESPONSE: ${response.body}',
-      );
+      debugPrint('DELETE SEQUENCE RESPONSE: ${response.body}');
 
       final data = _decodeResponse(response.body);
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, ...data};
       }
 
       if (response.statusCode == 401) {
@@ -926,22 +871,18 @@ class SequenceApi {
 
         return {
           'success': false,
-          'message': data['message'] ??
-              'Session expired. Please login again.',
+          'message': data['message'] ?? 'Session expired. Please login again.',
           'sessionExpired': true,
         };
       }
 
       return {
         'success': false,
-        'message':
-            data['message'] ?? 'Unable to delete sequence.',
+        'message': data['message'] ?? 'Unable to delete sequence.',
         'errors': data['errors'],
       };
     } catch (e) {
-      debugPrint(
-        'DELETE SEQUENCE ERROR: $e',
-      );
+      debugPrint('DELETE SEQUENCE ERROR: $e');
 
       return {
         'success': false,
@@ -962,15 +903,12 @@ class SequenceApi {
       if (activeToken == null) {
         return {
           'success': false,
-          'message':
-              'Authentication token not found. Please login again.',
+          'message': 'Authentication token not found. Please login again.',
           'sessionExpired': true,
         };
       }
 
-      final uri = Uri.parse(
-        '$baseUrl/run',
-      );
+      final uri = Uri.parse('$baseUrl/run');
 
       final response = await http
           .post(
@@ -978,13 +916,10 @@ class SequenceApi {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              'Authorization':
-                  'Bearer $activeToken',
+              'Authorization': 'Bearer $activeToken',
             },
           )
-          .timeout(
-            const Duration(seconds: 30),
-          );
+          .timeout(const Duration(seconds: 30));
 
       debugPrint(
         'RUN SEQUENCE STATUS: '
@@ -996,16 +931,10 @@ class SequenceApi {
         '${response.body}',
       );
 
-      final data = _decodeResponse(
-        response.body,
-      );
+      final data = _decodeResponse(response.body);
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300) {
-        return {
-          'success': true,
-          ...data,
-        };
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, ...data};
       }
 
       if (response.statusCode == 401) {
@@ -1013,29 +942,22 @@ class SequenceApi {
 
         return {
           'success': false,
-          'message':
-              data['message'] ??
-                  'Session expired. Please login again.',
+          'message': data['message'] ?? 'Session expired. Please login again.',
           'sessionExpired': true,
         };
       }
 
       return {
         'success': false,
-        'message':
-            data['message'] ??
-                'Unable to run sequence.',
+        'message': data['message'] ?? 'Unable to run sequence.',
         'errors': data['errors'],
       };
     } catch (e) {
-      debugPrint(
-        'RUN SEQUENCE ERROR: $e',
-      );
+      debugPrint('RUN SEQUENCE ERROR: $e');
 
       return {
         'success': false,
-        'message':
-            'Unable to connect to the server.',
+        'message': 'Unable to connect to the server.',
         'error': e.toString(),
       };
     }
@@ -1045,26 +967,12 @@ class SequenceApi {
   // FORMAT DATE FOR API
   // ============================================================
 
-  static String _formatDateForApi(
-    DateTime date,
-  ) {
-    final year =
-        date.year.toString().padLeft(
-              4,
-              '0',
-            );
+  static String _formatDateForApi(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
 
-    final month =
-        date.month.toString().padLeft(
-              2,
-              '0',
-            );
+    final month = date.month.toString().padLeft(2, '0');
 
-    final day =
-        date.day.toString().padLeft(
-              2,
-              '0',
-            );
+    final day = date.day.toString().padLeft(2, '0');
 
     return '$year-$month-$day';
   }
@@ -1073,27 +981,21 @@ class SequenceApi {
   // DECODE RESPONSE
   // ============================================================
 
-  static Map<String, dynamic> _decodeResponse(
-    String body,
-  ) {
+  static Map<String, dynamic> _decodeResponse(String body) {
     if (body.trim().isEmpty) {
       return {};
     }
 
     try {
-      final decoded =
-          jsonDecode(body);
+      final decoded = jsonDecode(body);
 
-      if (decoded
-          is Map<String, dynamic>) {
+      if (decoded is Map<String, dynamic>) {
         return decoded;
       }
 
       return {};
     } catch (e) {
-      debugPrint(
-        'JSON DECODE ERROR: $e',
-      );
+      debugPrint('JSON DECODE ERROR: $e');
 
       return {};
     }

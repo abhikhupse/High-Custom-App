@@ -30,7 +30,7 @@ Defaults (environment overrides require restarting the worker/server):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| EMAIL_SEQUENCE_FORMAT | personal_html | Use plain for text only or html for the rich template |
+| EMAIL_SEQUENCE_FORMAT | html | Use plain for text only or html for the complete saved sequence template |
 | EMAILS_PER_USER_WINDOW | 1 | Attempts allowed per short window |
 | EMAIL_USER_WINDOW_MS | 60000 | Short window duration |
 | EMAILS_PER_USER_DAY | 50 | Attempts per 24-hour window per app user |

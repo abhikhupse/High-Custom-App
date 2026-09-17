@@ -9,16 +9,6 @@ const { processSequencesForUser } = require("../jobs/sequence.job");
 
 function normalizeActionLinks(value) {
   const links = Array.isArray(value?.links) ? value.links : [];
-  const knownTypes = [
-    "instagram",
-    "facebook",
-    "messenger",
-    "threads",
-    "telegram",
-    "snapchat",
-    "x",
-    "linkedin",
-  ];
   return links
     .map((link) => ({
       type: String(
@@ -42,12 +32,12 @@ function normalizeActionLinks(value) {
             ? "messenger"
             : link.type,
     }))
-    .filter(
-      (link) =>
-        knownTypes.includes(link.type) &&
-        link.label &&
-        /^https?:\/\//i.test(link.url),
-    );
+    // Business Link names are user-defined (for example "Book a Call" or
+    // "View Catalogue"), so do not silently discard non-social links.
+    // The type is only used for click tracking; the label and valid URL are
+    // the source of truth for a CTA button.
+    .map((link) => ({ ...link, type: link.type || "website" }))
+    .filter((link) => link.label && /^https?:\/\//i.test(link.url));
 }
 
 // ============================================================
@@ -115,6 +105,14 @@ exports.createSequence = async (req, res) => {
     const parsedAttachment = parseJsonField(attachment, {});
 
     const parsedActionLinks = parseJsonField(actionLinks, {});
+
+    // The client always submits the complete action-link state. This flag is
+    // needed to distinguish an intentionally empty list (the user removed all
+    // buttons) from an older client that did not submit this field at all.
+    const hasSubmittedActionLinks =
+      typeof actionLinks === "string"
+        ? actionLinks.trim() !== ""
+        : Boolean(actionLinks && typeof actionLinks === "object");
 
     const parsedTracking = parseJsonField(tracking, {});
 
@@ -289,7 +287,10 @@ exports.createSequence = async (req, res) => {
 
     if (brandLogoFile) {
       logoUrl = `${baseUrl}/uploads/brand/${brandLogoFile.filename}`;
-    } else if (businessSettings?.logoUrl) {
+    } else if (
+      parsedBrand?.useSavedLogo !== false &&
+      businessSettings?.logoUrl
+    ) {
       logoUrl = businessSettings.logoUrl;
     }
 
@@ -381,10 +382,6 @@ exports.createSequence = async (req, res) => {
       }
     }
 
-    if (!whatsappUrl && businessSettings?.whatsappUrl) {
-      whatsappUrl = businessSettings.whatsappUrl;
-    }
-
     const whatsappEnabled = Boolean(whatsappUrl);
 
     // ==========================================================
@@ -420,7 +417,7 @@ exports.createSequence = async (req, res) => {
       }
     }
 
-    if (!ctaData.enabled) {
+    if (!ctaData.enabled && !hasSubmittedActionLinks) {
       const selectedLink = Array.isArray(businessSettings?.actionLinks)
         ? businessSettings.actionLinks.find((link) =>
             /^https?:\/\//i.test(link?.url || ""),
@@ -444,9 +441,9 @@ exports.createSequence = async (req, res) => {
         ? businessSettings.actionLinks
         : [],
     });
-    const sequenceActionLinks = submittedActionLinks.length
-      ? submittedActionLinks
-      : savedActionLinks.filter((link) => link.url !== ctaData.url);
+    const sequenceActionLinks = (
+      hasSubmittedActionLinks ? submittedActionLinks : savedActionLinks
+    ).filter((link) => link.url !== ctaData.url);
 
     // ==========================================================
     // EDITOR
@@ -1467,17 +1464,31 @@ exports.updateSequence = async (req, res) => {
       };
     }
     sequence.editor = {
-      font: ["Arial", "Roboto", "Verdana"].includes(parsedEditor.font)
+      font: [
+        "Arial",
+        "Roboto",
+        "Helvetica",
+        "Times New Roman",
+        "Georgia",
+        "Verdana",
+      ].includes(parsedEditor.font)
         ? parsedEditor.font
         : "Arial",
 
-      fontSize: ["12px", "14px", "16px", "18px", "20px"].includes(
-        parsedEditor.fontSize,
-      )
+      fontSize: [
+        "12px",
+        "14px",
+        "16px",
+        "18px",
+        "20px",
+        "24px",
+        "28px",
+        "32px",
+      ].includes(parsedEditor.fontSize)
         ? parsedEditor.fontSize
         : "16px",
 
-      textColor: ["Black", "Red", "Blue", "Green"].includes(
+      textColor: ["Black", "White", "Gray", "Red", "Blue", "Green", "Gold"].includes(
         parsedEditor.textColor,
       )
         ? parsedEditor.textColor

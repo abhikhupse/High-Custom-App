@@ -49,6 +49,24 @@ router.get(
   leadsCtrl.getLeads,
 );
 
+// Interested responses belonging to the signed-in Admin only.  This is
+// deliberately separate from /admin/interested-leads, which is company-wide.
+router.get(
+  "/interested-leads",
+  authMiddleware,
+  requireAppRight("interestedLeads"),
+  requireAccessRight("viewInterestedLeads"),
+  leadsCtrl.getMyInterestedLeads,
+);
+
+router.delete(
+  "/interested-leads/:interestId",
+  authMiddleware,
+  requireAppRight("interestedLeads"),
+  requireAccessRight("deleteLead"),
+  leadsCtrl.deleteMyInterestedLead,
+);
+
 // ============================================================
 // CREATE LEAD
 // ============================================================

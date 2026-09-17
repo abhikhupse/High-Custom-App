@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Leads | High Custom</title>
-  <link rel="icon" type="image/png" href="/images/company-logo.png">
+  <link rel="icon" type="image/png" href="/images/company-logo-1.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="/css/admin-shared-sidebar.css">
+  <link rel="stylesheet" href="/css/admin-sidebar-clean.css">
   <link rel="stylesheet" href="/css/admin-shared-header.css">
   <link rel="stylesheet" href="/css/master-leads-premium.css">
   <link rel="stylesheet" href="/css/master-leads-business-type.css">
@@ -33,6 +33,8 @@
     body:not(.shared-navigation-ready) .sidebar,body:not(.shared-navigation-ready) .top-navbar{visibility:hidden}
     @media(max-width:991px){.top-navbar{left:0}.main-content{margin-left:0;padding-top:70px}}
   </style>
+
+  <style data-hc-shell-gate>html:not(.hc-shell-ready) .sidebar,html:not(.hc-shell-ready) #sidebar,html:not(.hc-shell-ready) .top-navbar{visibility:hidden}</style>
 </head>
 <body>
   <aside class="sidebar" id="sidebar" aria-label="Main navigation"><div class="sidebar-brand"></div><ul class="nav-menu"></ul></aside>
@@ -40,8 +42,8 @@
   <main class="main-content" id="mainContent"><div class="page-loading" aria-live="polite">Loading leads…</div></main>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-  <script src="/js/static-navigation.js"></script>
-  <script src="/js/master-leads-premium.js"></script>
+  <script src="/js/static-navigation.js?v=20260917-sidebar-stable-1"></script>
+  <script src="/js/master-leads-premium.js?v=20260917-interested-leads-guard-1"></script>
   <script src="/js/master-leads-business-type.js"></script>
   <script src="/js/master-interested-leads.js"></script>
   <script src="/js/master-leads-header-date.js"></script>

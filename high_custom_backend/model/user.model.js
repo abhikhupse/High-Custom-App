@@ -11,6 +11,16 @@ const appRightsSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Dashboard visibility is split by data scope.  No schema default is set
+    // so existing accounts continue to inherit their role's permissions.
+    ownDashboard: {
+      type: Boolean,
+    },
+
+    allUserDashboard: {
+      type: Boolean,
+    },
+
     users: {
       type: Boolean,
       default: false,

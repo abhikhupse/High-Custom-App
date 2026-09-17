@@ -75,6 +75,19 @@ function requireAppRight(permission) {
   };
 }
 
+function requireAnyAppRight(...permissions) {
+  return (req, res, next) => {
+    if (permissions.some((permission) => hasAppRight(req.account, permission))) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: "You do not have dashboard access.",
+    });
+  };
+}
+
 // ============================================================
 // REQUIRE ACCESS RIGHT
 // ============================================================
@@ -173,6 +186,7 @@ module.exports = {
   hasAccessRight,
 
   requireAppRight,
+  requireAnyAppRight,
   requireAccessRight,
 
   buildUserDataFilter,

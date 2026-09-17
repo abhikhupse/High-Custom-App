@@ -1,5 +1,6 @@
 const LEADS_COLLECTION = require("../model/leads.model");
 const SEQUENCE_DELIVERY = require("../model/sequence_delivery.model");
+const INTEREST_DETAILS = require("../model/lead_interest_details.model");
 const XLSX = require("xlsx");
 
 const { predictLeadFromEmail } = require("../utils/emailLeadPredictor");
@@ -11,6 +12,88 @@ const { processSequencesForUser } = require("../jobs/sequence.job");
 
 const getUserId = (req) => {
   return req.user?.id || req.user?._id;
+};
+
+// ============================================================
+// INTERESTED LEADS — CURRENT ADMIN WORKSPACE ONLY
+// ============================================================
+exports.getMyInterestedLeads = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId)
+      return res.status(401).json({ success: false, message: "User authentication required." });
+
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 10, 1), 100);
+    const query = { userId };
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+    if (startDate && !Number.isNaN(startDate.getTime())) {
+      startDate.setHours(0, 0, 0, 0);
+      query.submittedAt = { ...(query.submittedAt || {}), $gte: startDate };
+    }
+    if (endDate && !Number.isNaN(endDate.getTime())) {
+      endDate.setHours(23, 59, 59, 999);
+      query.submittedAt = { ...(query.submittedAt || {}), $lte: endDate };
+    }
+
+    const leadQuery = { userId };
+    if (req.query.businessType)
+      leadQuery.businessType = String(req.query.businessType).trim();
+    if (req.query.search && String(req.query.search).trim()) {
+      const expression = new RegExp(
+        String(req.query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i",
+      );
+      leadQuery.$or = [
+        { firstName: expression }, { lastName: expression }, { email: expression }, { company: expression },
+      ];
+      query.$or = [
+        { name: expression }, { mobileNumber: expression }, { companyName: expression },
+      ];
+    }
+    if (req.query.businessType || req.query.search) {
+      const leadIds = await LEADS_COLLECTION.find(leadQuery).distinct("_id");
+      if (query.$or) {
+        // A free-text match may come from the response form itself or from
+        // its linked lead record, mirroring the company-wide Admin search.
+        query.$or.push({ leadId: { $in: leadIds } });
+      } else query.leadId = { $in: leadIds };
+    }
+
+    const [details, total, businessTypes] = await Promise.all([
+      INTEREST_DETAILS.find(query)
+        .populate("leadId", "firstName lastName email company businessType")
+        .populate("sequenceId", "subject step variant")
+        .sort({ submittedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      INTEREST_DETAILS.countDocuments(query),
+      LEADS_COLLECTION.distinct("businessType", { userId, businessType: { $nin: [null, ""] } }),
+    ]);
+    return res.json({
+      success: true,
+      details,
+      pagination: { page, limit, total, totalPages: Math.max(Math.ceil(total / limit), 1) },
+      filterOptions: { businessTypes: businessTypes.sort() },
+    });
+  } catch (error) {
+    console.error("GET MY INTERESTED LEADS ERROR:", error);
+    return res.status(500).json({ success: false, message: "Unable to load interested leads." });
+  }
+};
+
+exports.deleteMyInterestedLead = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const removed = await INTEREST_DETAILS.findOneAndDelete({ _id: req.params.interestId, userId });
+    if (!removed)
+      return res.status(404).json({ success: false, message: "Interested lead record not found." });
+    return res.json({ success: true, message: "Interested lead record deleted." });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: "Unable to delete interested lead record." });
+  }
 };
 
 // ============================================================
@@ -134,10 +217,22 @@ exports.getLeads = async (req, res) => {
     for (const delivery of deliveries) {
       const leadId = delivery.leadId.toString();
       let status = "Pending";
+      const response = String(delivery.response || "")
+        .trim()
+        .toLowerCase();
+      const deliveryStatus = String(delivery.status || "")
+        .trim()
+        .toLowerCase();
 
-      if (delivery.response === "interested") {
+      // Normalize older and newer delivery values so the Leads list shows
+      // the latest activity instead of incorrectly falling back to Pending.
+      if (["interested", "positive"].includes(response)) {
         status = "Interested";
-      } else if (delivery.response === "notInterested") {
+      } else if (
+        ["notinterested", "not-interested", "not interested", "negative"].includes(
+          response,
+        )
+      ) {
         status = "Not Interested";
       } else if (delivery.repliedAt) {
         status = "Replied";
@@ -149,9 +244,9 @@ exports.getLeads = async (req, res) => {
         status = "Clicked";
       } else if (delivery.openedAt) {
         status = "Opened";
-      } else if (delivery.status === "sent" || delivery.status === "Sent") {
+      } else if (["sent", "success", "delivered"].includes(deliveryStatus)) {
         status = "Sent";
-      } else if (delivery.status === "failed" || delivery.status === "Failed") {
+      } else if (deliveryStatus === "failed") {
         status = "Failed";
       }
 
@@ -191,9 +286,13 @@ exports.getLeads = async (req, res) => {
         tracking: lead.tracking !== false,
 
         trackingStatus:
-          lead.responseStatus === "interested"
+          String(lead.responseStatus || "").toLowerCase() === "interested"
             ? "Interested"
-            : lead.responseStatus === "notInterested"
+            : ["notinterested", "not-interested", "not interested"].includes(
+                  String(lead.responseStatus || "")
+                    .trim()
+                    .toLowerCase(),
+                )
               ? "Not Interested"
               : trackingByLead.get(lead._id.toString()) ||
           (lead.tracking === false ? "Skip" : "Pending"),

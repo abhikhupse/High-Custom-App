@@ -4,7 +4,8 @@
   const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
   const apiBase = isLocal
     ? "http://localhost:3000/api"
-    : (localStorage.getItem("highCustomApiBase") || "https://high-custom-app.onrender.com/api");
+    : localStorage.getItem("highCustomApiBase") ||
+      "https://high-custom-app.onrender.com/api";
   const token = localStorage.getItem("highCustomAdminToken");
 
   function request(path, options = {}) {

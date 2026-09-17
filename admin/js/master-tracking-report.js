@@ -4,11 +4,12 @@
   if (!table) return;
 
   const token = localStorage.getItem("highCustomAdminToken");
-  // Use the refreshed local API while the static admin panel runs on
-  // localhost. Its tracking data is backed by the same production database.
+  // Keep this in sync with the rest of the local admin panel.  The local
+  // backend listens on port 3000; port 3001 made this page fail before a
+  // request could reach the tracking-report endpoint.
   const local = ["localhost", "127.0.0.1"].includes(location.hostname);
   const apiBase = local
-    ? "http://localhost:3001/api"
+    ? "http://localhost:3000/api"
     : localStorage.getItem("highCustomApiBase") ||
       "https://high-custom-app.onrender.com/api";
   const state = { page: 1, limit: 10, rows: [] };

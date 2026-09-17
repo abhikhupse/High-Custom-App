@@ -27,7 +27,14 @@ function allowAdminOrRoles(...allowedRoles) {
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
 
-    if (allowedRoles.includes(role) || adminEmails.includes(email)) {
+    const inheritsAdminPanelRole =
+      role === "Sub Admin" && allowedRoles.includes("Admin");
+
+    if (
+      allowedRoles.includes(role) ||
+      inheritsAdminPanelRole ||
+      adminEmails.includes(email)
+    ) {
       return next();
     }
 

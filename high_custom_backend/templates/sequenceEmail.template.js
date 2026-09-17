@@ -105,17 +105,70 @@ function getLogoAlignment(position) {
 // ============================================================
 
 function formatContent(content = "") {
-  let html = escapeHtml(content);
+  // The editor saves HTML (for example <strong>, <em> and links). The former
+  // implementation escaped all of it, so recipients saw editor tags as text.
+  // Keep only the safe formatting tags the editor can produce; every other
+  // tag/attribute remains escaped as regular text.
+  const value = String(content || "").replace(/\r\n?/g, "\n");
+  const allowedTags = new Set([
+    "a",
+    "b",
+    "strong",
+    "i",
+    "em",
+    "u",
+    "br",
+    "p",
+    "div",
+    "span",
+    "ul",
+    "ol",
+    "li",
+    "blockquote",
+  ]);
+  const tagPattern = /<\s*(\/)?\s*([a-z0-9]+)([^>]*)>/gi;
+  let html = "";
+  let cursor = 0;
+  let match;
 
-  html = html.replace(/\r\n/g, "\n");
-  html = html.replace(/\r/g, "\n");
-  html = html.replace(/\n/g, "<br>");
+  while ((match = tagPattern.exec(value))) {
+    html += escapeHtml(value.slice(cursor, match.index)).replace(/\n/g, "<br>");
+    cursor = tagPattern.lastIndex;
+    const closing = Boolean(match[1]);
+    const tag = match[2].toLowerCase();
+    if (!allowedTags.has(tag)) {
+      html += escapeHtml(match[0]);
+      continue;
+    }
+    if (closing) {
+      if (tag !== "br") html += `</${tag}>`;
+      continue;
+    }
+    if (tag === "br") {
+      html += "<br>";
+      continue;
+    }
+    if (tag === "a") {
+      const href = /\bhref\s*=\s*(["'])(.*?)\1/i.exec(match[3])?.[2]?.trim();
+      html += isValidUrl(href)
+        ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">`
+        : "<a>";
+      continue;
+    }
+    html += `<${tag}>`;
+  }
 
-  return html;
+  return html + escapeHtml(value.slice(cursor)).replace(/\n/g, "<br>");
 }
 
 function resolvePublicAssetUrl(value, baseUrl) {
   const assetUrl = typeof value === "string" ? value.trim() : "";
+
+  // Inline MIME images are used for locally uploaded assets. Unlike localhost
+  // URLs, a `cid:` source is available to the recipient's mail client.
+  if (/^cid:[a-z0-9._-]+$/i.test(assetUrl)) {
+    return assetUrl;
+  }
 
   if (isValidUrl(assetUrl)) {
     return assetUrl;
@@ -249,7 +302,7 @@ function buildSequenceEmail({
 
   const logoPosition = getLogoAlignment(brand.logoPosition || "Center");
 
-  if (isValidUrl(logoUrl)) {
+  if (isValidUrl(logoUrl) || /^cid:/i.test(logoUrl)) {
     logoHtml = `
       <tr>
         <td
@@ -286,7 +339,7 @@ function buildSequenceEmail({
   const heroLink =
     typeof heroImage.link === "string" ? heroImage.link.trim() : "";
 
-  if (isValidUrl(heroUrl)) {
+  if (isValidUrl(heroUrl) || /^cid:/i.test(heroUrl)) {
     const imageHtml = `
       <img
         src="${escapeHtml(heroUrl)}"

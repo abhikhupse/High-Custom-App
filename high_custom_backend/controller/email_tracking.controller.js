@@ -10,6 +10,10 @@ const {
 } = require("../services/email_notification.service");
 
 function actionLinksForDelivery(delivery, sequence = {}) {
+  // A historical delivery can reference a sequence that has since been
+  // deleted. Mongoose populates that reference as null, so normalize it
+  // before reading its optional action-link configuration.
+  const safeSequence = sequence || {};
   const actionType = (link) => {
     const value =
       `${link?.text || link?.label || ""} ${link?.url || ""}`.toLowerCase();
@@ -28,23 +32,23 @@ function actionLinksForDelivery(delivery, sequence = {}) {
   const source = stored.length
     ? stored
     : [
-        sequence.actionLinks?.whatsapp?.enabled &&
-        sequence.actionLinks.whatsapp.url
+        safeSequence.actionLinks?.whatsapp?.enabled &&
+        safeSequence.actionLinks.whatsapp.url
           ? {
               type: "whatsapp",
               label: "WhatsApp",
-              url: sequence.actionLinks.whatsapp.url,
+              url: safeSequence.actionLinks.whatsapp.url,
             }
           : null,
-        sequence.actionLinks?.cta?.enabled && sequence.actionLinks.cta.url
+        safeSequence.actionLinks?.cta?.enabled && safeSequence.actionLinks.cta.url
           ? {
-              type: actionType(sequence.actionLinks.cta),
-              label: sequence.actionLinks.cta.text || "Website",
-              url: sequence.actionLinks.cta.url,
+              type: actionType(safeSequence.actionLinks.cta),
+              label: safeSequence.actionLinks.cta.text || "Website",
+              url: safeSequence.actionLinks.cta.url,
             }
           : null,
-        ...(Array.isArray(sequence.actionLinks?.links)
-          ? sequence.actionLinks.links
+        ...(Array.isArray(safeSequence.actionLinks?.links)
+          ? safeSequence.actionLinks.links
               .filter(
                 (link) =>
                   link?.enabled !== false &&

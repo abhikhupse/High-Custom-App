@@ -86,7 +86,14 @@ function buildPersonalSequenceHtml({
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#fff;color:#111;font:16px/1.6 Arial,sans-serif"><div style="max-width:620px">${content}${buttons}${unsubscribe}</div>${trackingPixel}</body></html>`;
 }
 
-async function createMimeMessage({ from, to, subject, html, text }) {
+async function createMimeMessage({
+  from,
+  to,
+  subject,
+  html,
+  text,
+  attachments = [],
+}) {
   const message = await new MailComposer({
     from,
     to,
@@ -94,6 +101,7 @@ async function createMimeMessage({ from, to, subject, html, text }) {
     subject: String(subject || "").replace(/[\r\n]+/g, " "),
     text,
     html,
+    attachments,
   })
     .compile()
     .build();
@@ -104,27 +112,14 @@ function buildSequenceBodies(options, provider = "gmail") {
   const format =
     provider === "zoho" && process.env.EMAIL_ZOHO_PLAIN_TEXT === "true"
       ? "plain"
-      : process.env.EMAIL_SEQUENCE_FORMAT || "personal_html";
-  // Sequences created from saved Business Link settings have an enabled brand
-  // logo. They must use the rich template so the saved logo and CTA links are
-  // preserved in the actual email—not only in the editor preview.
-  // Actual sequence sends receive a delivery-specific tracking base URL. Use
-  // the rich template whenever they contain actions, even for older sequences
-  // created before `trackActionLinks` was introduced. This keeps their buttons
-  // pointed at `/email-tracking/click/...` instead of the raw social URL.
-  const hasTrackedActionLinks = Boolean(
-    options.actionLinkTrackingBaseUrl &&
-      (options.sequence?.tracking?.trackActionLinks === true ||
-        options.sequence?.actionLinks?.whatsapp?.enabled ||
-        options.sequence?.actionLinks?.cta?.enabled ||
-        options.sequence?.actionLinks?.links?.some(
-          (link) => link?.enabled !== false,
-        )),
-  );
-  const rich =
-    format === "html" ||
-    (format === "personal_html" &&
-      (options.sequence?.brand?.enabled === true || hasTrackedActionLinks));
+      : process.env.EMAIL_SEQUENCE_FORMAT || "html";
+
+  // A sequence is the email definition. Always render the rich sequence
+  // template so a lead receives the exact saved logo, banner, content, action
+  // links, attachment and tracking controls. Previously the default path used
+  // a smaller fallback template unless a logo/action was present, so saved
+  // hero images and attachments could disappear from a sent email.
+  const rich = format !== "plain";
   const html = rich
     ? buildSequenceEmail(options)
     : format === "plain"

@@ -4,6 +4,8 @@
 
 const ADMIN_APP_RIGHTS = {
   dashboard: true,
+  ownDashboard: true,
+  allUserDashboard: true,
   users: true,
   leads: true,
   interestedLeads: true,
@@ -24,6 +26,8 @@ const ADMIN_APP_RIGHTS = {
 
 const HR_APP_RIGHTS = {
   dashboard: true,
+  ownDashboard: true,
+  allUserDashboard: true,
   users: true,
   leads: true,
   interestedLeads: true,
@@ -49,6 +53,8 @@ const HR_APP_RIGHTS = {
 
 const EMPLOYEE_APP_RIGHTS = {
   dashboard: true,
+  ownDashboard: true,
+  allUserDashboard: false,
 
   users: false,
 
@@ -391,6 +397,15 @@ const EMPLOYEE_ACCESS_RIGHTS = {
 
 const ROLE_CONFIG = {
   Admin: {
+    dataScope: "all",
+    appRights: ADMIN_APP_RIGHTS,
+    accessRights: ADMIN_ACCESS_RIGHTS,
+  },
+
+  // Sub Admin starts with the same standard workspace access as the legacy
+  // Admin role.  It remains a distinct stored role and can have its rights
+  // customised independently from User Management.
+  "Sub Admin": {
     dataScope: "all",
     appRights: ADMIN_APP_RIGHTS,
     accessRights: ADMIN_ACCESS_RIGHTS,

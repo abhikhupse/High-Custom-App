@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let users = [];
 
-  let availableRoles = ["Employee", "HR", "Admin"];
+  let availableRoles = ["Employee", "HR", "Sub Admin", "Admin"];
 
   let inactiveOnly = false;
 
@@ -168,6 +168,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return user?.role === "Admin" || user?.isAdministrator === true;
   }
 
+  function isSubAdmin(user) {
+    return user?.role === "Sub Admin";
+  }
+
   function isPrimaryAdmin(user) {
     return user?.isPrimaryAdministrator === true;
   }
@@ -254,9 +258,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return "role-administrator";
     }
 
-    if (isAdmin(user)) {
+    if (isSubAdmin(user)) {
       return "role-sub-admin";
     }
+
+    if (isAdmin(user)) return "role-administrator";
 
     if (isHR(user)) {
       return "role-hr";
@@ -266,8 +272,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function roleLabel(user) {
-    if (isPrimaryAdmin(user)) return "Administrator";
-    if (isAdmin(user)) return "Sub Admin";
+    if (isPrimaryAdmin(user) || isAdmin(user)) return "Administrator";
+    if (isSubAdmin(user)) return "Sub Admin";
     return user?.role || "Employee";
   }
 
@@ -278,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
     select.innerHTML = roles
       .map(
         (role) =>
-          `<option value="${escapeHtml(role)}">${escapeHtml(role === "Admin" ? "Sub Admin" : role)}</option>`,
+          `<option value="${escapeHtml(role)}">${escapeHtml(role === "Admin" ? "Administrator" : role)}</option>`,
       )
       .join("");
     select.value = roles.includes(selectedRole) ? selectedRole : "Employee";
@@ -286,11 +292,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function roleDisplayName(role) {
-    return role === "Admin" ? "Sub Admin" : role;
+    return role === "Admin" ? "Administrator" : role;
   }
 
   function rolePickerIcon(role) {
-    if (role === "Admin") return "fa-crown";
+    if (role === "Admin" || role === "Sub Admin") return "fa-crown";
     if (role === "HR") return "fa-user-tie";
     if (role === "Employee") return "fa-user";
     return "fa-user-tag";
@@ -663,6 +669,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const rights = user.appRights || {};
     const requiredAdministratorRights = new Set([
       "dashboard",
+      "ownDashboard",
+      "allUserDashboard",
       "users",
       "appRightsManagement",
       "accessRightsManagement",
@@ -695,7 +703,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // richer module-directory presentation used by the new Admin design.
   function enhanceAppRightsEditor() {
     const meta = {
-      dashboard: ["Dashboard", "View key metrics, analytics and overview.", "fa-house", ""],
+      dashboard: ["Dashboard Access", "Allow access to the dashboard.", "fa-house", ""],
+      ownDashboard: ["Own Dashboard", "View only this user's dashboard data.", "fa-user", "purple"],
+      allUserDashboard: ["All User Dashboard", "View dashboard data for all users.", "fa-users", "gold"],
       users: ["Users", "View and manage all users.", "fa-users", "purple"],
       leads: ["Leads", "Manage and track all leads.", "fa-users-viewfinder", "green"],
       interestedLeads: ["Interested Leads", "View and manage interested leads.", "fa-star", "gold"],
@@ -784,8 +794,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const left = document.createElement("div");
     const right = document.createElement("div");
     left.className = right.className = "rights-app-column";
-    const dashboard = take("dashboard");
-    if (dashboard) left.append(dashboard);
+    left.append(group("Dashboard", "Choose the dashboard data this user can view.", "fa-house", ["dashboard", "ownDashboard", "allUserDashboard"], ""));
     left.append(group("Master", "Manage master data and resources.", "fa-layer-group", ["socialLinks", "businessLink", "sequences", "trackingReport"], "purple"));
     const leads = take("leads"); const interested = take("interestedLeads");
     if (leads) right.append(leads);
@@ -1163,7 +1172,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ? roles
             .map(
               (role) =>
-                `<option value="${escapeHtml(role)}">All ${escapeHtml(role === "Admin" ? "Sub Admin" : role)} users</option>`,
+                `<option value="${escapeHtml(role)}">All ${escapeHtml(role === "Admin" ? "Administrator" : role)} users</option>`,
             )
             .join("")
         : '<option value="">No roles available</option>';
@@ -1273,6 +1282,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const rights = {};
     const requiredAdministratorRights = new Set([
       "dashboard",
+      "ownDashboard",
+      "allUserDashboard",
       "users",
       "appRightsManagement",
       "accessRightsManagement",
@@ -2037,7 +2048,7 @@ document.addEventListener("DOMContentLoaded", () => {
       availableRoles =
         Array.isArray(result.roles) && result.roles.length
           ? result.roles
-          : ["Employee", "HR", "Admin"];
+          : ["Employee", "HR", "Sub Admin", "Admin"];
 
       // ======================================================
       // FIND CURRENT USER
@@ -2060,7 +2071,7 @@ document.addEventListener("DOMContentLoaded", () => {
           availableRoles
             .map(
               (role) =>
-                `<option value="${escapeHtml(role)}">${escapeHtml(role === "Admin" ? "Sub Admin" : role)}</option>`,
+                `<option value="${escapeHtml(role)}">${escapeHtml(role === "Admin" ? "Administrator" : role)}</option>`,
             )
             .join("");
         roleFilter.value = availableRoles.includes(selected) ? selected : "";

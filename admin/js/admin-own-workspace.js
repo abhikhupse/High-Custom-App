@@ -3,7 +3,8 @@
   const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
   const apiBase = isLocal
     ? "http://localhost:3000/api"
-    : (localStorage.getItem("highCustomApiBase") || "https://high-custom-app.onrender.com/api");
+    : localStorage.getItem("highCustomApiBase") ||
+      "https://high-custom-app.onrender.com/api";
   const token = localStorage.getItem("highCustomAdminToken");
   const path = location.pathname.toLowerCase();
   const escapeHtml = (value) =>
@@ -26,7 +27,13 @@
       .toLowerCase()
       .replace(/\s+/g, "-");
     const allowed = new Set([
-      "sent", "opened", "replied", "interested", "not-interested", "failed", "pending",
+      "sent",
+      "opened",
+      "replied",
+      "interested",
+      "not-interested",
+      "failed",
+      "pending",
     ]);
     const style = allowed.has(normalized) ? normalized : "default";
     const label = normalized === "not-interested" ? "Not Interested" : raw;
@@ -231,10 +238,14 @@
       // The Master Interested Leads entry reuses the personal leads screen.
       // The source is still the signed-in user's personal endpoint; this only
       // narrows that already-authorized result to interested records.
-      const interestedOnly = new URLSearchParams(location.search).get("status") === "interested";
+      const interestedOnly =
+        new URLSearchParams(location.search).get("status") === "interested";
       if (interestedOnly) {
         rows = rows.filter(
-          (item) => String(item.trackingStatus || item.responseStatus || "").toLowerCase() === "interested",
+          (item) =>
+            String(
+              item.trackingStatus || item.responseStatus || "",
+            ).toLowerCase() === "interested",
         );
         const heading = document.querySelector(".main-content h1, .page-title");
         if (heading) heading.textContent = "Interested Leads";

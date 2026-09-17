@@ -5,9 +5,16 @@
     : localStorage.getItem("highCustomApiBase") ||
       "https://high-custom-app.onrender.com/api";
   const tokenKey = "highCustomAdminToken";
-  // Admin opens on the company-wide, all-time view. Date presets narrow it
-  // only when the administrator explicitly selects one.
+  let canViewAllUsersDashboard = false;
+  // Dashboard opens for the signed-in user's permitted scope. Date presets
+  // narrow the selected scope only when the user explicitly selects one.
   let dateFilter = "all";
+
+  function removeAllUsersFilter() {
+    document.querySelectorAll(".user-filter-wrap").forEach((element) => {
+      element.remove();
+    });
+  }
 
   function setText(id, value) {
     const element = document.getElementById(id);
@@ -37,7 +44,8 @@
   }
 
   function displayRole(user) {
-    return user?.role === "User" ? "Admin" : user?.role || "Admin";
+    const storedRole = String(user?.role || "User").trim();
+    return storedRole === "Admin" ? "Administrator" : storedRole;
   }
 
   async function loadProfile(token) {
@@ -48,6 +56,17 @@
     if (!response.ok || !payload.success || !payload.user)
       throw new Error(payload.message || "Profile unavailable");
     const user = payload.user;
+    canViewAllUsersDashboard = user.appRights?.allUserDashboard === true;
+    const userSelect = document.getElementById("userFilter");
+    if (userSelect && !canViewAllUsersDashboard) {
+      userSelect.value = "";
+      userSelect.disabled = true;
+      removeAllUsersFilter();
+    }
+    const viewLabel = document.querySelector(".filter-context");
+    if (viewLabel && !canViewAllUsersDashboard) {
+      viewLabel.innerHTML = '<i class="fas fa-user"></i> My dashboard';
+    }
     const name = displayName(user);
     const initials =
       name
@@ -174,7 +193,7 @@
 
   function updateUsers(users) {
     const select = document.getElementById("userFilter");
-    if (!select) return;
+    if (!select || !canViewAllUsersDashboard) return;
     const current = select.value;
     select.innerHTML = '<option value="">All Users</option>';
     users.forEach((user) => {
@@ -277,17 +296,18 @@
 
   window.HighCustomAdminDashboard = { refresh: loadDashboard };
   window.refreshDashboard = loadDashboard;
+  const initializeDashboard = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (token) await loadProfile(token).catch(removeAllUsersFilter);
+    loadDashboard();
+  };
   if (document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", () => {
       attachEvents();
-      const token = localStorage.getItem(tokenKey);
-      if (token) loadProfile(token).catch(() => {});
-      loadDashboard();
+      initializeDashboard();
     });
   else {
     attachEvents();
-    const token = localStorage.getItem(tokenKey);
-    if (token) loadProfile(token).catch(() => {});
-    loadDashboard();
+    initializeDashboard();
   }
 })();
